@@ -2,6 +2,9 @@
 Fused: Full-System Simulation of Energy-Driven Computers
 ========================================================
 
+.. image:: https://travis-ci.com/UoS-EEC/fused.svg?branch=master
+    :target: https://travis-ci.com/UoS-EEC/fused
+
 Fused is a full-system simulator for modelling energy-driven computers.
 To accurately model the interplay between energy-availability, power
 consumption, and execution; Fused models energy and execution in a closed

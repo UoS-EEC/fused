@@ -1,0 +1,23 @@
+dist: bionic
+sudo: false
+language: cpp
+
+before_install:
+  - sudo apt-get -y install ninja-build libboost-dev
+
+install:
+  - pip install --user cmake
+  - cmake -Bbuild -GNinja -D INSTALL_DEPENDENCIES=ON
+  - cmake --build build && rm -rf build
+
+env:
+  - ARM_GCC_ROOT=${HOME}/.local/arm-gcc \
+    MSP430_GCC_ROOT=${HOME}/.local/msp430-gcc \
+    MSP430_INC=${HOME}/.local/msp430-inc \
+    FUSED_ROOT=${PWD}/fused
+
+script:
+  - cmake -Bbuild -GNinja -D TARGET_ARCH=cm0
+  - cmake --build build
+  - cmake -Bbuild -GNinja -D TARGET_ARCH=msp430
+  - cmake --build build
