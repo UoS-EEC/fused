@@ -1,0 +1,65 @@
+#
+# Copyright (c) 2019-2020, University of Southampton and Contributors.
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Fused configuration parameters.
+# Note that command line options take precedence over config-file options, so
+# any options specified here may be overruled when launching Fused.
+
+# ------ Paths ------
+OutputDirectory: /tmp/fused-outputs
+EnergyCoeffsPath: @CMAKE_CURRENT_SOURCE_DIR@/config/coeffs.yaml
+BootTracePath: @CMAKE_CURRENT_SOURCE_DIR@/config/boot-trace.csv
+VccMultiplierPath: none # @CMAKE_CURRENT_SOURCE_DIR@/config/vsweep-current.csv
+
+# Operation mode/Program to execute:
+GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
+ProgramHexFile: /tmp/output.hex # Path to a program hex file
+
+# ------ Simulation control ------
+SimTimeLimit: 30.0 # Simulation time limit (seconds)
+IoSimulationStopperTarget: 3 # Simulation stops after X posedge of pin connected to simstopper
+EventLogStart: simulation_start # {event, simulation_start}
+
+# ------ Timesteps ------
+EventLogTimeStep: 10.0e-6 # Period over which to aggregate events
+MCUPowerTimestep: 10.1e-6 # Rate at which mcu current is computed
+ExtTimestep: 5.0E-6
+CapacitorTimeStep: 5.0e-6
+
+# ------ Power supply ------
+PowerSupply: ConstantCurrentSupply
+SupplyCurrentLimit: 5.0E-3
+SupplyVoltageLimit: 3.59
+
+# ------ Power system ------
+CpuCoreVoltage: 1.8
+# Supply voltage supervisor
+SVSVon: 3.5
+SVSVoff: 3.4
+VoltageWarning: 2.0
+
+# Storage capacitor
+CapacitorValue: 4.7e-6
+CapacitorInitialVoltage: 0.0
+
+ExtIcc: 25.0E-6 # Static current draw of external circuitry
+
+# Power management module
+PMMOn: 1.9
+PMMOff: 1.8
+VMAX: 3.6
+
+# ------ Cache settings ------
+
+# Available replacement policies are:
+# {LRU, LFU, RoundRobin, PseudoRandom}
+mcu.cache.CacheReplacementPolicy: LRU
+
+mcu.cache.CacheWritePolicy: WriteAround # {WriteThrough, WriteAround, WriteBack}
+mcu.cache.CacheLineWidth: 8
+mcu.cache.CacheNLines: 2
+mcu.cache.CacheNSets: 2

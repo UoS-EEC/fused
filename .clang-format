@@ -1,0 +1,7 @@
+﻿---
+BasedOnStyle: Google
+IndentWidth: '2'
+SortIncludes: 'true'
+UseTab: Never
+
+...
