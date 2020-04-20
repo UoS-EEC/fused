@@ -46,58 +46,50 @@ void Config::parseCli(int argc, char *argv[]) {
   }
 }
 
-void Config::parseFile(std::string fn) {
+void Config::parseFile(const std::string &fn) {
   if (fn == "") {
     if (m_config.find("ConfigFile") != m_config.end()) {
-      fn = m_config["ConfigFile"];
+      m_configFileName = m_config["ConfigFile"];
     } else {
-      fn = "config.yaml";  // Debug convenience
+      m_configFileName = "config.yaml";  // Debug convenience
     }
   }
-  Utility::assertFileExists(fn);
-  auto ymlconfig = YAML::LoadFile(fn).as<std::map<std::string, std::string>>();
+  Utility::assertFileExists(m_configFileName);
+  auto ymlconfig =
+      YAML::LoadFile(m_configFileName).as<std::map<std::string, std::string>>();
   m_config.insert(ymlconfig.begin(),
                   ymlconfig.end());  // Note: CLI arguments override yaml-config
 }
 
-std::string Config::getString(std::string key) {
-  if (m_config.find(key) != m_config.end()) {
-    return m_config[key];
+const std::string &Config::getString(const std::string &key) const {
+  auto it = m_config.find(key);
+  if (it != m_config.end()) {
+    return it->second;
   } else {
-    std::cerr << "ERROR: key " << key << " not found in config.";
-    return "";
+    throw std::invalid_argument(key + ": not found in config file " +
+                                m_configFileName);
   }
 }
 
-unsigned int Config::getUint(std::string key) {
-  if (m_config.find(key) != m_config.end()) {
-    return static_cast<unsigned int>(std::stoi(m_config[key]));
+unsigned int Config::getUint(const std::string &key) const {
+  return static_cast<unsigned int>(std::stoi(getString(key)));
+}
+
+double Config::getDouble(const std::string &key) const {
+  return std::stod(getString(key));
+}
+
+bool Config::getBool(const std::string &key) const {
+  const auto &val = getString(key);
+  if (val == "True") {
+    return true;
+  } else if (val == "False") {
+    return false;
   } else {
-    std::cerr << "ERROR: key " << key << " not found in config.";
-    exit(1);
+    throw std::invalid_argument(key + " is not a boolean value.");
   }
 }
 
-double Config::getDouble(std::string key) {
-  if (m_config.find(key) != m_config.end()) {
-    return std::stod(m_config[key]);
-  } else {
-    std::cerr << "ERROR: key " << key << " not found in config.";
-    exit(1);
-  }
-}
-
-bool Config::getBool(std::string key) {
-  if (m_config.find(key) != m_config.end()) {
-    if (m_config[key] == "True") {
-      return true;
-    } else if (m_config[key] == "False") {
-      return false;
-    } else {
-      throw std::invalid_argument(key + ": not a boolean value.");
-    }
-  } else {
-    std::cerr << "ERROR: key " << key << " not found in config.";
-    exit(1);
-  }
+bool Config::contains(const std::string &key) const {
+  return m_config.find(key) != m_config.end();
 }
