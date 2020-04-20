@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <stdlib.h>
 #include "decode.h"
 #include "exmemwb.h"
-#include <stdlib.h>
 
 ///--- Move operations -------------------------------------------///
 
@@ -18,7 +18,7 @@ u32 movs_i() {
   do_nflag(opA);
   do_zflag(opA);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // MOV - copy the source register value to the destination register
@@ -30,7 +30,7 @@ u32 mov_r() {
   else
     cpu_set_gpr(decoded.rD, opA);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // MOVS - copy the low source register value to the destination low register
@@ -41,7 +41,7 @@ u32 movs_r() {
   do_nflag(opA);
   do_zflag(opA);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // MRS - Move to Register from Special register
@@ -56,7 +56,7 @@ u32 mrs() {
         result |= cpu_get_ipsr();
       }
       if (n & 2u) {
-        result |= cpu_get_gpr(d) & (~(1u<<24)); // T-bit read as 0
+        result |= cpu_get_gpr(d) & (~(1u << 24));  // T-bit read as 0
       }
       if ((n & 4u) == 0) {
         result |= cpu_get_apsr() & 0xf0000000;
@@ -64,12 +64,14 @@ u32 mrs() {
       break;
     case 1:
       if ((n & 7u) == 0) {
-        fprintf(stderr, "MRS: Warning, returning current stack pointer, but "
-            "main stack pointer was requested.\n");
+        fprintf(stderr,
+                "MRS: Warning, returning current stack pointer, but "
+                "main stack pointer was requested.\n");
         result = cpu_get_sp();
       } else if ((n & 7u) == 1) {
-        fprintf(stderr, "MRS: Warning, returning current stack pointer, but "
-            "process stack pointer was requested.\n");
+        fprintf(stderr,
+                "MRS: Warning, returning current stack pointer, but "
+                "process stack pointer was requested.\n");
         result = cpu_get_sp();
       }
       break;
@@ -82,7 +84,7 @@ u32 mrs() {
   }
   cpu_set_gpr(d, result);
   takenBranch = 1;
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // MSR - Move to Special register from Register
@@ -97,38 +99,42 @@ u32 msr() {
       }
       break;
     case 1:
-      fprintf(stderr, "MSR: Warning, we're not checking privelege before "
-          "setting SP.\n");
+      fprintf(stderr,
+              "MSR: Warning, we're not checking privelege before "
+              "setting SP.\n");
       if ((d & 7u) == 0) {
-        fprintf(stderr, "MSR: Warning, setting current stack, should set main"
-            " stack pointer.\n");
+        fprintf(stderr,
+                "MSR: Warning, setting current stack, should set main"
+                " stack pointer.\n");
         // set sp_main
         cpu_set_sp(nval & (~3u));
         fprintf(stderr, "MSR: stack pointer set to 0x%08x.\n", nval & (~3u));
 
       } else if ((d & 7u) == 1) {
-        fprintf(stderr, "MSR: Warning, setting current stack, should set "
-            "process stack pointer.\n");
+        fprintf(stderr,
+                "MSR: Warning, setting current stack, should set "
+                "process stack pointer.\n");
         // set sp_process
         cpu_set_sp(nval & (~3u));
       }
       break;
     case 2:
-      fprintf(stderr, "MSR: Warning, we're not checking privelege before "
-          "setting CONTROL.\n");
+      fprintf(stderr,
+              "MSR: Warning, we're not checking privelege before "
+              "setting CONTROL.\n");
       if ((d & 7u) == 0) {
-          cpu.primask = nval & 1u;
+        cpu.primask = nval & 1u;
       } else if (((d & 7u) == 4u) && cpu_mode_is_thread()) {
-        cpu.control = (cpu.control & (~1u)) | (nval & (~1u)); // nPRIV
-        cpu.control = (cpu.control & (~2u)) | (nval & (~2u)); // SPSEL
+        cpu.control = (cpu.control & (~1u)) | (nval & (~1u));  // nPRIV
+        cpu.control = (cpu.control & (~2u)) | (nval & (~2u));  // SPSEL
       }
       break;
     default:
       fprintf(stderr, "MSR: Unrecognized instruction.\n");
       break;
   }
-  takenBranch = 1;
-  return 1;
+  takenBranch = 1;  // Because this was a 32-bit instruction
+  return TIMING_DEFAULT;
 }
 
 ///--- Bit twiddling operations -------------------------------------------///
@@ -140,7 +146,7 @@ u32 sxtb() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // SXTH - Sign extend a halfword to a word
@@ -150,7 +156,7 @@ u32 sxth() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // UXTB - Extend a byte to a word
@@ -158,7 +164,7 @@ u32 uxtb() {
   u32 result = 0xFF & cpu_get_gpr(decoded.rM);
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // UXTH - Extend a halfword to a word
@@ -166,7 +172,7 @@ u32 uxth() {
   u32 result = 0xFFFF & cpu_get_gpr(decoded.rM);
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // REV - Reverse ordering of bytes in a word
@@ -179,7 +185,7 @@ u32 rev() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // REV16 - Reverse ordering of bytes in a packed halfword
@@ -192,7 +198,7 @@ u32 rev16() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // REVSH - Reverse ordering of bytes in a signed halfword
@@ -204,5 +210,5 @@ u32 revsh() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }

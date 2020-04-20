@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "decode.h"
-#include "exmemwb.h"
 #include <assert.h>
 #include <stdlib.h>
+#include "decode.h"
+#include "exmemwb.h"
 
 ///--- Add operations --------------------------------------------///
 
@@ -24,7 +24,7 @@ u32 adcs() {
   do_cflag(opA, opB, cpu_get_flag_c());
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // ADD - add small immediate to a register and update flags
@@ -40,7 +40,7 @@ u32 adds_i3() {
   do_cflag(opA, opB, 0);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // ADD - add large immediate to a register and update flags
@@ -56,7 +56,7 @@ u32 adds_i8() {
   do_cflag(opA, opB, 0);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // ADD - add two registers and update flags
@@ -72,7 +72,7 @@ u32 adds_r() {
   do_cflag(opA, opB, 0);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // ADD - add two registers, one or both high no flags
@@ -106,7 +106,7 @@ u32 add_sp() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // ADR - add an immpediate to PC
@@ -119,7 +119,7 @@ u32 adr() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 ///--- Subtract operations --------------------------------------------///
@@ -136,7 +136,7 @@ u32 subs_i3() {
   do_cflag(opA, opB, 1);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 subs_i8() {
@@ -151,7 +151,7 @@ u32 subs_i8() {
   do_cflag(opA, opB, 1);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 subs() {
@@ -166,7 +166,7 @@ u32 subs() {
   do_cflag(opA, opB, 1);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 sub_sp() {
@@ -176,7 +176,7 @@ u32 sub_sp() {
 
   cpu_set_sp(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 sbcs() {
@@ -191,7 +191,7 @@ u32 sbcs() {
   do_cflag(opA, opB, cpu_get_flag_c());
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 rsbs() {
@@ -206,7 +206,7 @@ u32 rsbs() {
   do_cflag(opA, opB, 1);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 ///--- Multiply operations --------------------------------------------///
@@ -223,5 +223,5 @@ u32 muls() {
   do_nflag(result);
   do_zflag(result);
 
-  return 32;
+  return TIMING_MULTIPLY;
 }

@@ -124,9 +124,8 @@ void do_cflag(u32 a, u32 b, u32 carry);
 size_t exwbmem(const u16 pInsn);
 
 // Timing model
-#define TIMING_BRANCH 0
-#define TIMING_BRANCH_LINK 0
-#define TIMING_PC_UPDATE 0
-#define TIMING_MEM 0
+// Extra execution cycles
+#define TIMING_DEFAULT 0
+#define TIMING_MULTIPLY 32
 
 #endif

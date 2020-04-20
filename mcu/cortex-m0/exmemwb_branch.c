@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "sim_support.h"
+#include <stdlib.h>
 #include "decode.h"
 #include "exmemwb.h"
-#include <stdlib.h>
+#include "sim_support.h"
 
 ///--- Compare operations --------------------------------------------///
 
@@ -21,7 +21,7 @@ u32 cmn() {
   do_cflag(opA, opB, 0);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 cmp_i() {
@@ -34,7 +34,7 @@ u32 cmp_i() {
   do_cflag(opA, opB, 1);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 cmp_r() {
@@ -47,7 +47,7 @@ u32 cmp_r() {
   do_cflag(opA, opB, 1);
   do_vflag(opA, opB, result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // TST - Test for matches
@@ -59,7 +59,7 @@ u32 tst() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 ///--- Branch operations --------------------------------------------///
@@ -71,7 +71,7 @@ u32 b() {
   cpu_set_pc(result);
   takenBranch = 1;
 
-  return TIMING_BRANCH;
+  return TIMING_DEFAULT;
 }
 
 // B - Conditional branch
@@ -79,69 +79,56 @@ u32 b_c() {
   u32 taken = 0;
 
   switch (decoded.cond) {
-  case 0x0: // b eq, z set
-    if (cpu_get_flag_z())
-      taken = 1;
-    break;
-  case 0x1: // b ne, z clear
-    if (!cpu_get_flag_z())
-      taken = 1;
-    break;
-  case 0x2: // b cs, c set
-    if (cpu_get_flag_c())
-      taken = 1;
-    break;
-  case 0x3: // b cc, c clear
-    if (!cpu_get_flag_c())
-      taken = 1;
-    break;
-  case 0x4: // b mi, n set
-    if (cpu_get_flag_n())
-      taken = 1;
-    break;
-  case 0x5: // b pl, n clear
-    if (!cpu_get_flag_n())
-      taken = 1;
-    break;
-  case 0x6: // b vs, v set
-    if (cpu_get_flag_v())
-      taken = 1;
-    break;
-  case 0x7: // b vc, v clear
-    if (!cpu_get_flag_v())
-      taken = 1;
-    break;
-  case 0x8: // b hi, c set z clear
-    if (cpu_get_flag_c() && !cpu_get_flag_z())
-      taken = 1;
-    break;
-  case 0x9: // b ls, c clear or z set
-    if (cpu_get_flag_z() || !cpu_get_flag_c())
-      taken = 1;
-    break;
-  case 0xA: // b ge, N  ==  V
-    if (cpu_get_flag_n() == cpu_get_flag_v())
-      taken = 1;
-    break;
-  case 0xB: // b lt, N ! =  V
-    if (cpu_get_flag_n() != cpu_get_flag_v())
-      taken = 1;
-    break;
-  case 0xC: // b gt, Z == 0 and N  ==  V
-    if (!cpu_get_flag_z() && (cpu_get_flag_n() == cpu_get_flag_v()))
-      taken = 1;
-    break;
-  case 0xD: // b le, Z == 1 or N ! =  V
-    if (cpu_get_flag_z() || (cpu_get_flag_n() != cpu_get_flag_v()))
-      taken = 1;
-    break;
-  default:
-    fprintf(stderr, "Error: Malformed instruction!");
-    sim_exit(1);
+    case 0x0:  // b eq, z set
+      if (cpu_get_flag_z()) taken = 1;
+      break;
+    case 0x1:  // b ne, z clear
+      if (!cpu_get_flag_z()) taken = 1;
+      break;
+    case 0x2:  // b cs, c set
+      if (cpu_get_flag_c()) taken = 1;
+      break;
+    case 0x3:  // b cc, c clear
+      if (!cpu_get_flag_c()) taken = 1;
+      break;
+    case 0x4:  // b mi, n set
+      if (cpu_get_flag_n()) taken = 1;
+      break;
+    case 0x5:  // b pl, n clear
+      if (!cpu_get_flag_n()) taken = 1;
+      break;
+    case 0x6:  // b vs, v set
+      if (cpu_get_flag_v()) taken = 1;
+      break;
+    case 0x7:  // b vc, v clear
+      if (!cpu_get_flag_v()) taken = 1;
+      break;
+    case 0x8:  // b hi, c set z clear
+      if (cpu_get_flag_c() && !cpu_get_flag_z()) taken = 1;
+      break;
+    case 0x9:  // b ls, c clear or z set
+      if (cpu_get_flag_z() || !cpu_get_flag_c()) taken = 1;
+      break;
+    case 0xA:  // b ge, N  ==  V
+      if (cpu_get_flag_n() == cpu_get_flag_v()) taken = 1;
+      break;
+    case 0xB:  // b lt, N ! =  V
+      if (cpu_get_flag_n() != cpu_get_flag_v()) taken = 1;
+      break;
+    case 0xC:  // b gt, Z == 0 and N  ==  V
+      if (!cpu_get_flag_z() && (cpu_get_flag_n() == cpu_get_flag_v()))
+        taken = 1;
+      break;
+    case 0xD:  // b le, Z == 1 or N ! =  V
+      if (cpu_get_flag_z() || (cpu_get_flag_n() != cpu_get_flag_v())) taken = 1;
+      break;
+    default:
+      fprintf(stderr, "Error: Malformed instruction!");
+      sim_exit(1);
   }
 
   if (taken == 0) {
-    return 1;
+    return TIMING_DEFAULT;
   }
 
   u32 offset = signExtend32(decoded.imm << 1, 9);
@@ -150,7 +137,7 @@ u32 b_c() {
   cpu_set_pc(result);
   takenBranch = 1;
 
-  return TIMING_BRANCH;
+  return TIMING_DEFAULT;
 }
 
 // BLX - Unconditional branch and link with switch to ARM mode
@@ -166,7 +153,7 @@ u32 blx() {
   cpu_set_pc(address);
   takenBranch = 1;
 
-  return TIMING_BRANCH;
+  return TIMING_DEFAULT;
 }
 
 // BX - Unconditional branch with switch to ARM mode
@@ -186,7 +173,7 @@ u32 bx() {
 
   takenBranch = 1;
 
-  return TIMING_BRANCH;
+  return TIMING_DEFAULT;
 }
 
 // BL - Unconditional branch and link
@@ -199,5 +186,5 @@ u32 bl() {
   cpu_set_pc(result);
   takenBranch = 1;
 
-  return TIMING_BRANCH_LINK;
+  return TIMING_DEFAULT;
 }

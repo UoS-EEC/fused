@@ -20,7 +20,7 @@ u32 ands() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // BIC - clears the bits in the destination register that are set in
@@ -35,7 +35,7 @@ u32 bics() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // EOR - exclusive OR two registers and update the flags
@@ -49,7 +49,7 @@ u32 eors() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // ORR - logical OR two registers and update the flags
@@ -63,7 +63,7 @@ u32 orrs() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // MVN - Move while negating
@@ -76,7 +76,7 @@ u32 mvns() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 ///--- Shift and rotate operations
@@ -108,7 +108,7 @@ u32 asrs_i() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 // ASR - Arithmetic shift right (register)
@@ -138,7 +138,7 @@ u32 asrs_r() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 lsls_i() {
@@ -152,7 +152,7 @@ u32 lsls_i() {
   do_zflag(result);
   cpu_set_flag_c((opB == 0) ? cpu_get_flag_c() : (opA << (opB - 1)) >> 31);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 lsrs_i() {
@@ -167,7 +167,7 @@ u32 lsrs_i() {
   do_zflag(result);
   cpu_set_flag_c((opB == 0) ? 0 : (opA >> (opB - 1)) & 0x1);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 lsls_r() {
@@ -182,7 +182,7 @@ u32 lsls_r() {
   cpu_set_flag_c((opB == 0) ? cpu_get_flag_c()
                             : (opB > 32) ? 0 : (opA << (opB - 1)) >> 31);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 lsrs_r() {
@@ -197,7 +197,7 @@ u32 lsrs_r() {
   cpu_set_flag_c((opB == 0) ? cpu_get_flag_c()
                             : (opB > 32) ? 0 : (opA >> (opB - 1)) & 0x1);
 
-  return 1;
+  return TIMING_DEFAULT;
 }
 
 u32 rors() {
@@ -206,7 +206,7 @@ u32 rors() {
 
   u32 result = opA;
   if (opB != 0) {
-    opB &= 0x1F; // Everything above 32 is a multiple of 32
+    opB &= 0x1F;  // Everything above 32 is a multiple of 32
     result = (opB == 0) ? opA : opA >> opB | opA << (32 - opB);
     cpu_set_flag_c((result >> 31) & 0x1);
     cpu_set_gpr(decoded.rD, result);
@@ -215,5 +215,5 @@ u32 rors() {
   do_nflag(result);
   do_zflag(result);
 
-  return 1;
+  return TIMING_DEFAULT;
 }

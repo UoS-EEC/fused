@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <stdlib.h>
 #include "decode.h"
 #include "exmemwb.h"
 #include "sim_support.h"
-#include <stdlib.h>
 
 ///--- Load/store multiple operations
 ///--------------------------------------------///
@@ -29,10 +29,9 @@ u32 ldm() {
     }
   }
 
-  if (rNWritten == 0)
-    cpu_set_gpr(decoded.rN, address);
+  if (rNWritten == 0) cpu_set_gpr(decoded.rN, address);
 
-  return 1 + numLoaded;
+  return TIMING_DEFAULT;
 }
 
 // STM - Store multiple registers to the stack
@@ -57,7 +56,7 @@ u32 stm() {
 
   cpu_set_gpr(decoded.rN, address);
 
-  return 1 + numStored;
+  return TIMING_DEFAULT;
 }
 
 ///--- Stack operations --------------------------------------------///
@@ -75,7 +74,7 @@ u32 pop() {
       simLoadData(address, &data);
       cpu_set_gpr(i, data);
       ++numLoaded;
-      if (i == 15) { // PC is target
+      if (i == 15) {  // PC is target
         takenBranch = 1;
         if ((data & 0xf0000000) == 0xf0000000) {
           // This is an exception return
@@ -86,8 +85,7 @@ u32 pop() {
     }
 
     // Skip constant 0s
-    if (i == 7)
-      i = 14;
+    if (i == 7) i = 14;
   }
 
   cpu_set_sp(address);
@@ -95,7 +93,7 @@ u32 pop() {
     exception_return_cb(exceptionReturnAddress);
   }
 
-  return 1 + numLoaded + takenBranch ? TIMING_PC_UPDATE : 0;
+  return TIMING_DEFAULT;
 }
 
 // Push multiple reg values to the stack and update SP
@@ -113,13 +111,12 @@ u32 push() {
     }
 
     // Skip constant 0s
-    if (i == 14)
-      i = 8;
+    if (i == 14) i = 8;
   }
 
   cpu_set_sp(address);
 
-  return 1 + numStored;
+  return TIMING_DEFAULT;
 }
 
 ///--- Single load operations --------------------------------------------///
@@ -135,7 +132,7 @@ u32 ldr_i() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDR - Load from offset from SP
@@ -149,7 +146,7 @@ u32 ldr_sp() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDR - Load from offset from PC
@@ -163,7 +160,7 @@ u32 ldr_lit() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDR - Load from an offset from a reg based on another reg value
@@ -177,7 +174,7 @@ u32 ldr_r() {
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDRB - Load byte from offset from register
@@ -192,23 +189,23 @@ u32 ldrb_i() {
 
   // Select the correct byte
   switch (effectiveAddress & 0x3) {
-  case 0:
-    break;
-  case 1:
-    result >>= 8;
-    break;
-  case 2:
-    result >>= 16;
-    break;
-  case 3:
-    result >>= 24;
+    case 0:
+      break;
+    case 1:
+      result >>= 8;
+      break;
+    case 2:
+      result >>= 16;
+      break;
+    case 3:
+      result >>= 24;
   }
 
   result = zeroExtend32(result & 0xFF);
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDRB - Load byte from an offset from a reg based on another reg value
@@ -223,23 +220,23 @@ u32 ldrb_r() {
 
   // Select the correct byte
   switch (effectiveAddress & 0x3) {
-  case 0:
-    break;
-  case 1:
-    result >>= 8;
-    break;
-  case 2:
-    result >>= 16;
-    break;
-  case 3:
-    result >>= 24;
+    case 0:
+      break;
+    case 1:
+      result >>= 8;
+      break;
+    case 2:
+      result >>= 16;
+      break;
+    case 3:
+      result >>= 24;
   }
 
   result = zeroExtend32(result & 0xFF);
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDRH - Load halfword from offset from register
@@ -254,18 +251,18 @@ u32 ldrh_i() {
 
   // Select the correct halfword
   switch (effectiveAddress & 0x2) {
-  case 0:
-    break;
-  default:
-    result >>= 16;
-    break;
+    case 0:
+      break;
+    default:
+      result >>= 16;
+      break;
   }
 
   result = zeroExtend32(result & 0xFFFF);
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDRH - Load halfword from an offset from a reg based on another reg value
@@ -280,18 +277,18 @@ u32 ldrh_r() {
 
   // Select the correct halfword
   switch (effectiveAddress & 0x2) {
-  case 0:
-    break;
-  default:
-    result >>= 16;
-    break;
+    case 0:
+      break;
+    default:
+      result >>= 16;
+      break;
   }
 
   result = zeroExtend32(result & 0xFFFF);
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDRSB - Load signed byte from an offset from a reg based on another reg value
@@ -306,23 +303,23 @@ u32 ldrsb_r() {
 
   // Select the correct byte
   switch (effectiveAddress & 0x3) {
-  case 0:
-    break;
-  case 1:
-    result >>= 8;
-    break;
-  case 2:
-    result >>= 16;
-    break;
-  case 3:
-    result >>= 24;
+    case 0:
+      break;
+    case 1:
+      result >>= 8;
+      break;
+    case 2:
+      result >>= 16;
+      break;
+    case 3:
+      result >>= 24;
   }
 
   result = signExtend32(result & 0xFF, 8);
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // LDRSH - Load signed halfword from an offset from a reg based on another reg
@@ -338,17 +335,17 @@ u32 ldrsh_r() {
 
   // Select the correct halfword
   switch (effectiveAddress & 0x2) {
-  case 0:
-    break;
-  default:
-    result >>= 16;
+    case 0:
+      break;
+    default:
+      result >>= 16;
   }
 
   result = signExtend32(result & 0xFFFF, 16);
 
   cpu_set_gpr(decoded.rD, result);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 ///--- Single store operations --------------------------------------------///
@@ -360,7 +357,7 @@ u32 str_i() {
   u32 effectiveAddress = base + offset;
 
   simStoreData(effectiveAddress, cpu_get_gpr(decoded.rD));
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // STR - Store to offset from SP
@@ -371,7 +368,7 @@ u32 str_sp() {
 
   simStoreData(effectiveAddress, cpu_get_gpr(decoded.rD));
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // STR - Store to an offset from a reg based on another reg value
@@ -382,7 +379,7 @@ u32 str_r() {
 
   simStoreData(effectiveAddress, cpu_get_gpr(decoded.rD));
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // STRB - Store byte to offset from register
@@ -398,22 +395,22 @@ u32 strb_i() {
 
   // Select the correct byte
   switch (effectiveAddress & 0x3) {
-  case 0:
-    orig = (orig & 0xFFFFFF00) | (data << 0);
-    break;
-  case 1:
-    orig = (orig & 0xFFFF00FF) | (data << 8);
-    break;
-  case 2:
-    orig = (orig & 0xFF00FFFF) | (data << 16);
-    break;
-  case 3:
-    orig = (orig & 0x00FFFFFF) | (data << 24);
+    case 0:
+      orig = (orig & 0xFFFFFF00) | (data << 0);
+      break;
+    case 1:
+      orig = (orig & 0xFFFF00FF) | (data << 8);
+      break;
+    case 2:
+      orig = (orig & 0xFF00FFFF) | (data << 16);
+      break;
+    case 3:
+      orig = (orig & 0x00FFFFFF) | (data << 24);
   }
 
   simStoreData(effectiveAddressWordAligned, orig);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // STRB - Store byte to an offset from a reg based on another reg value
@@ -429,22 +426,22 @@ u32 strb_r() {
 
   // Select the correct byte
   switch (effectiveAddress & 0x3) {
-  case 0:
-    orig = (orig & 0xFFFFFF00) | (data << 0);
-    break;
-  case 1:
-    orig = (orig & 0xFFFF00FF) | (data << 8);
-    break;
-  case 2:
-    orig = (orig & 0xFF00FFFF) | (data << 16);
-    break;
-  case 3:
-    orig = (orig & 0x00FFFFFF) | (data << 24);
+    case 0:
+      orig = (orig & 0xFFFFFF00) | (data << 0);
+      break;
+    case 1:
+      orig = (orig & 0xFFFF00FF) | (data << 8);
+      break;
+    case 2:
+      orig = (orig & 0xFF00FFFF) | (data << 16);
+      break;
+    case 3:
+      orig = (orig & 0x00FFFFFF) | (data << 24);
   }
 
   simStoreData(effectiveAddressWordAligned, orig);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // STRH - Store halfword to offset from register
@@ -460,16 +457,16 @@ u32 strh_i() {
 
   // Select the correct byte
   switch (effectiveAddress & 0x2) {
-  case 0:
-    orig = (orig & 0xFFFF0000) | (data << 0);
-    break;
-  default:
-    orig = (orig & 0x0000FFFF) | (data << 16);
+    case 0:
+      orig = (orig & 0xFFFF0000) | (data << 0);
+      break;
+    default:
+      orig = (orig & 0x0000FFFF) | (data << 16);
   }
 
   simStoreData(effectiveAddressWordAligned, orig);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
 
 // STRH - Store halfword to an offset from a reg based on another reg value
@@ -485,14 +482,14 @@ u32 strh_r() {
 
   // Select the correct byte
   switch (effectiveAddress & 0x2) {
-  case 0:
-    orig = (orig & 0xFFFF0000) | (data << 0);
-    break;
-  default:
-    orig = (orig & 0x0000FFFF) | (data << 16);
+    case 0:
+      orig = (orig & 0xFFFF0000) | (data << 0);
+      break;
+    default:
+      orig = (orig & 0x0000FFFF) | (data << 16);
   }
 
   simStoreData(effectiveAddressWordAligned, orig);
 
-  return TIMING_MEM;
+  return TIMING_DEFAULT;
 }
