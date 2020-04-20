@@ -42,6 +42,8 @@ CortexM0Cpu::CortexM0Cpu(sc_module_name nm, sc_time cycleTime)
   m_nInstructionsEventId = EventLog::getInstance().registerEvent(
       std::string(this->name()) + " n instructions");
 
+  EventLog::getInstance().reportState(this->name(), "off");
+
   // Construct & init cpu
   memset(&cpu, 0, sizeof(struct CPU));
 }
@@ -99,6 +101,7 @@ void CortexM0Cpu::process() {
         if (insn == OPCODE_WFE || insn == OPCODE_WFI) {
           spdlog::info("{}: going to sleep", this->name());
           m_sleeping = true;
+          EventLog::getInstance().reportState(this->name(), "sleep");
         } else {
           // Decode & execute
           takenBranch = 0;
@@ -137,8 +140,10 @@ void CortexM0Cpu::process() {
     }
 
     if (m_run && (!pwrOn.read())) {
+      EventLog::getInstance().reportState(this->name(), "off");
       wait(pwrOn.default_event());  // Wait for power
-      reset();                      // Reset CPU
+      EventLog::getInstance().reportState(this->name(), "on");
+      reset();  // Reset CPU
     }
   }
 }
