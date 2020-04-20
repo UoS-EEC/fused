@@ -11,9 +11,8 @@
 
 # ------ Paths ------
 OutputDirectory: /tmp/fused-outputs
-EnergyCoeffsPath: @CMAKE_CURRENT_SOURCE_DIR@/config/coeffs.yaml
 BootTracePath: @CMAKE_CURRENT_SOURCE_DIR@/config/boot-trace.csv
-VccMultiplierPath: none # @CMAKE_CURRENT_SOURCE_DIR@/config/vsweep-current.csv
+VccMultiplierPath: @CMAKE_CURRENT_SOURCE_DIR@/config/vsweep-current.csv
 
 # Operation mode/Program to execute:
 GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
@@ -54,7 +53,6 @@ PMMOff: 1.8
 VMAX: 3.6
 
 # ------ Cache settings ------
-
 # Available replacement policies are:
 # {LRU, LFU, RoundRobin, PseudoRandom}
 mcu.cache.CacheReplacementPolicy: LRU
@@ -63,3 +61,17 @@ mcu.cache.CacheWritePolicy: WriteAround # {WriteThrough, WriteAround, WriteBack}
 mcu.cache.CacheLineWidth: 8
 mcu.cache.CacheNLines: 2
 mcu.cache.CacheNSets: 2
+
+# ------ Power consumption coefficients ------
+# Power consumption of states (in this case current (A))
+mcu.CPU on: 0.0
+mcu.Adc on: 295.75e-6 #130.0e-6
+ext.dc : 25.0e-6 # External circuitry static current consumption
+
+#Energy consumption of events (J)
+mcu.CPU idle cycles: 2.0128059437442775e-10
+mcu.fram read hit: 2.1159007820425844e-10
+mcu.fram read miss: 6.346704408546349e-10
+mcu.fram write: 6.823167771173059e-10
+mcu.sram rw: 1.981169616404032e-10
+

@@ -53,7 +53,7 @@ SCA_TDF_MODULE(VoltageDetectorWithOverride) {
   SCA_CTOR(VoltageDetectorWithOverride) {
     m_vOn = Config::get().getDouble("SVSVon");
     m_vOff = Config::get().getDouble("SVSVoff");
-    m_icc = Config::get().getDouble("ExtIcc");
+    m_icc = Config::get().getDouble("ext.dc");
     m_vWarn = Config::get().getDouble("VoltageWarning");
   };
 
