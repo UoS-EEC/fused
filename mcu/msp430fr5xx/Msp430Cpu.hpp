@@ -168,6 +168,7 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
 
   /* ------ Private variables ------ */
   bool m_run{false};         //! Signal whether processor should run
+  bool m_sleeping{false};    //! Indicate whether cpu is sleeping
   bool m_doStep{false};      //! Set to 1 to single-step, cleared automatically.
   uint64_t m_idleCycles{0};  //! Total number of idle cycles (for logging)
   EventLog &m_elog;

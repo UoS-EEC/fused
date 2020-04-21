@@ -82,8 +82,6 @@ void Msp430Cpu::process() {
   while (true) {  // Run emulator
 
     if (pwrOn.read() && m_run) {
-      EventLog::getInstance().reportState(this->name(), "on");
-
       // Handle interrupts
       if (irq.read()) {
         EventLog::getInstance().increment(m_irqEvent);
@@ -100,10 +98,17 @@ void Msp430Cpu::process() {
 
       if (getSr() & CPUOFF) {
         // Low-power mode -- don't execute instructions
-        EventLog::getInstance().reportState(this->name(), "sleep");
+        if (!m_sleeping) {
+          EventLog::getInstance().reportState(this->name(), "sleep");
+          m_sleeping = true;
+        }
         wait(m_cycleTime);
       } else {
         // Normal mode -- execute instructions
+        if (m_sleeping) {
+          EventLog::getInstance().reportState(this->name(), "on");
+          m_sleeping = false;
+        }
         uint16_t opcode = fetch();
         static const uint16_t INST_RETI = 0x1300;
         if (m_doLogOperation && opcode == INST_RETI) {
@@ -133,8 +138,9 @@ void Msp430Cpu::process() {
     }
 
     if (m_run && (!pwrOn.read())) {
-      wait(pwrOn.default_event());  // Wait for power
-      reset();                      // Reset
+      wait(pwrOn.posedge_event());  // Wait for power
+      m_sleeping = false;
+      reset();  // Reset
     }
   }
 }
@@ -161,6 +167,8 @@ void Msp430Cpu::processInterrupt() {
       m_opsLogFile << "@" << setw(10) << sc_time_stamp() << ": IRQHANDLER 0x"
                    << hex << setw(4) << addr << "\n";
     }
+    EventLog::getInstance().reportState(this->name(), "on");
+    m_sleeping = false;
   } else if ((getSr() & GIE) || irqIdx.read() < 3) {  // GIE or NMI
     // Push pc to stack
     setSp(getSp() - 2);
@@ -802,11 +810,7 @@ void Msp430Cpu::executeDoubleOpInstruction(uint16_t opcode) {
 }
 
 void Msp430Cpu::waitForCommand() {
-  if (isStalled()) {
-    EventLog::getInstance().reportState(this->name(), "off");
-  }
   while (isStalled()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
-  EventLog::getInstance().reportState(this->name(), "on");
 }
