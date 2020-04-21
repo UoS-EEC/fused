@@ -24,5 +24,4 @@ target_link_libraries(
     PowerSystem
     systemc-ams
     systemc
-    yaml-cpp
     )

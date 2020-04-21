@@ -16,3 +16,10 @@ add_library(
   SimpleMonitor.hpp
   SimulationController.hpp
   )
+
+target_link_libraries(
+    Utilities
+    PRIVATE systemc-ams
+    PRIVATE systemc
+    PRIVATE yaml-cpp
+    )

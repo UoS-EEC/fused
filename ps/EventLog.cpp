@@ -21,7 +21,7 @@ using namespace sc_core;
 EventLog::EventLog(sc_module_name nm) : sc_module(nm) {
   SC_THREAD(process)
   // Load energy cost of events
-  m_pcalc = PowerCalculator(Config::get().getString("EnergyCoeffsPath"));
+  m_pcalc = PowerCalculator();
   m_timestep = sc_core::sc_time::from_seconds(
       Config::get().getDouble("EventLogTimeStep"));
 }
@@ -33,13 +33,15 @@ EventLog::eventId EventLog::registerEvent(std::string name) {
 
 void EventLog::increment(EventLog::eventId id, unsigned int n) {
   if (id >= m_log.size()) {
-    SC_REPORT_ERROR(this->name(), "Error invalid event ID.");
+    SC_REPORT_FATAL(getInstance().name(), "Invalid event ID.");
   }
   std::get<EVENT_VALUES>(m_log[id]).back() += n;
 }
 
 void EventLog::reportState(const std::string &reporter,
                            const std::string &state) {
+  spdlog::info("{}: @{:.0f} ns {:s} {:s}", getInstance().name(),
+               1e9 * sc_time_stamp().to_seconds(), reporter, state);
   auto tmp = std::find_if(m_states.begin(), m_states.end(),
                           [reporter](std::pair<std::string, std::string> &v) {
                             return v.first == reporter;
@@ -100,17 +102,17 @@ void EventLog::process() {
 
   auto triggerConfig = Config::get().getString("EventLogStart");
   if (triggerConfig == "event") {
-    spdlog::info("{}: waiting for trigger.", this->name());
+    spdlog::info("{}: waiting for trigger.", getInstance().name());
     wait(m_startLoggingEvent);  // Start logging at event
   } else if (triggerConfig == "simulation_start") {
     // Start logging at t=0
   } else {
     spdlog::error("{}: Invalid configuration for EventLogStart: {}",
-                  this->name(), triggerConfig);
-    SC_REPORT_FATAL(this->name(), "Invalid config");
+                  getInstance().name(), triggerConfig);
+    SC_REPORT_FATAL(getInstance().name(), "Invalid config");
   }
 
-  spdlog::info("{}: Logging started @{:010d} ns", this->name(),
+  spdlog::info("{}: Logging started @{:010d} ns", getInstance().name(),
                static_cast<unsigned>(1E9 * sc_time_stamp().to_seconds()));
 
   // Reset event counters

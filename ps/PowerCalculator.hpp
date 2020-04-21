@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include <yaml-cpp/yaml.h>
 #include <string>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 class PowerCalculator {
@@ -21,21 +21,50 @@ class PowerCalculator {
   };
 
   /****** Public functions ******/
-  explicit PowerCalculator(std::string fn = "");
 
-  double getEnergy(const std::vector<eventRate_t> &events);
-
-  double getEnergy(const eventRate_t &event);
-
+  /**
+   * @brief getEnergy Calculate energy consumption based on event rate and event
+   * coefficient.
+   * @param eventname
+   * @param cnt number of occurrences of event
+   * @retval energy consumption
+   */
   double getEnergy(const std::string &eventname, double cnt);
 
-  bool hasCoeff(const std::string &nm);
+  /**
+   * @brief getEnergy Calculate energy consumption based on event rate and event
+   * coefficient.
+   * @param event
+   * @retval energy consumption
+   */
+  double getEnergy(const eventRate_t &event);
 
-  double getCoeff(const std::string &nm);
+  /**
+   * @brief getEnergy Calculate energy consumption based on event rate and event
+   * coefficient.
+   * @param events vector of events
+   * @retval energy consumption
+   */
+  double getEnergy(const std::vector<eventRate_t> &events);
+
+  /**
+   * @brief hasCoeff check whether a power/energy coefficient for the
+   * specified name is present.
+   * @param name Name
+   * @retval true if there is an coefficient for the name, false otherwise.
+   */
+  bool hasCoeff(const std::string &name) const;
+
+  /**
+   * @brief getCoeff get the power/energy coefficient for the specified name.
+   * @param name Name
+   * @retval true if there is an coefficient for name, false otherwise.
+   */
+  double getCoeff(const std::string &name);
 
  private:
   /****** Private variables ******/
-  YAML::Node m_coeffs;
+  std::unordered_map<std::string, double> m_coeffs;  //! Local copy of coeffs
 
   /****** Private functions ******/
 };
