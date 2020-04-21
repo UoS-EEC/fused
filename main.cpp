@@ -190,6 +190,13 @@ int sc_main(int argc, char *argv[]) {
   auto *vcdfile = sca_util::sca_create_vcd_trace_file(
       (Config::get().getString("OutputDirectory") + "/ext.vcd").c_str());
 
+  for (int i = 0; i < DIOAPins.size(); i++) {
+    sca_trace(vcdfile, DIOAPins[i], fmt::format("PA{:02d}", i));
+    sca_trace(vcdfile, DIOBPins[i], fmt::format("PB{:02d}", i));
+    sca_trace(vcdfile, DIOCPins[i], fmt::format("PC{:02d}", i));
+    sca_trace(vcdfile, DIODPins[i], fmt::format("PD{:02d}", i));
+  }
+
   // Creates a csv-like file
   auto *tabfile = sca_util::sca_create_tabular_trace_file(
       (Config::get().getString("OutputDirectory") + "/ext.tab").c_str());
@@ -254,6 +261,8 @@ int sc_main(int argc, char *argv[]) {
 #endif
 
   EventLog::getInstance().dumpCsv();
+  sca_util::sca_close_vcd_trace_file(vcdfile);
+  sca_util::sca_close_tabular_trace_file(tabfile);
 
   return 0;
 }
