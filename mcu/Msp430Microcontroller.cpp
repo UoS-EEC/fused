@@ -178,12 +178,9 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   fram->waitStates.bind(framWaitStates);
 
   // Bus
-  bus.addInitiator();
-  m_cpu.iSocket.bind(*bus.tSockets[0]);
+  m_cpu.iSocket.bind(bus.tSocket);
   for (const auto &s : slaves) {
-    auto port = bus.addTarget(*s);
-    s->setBusSocket(port);
-    bus.iSockets[port]->bind(s->tSocket);
+    bus.bindTarget(*s);
   }
 
   // Fram and cache
@@ -197,9 +194,7 @@ bool Msp430Microcontroller::dbgReadMem(uint8_t *out, size_t addr, size_t len) {
   trans.set_data_length(len);
   trans.set_data_ptr(out);
   trans.set_command(tlm::TLM_READ_COMMAND);
-  unsigned int received = bus.transport_dbg(trans);
-
-  return (received > 0);
+  return bus.transport_dbg(0, trans);
 }
 
 bool Msp430Microcontroller::dbgWriteMem(uint8_t *src, size_t addr, size_t len) {
@@ -209,7 +204,5 @@ bool Msp430Microcontroller::dbgWriteMem(uint8_t *src, size_t addr, size_t len) {
   trans.set_data_length(len);
   trans.set_data_ptr(src);
   trans.set_command(tlm::TLM_WRITE_COMMAND);
-  unsigned int sent = bus.transport_dbg(trans);
-
-  return (sent > 0);
+  return bus.transport_dbg(0, trans);
 }

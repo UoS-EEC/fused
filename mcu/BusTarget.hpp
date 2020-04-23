@@ -46,18 +46,6 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   virtual void reset(void) = 0;
 
   /**
-   * @brief setBusSocket set bus socket number
-   * @param socket
-   */
-  void setBusSocket(const unsigned int socket) { m_busSocket = socket; }
-
-  /**
-   * @brief busSocket getter
-   * @return
-   */
-  unsigned int busSocket() const { return m_busSocket; }
-
-  /**
    * @brief inRange Check whether an address is in range for this target.
    *        The bus is assumed to decrement the address before sending the
    *        transaction to bus targets, so we check that the address fits
@@ -118,7 +106,4 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   sc_core::sc_event m_writeEvent{"writeEvent"};  //! Triggered on write access
 
   // sc_core::sc_signal<float> m_staticCurrent{"m_staticCurrent", 0.0f};
-
- private:
-  unsigned m_busSocket;
 };

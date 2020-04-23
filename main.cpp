@@ -142,6 +142,9 @@ int sc_main(int argc, char *argv[]) {
   }
 #endif
 
+  // Print memory map
+  std::cout << "------ MCU construction complete ------\n" << mcu->bus;
+
   mcu->vcc.bind(vcc);
   mcu->nReset.bind(nReset);
   mcu->staticPower.bind(staticConsumptionBoot);

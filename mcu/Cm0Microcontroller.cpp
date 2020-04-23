@@ -58,9 +58,10 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   /* ------------------------ */
 
   // Sort slaves by address
-  std::sort(slaves.begin(), slaves.end(), [](BusTarget *a, BusTarget *b) {
-    return a->startAddress() < b->startAddress();
-  });
+  std::sort(slaves.begin(), slaves.end(),
+            [](const BusTarget *a, const BusTarget *b) {
+              return a->startAddress() < b->startAddress();
+            });
 
   /* ------ Bind ------ */
 
@@ -98,20 +99,14 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
     s->pwrOn.bind(nReset);
   }
 
-  // Write default const value for now.
-  // vref.write(2.0);
-
   // Miscellaneous
   invm->waitStates.bind(nvmWaitStates);
   dnvm->waitStates.bind(nvmWaitStates);
 
   // Bus
-  bus.addInitiator();
-  m_cpu.iSocket.bind(*bus.tSockets[0]);
+  m_cpu.iSocket.bind(bus.tSocket);
   for (const auto &s : slaves) {
-    auto port = bus.addTarget(*s);
-    s->setBusSocket(port);
-    bus.iSockets[port]->bind(s->tSocket);
+    bus.bindTarget(*s);
   }
 }
 
@@ -122,9 +117,7 @@ bool Cm0Microcontroller::dbgReadMem(uint8_t *out, size_t addr, size_t len) {
   trans.set_data_length(len);
   trans.set_data_ptr(out);
   trans.set_command(tlm::TLM_READ_COMMAND);
-  unsigned int received = bus.transport_dbg(trans);
-
-  return received;
+  return bus.transport_dbg(0, trans);
 }
 
 bool Cm0Microcontroller::dbgWriteMem(uint8_t *src, size_t addr, size_t len) {
@@ -134,5 +127,5 @@ bool Cm0Microcontroller::dbgWriteMem(uint8_t *src, size_t addr, size_t len) {
   trans.set_data_ptr(src);
   trans.set_command(tlm::TLM_WRITE_COMMAND);
 
-  return bus.transport_dbg(trans);
+  return bus.transport_dbg(0, trans);
 }

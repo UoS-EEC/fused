@@ -18,13 +18,10 @@ BusTarget::BusTarget(const sc_module_name name, const unsigned startAddress,
     : tSocket("tSocket"),
       m_startAddress(startAddress),
       m_endAddress(endAddress),
-      m_busSocket(-1),  // Default value (bound later)
       m_delay(delay),
       m_elog(EventLog::getInstance()),
       sc_module(name) {
   sc_assert(startAddress <= endAddress);
-  spdlog::info("Constructing BusTarget: {}, Address 0x{:08x}-0x{:08x}",
-               this->name(), startAddress, endAddress);
   tSocket.bind(*this);
   m_readEventId = m_elog.registerEvent(std::string(this->name()) + " read");
   m_writeEventId = m_elog.registerEvent(std::string(this->name()) + " write");
@@ -74,7 +71,6 @@ std::ostream &operator<<(std::ostream &os, const BusTarget &rhs) {
   os << "<BusTarget> " << rhs.name() << "\n"
      << "StartAddress: 0x" << std::hex << rhs.startAddress() << '\n'
      << "EndAddress: 0x" << std::hex << rhs.endAddress() << '\n'
-     << "BusSocket: 0x" << std::hex << rhs.busSocket() << '\n'
      << rhs.m_regs;
   return os;
 }

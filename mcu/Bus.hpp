@@ -8,156 +8,114 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
+#include <tlm_utils/multi_passthrough_initiator_socket.h>
+#include <tlm_utils/multi_passthrough_target_socket.h>
 #include <algorithm>
-#include <fstream>
 #include <iomanip>
+#include <sstream>
 #include <string>
 #include <systemc>
 #include <tlm>
-#include <tuple>
+#include <utility>
 #include <vector>
 #include "mcu/BusTarget.hpp"
 #include "utilities/Config.hpp"
 
-class Bus : sc_core::sc_module,
-            tlm::tlm_bw_transport_if<>,
-            tlm::tlm_fw_transport_if<> {
+class Bus : sc_core::sc_module {
  public:
-  std::vector<tlm::tlm_target_socket<> *> tSockets;
-  std::vector<tlm::tlm_initiator_socket<> *> iSockets;
+  tlm_utils::multi_passthrough_initiator_socket<Bus> iSocket;
+  tlm_utils::multi_passthrough_target_socket<Bus> tSocket;
 
-  explicit Bus(const sc_core::sc_module_name name) : sc_core::sc_module(name) {}
-
-  /**
-   * @brief addInitiator Add an initiator (master) socket and return its port
-   * number.
-   * @retval port number of the new initiator socket.
-   */
-  int addInitiator() {
-    tSockets.push_back(new tlm::tlm_target_socket<>());
-    tSockets.back()->bind(*this);
-    return tSockets.size() - 1;
+  explicit Bus(const sc_core::sc_module_name name)
+      : sc_core::sc_module(name), iSocket("iSocket"), tSocket("tSocket") {
+    tSocket.register_b_transport(this, &Bus::b_transport);
+    tSocket.register_transport_dbg(this, &Bus::transport_dbg);
   }
 
   /**
-   * @brief addInitiator Add a target (slave) socket and return its port
-   * number.
-   * @param startAddress start address of new target
-   * @param endAddress end address of new target
-   * @retval port number of the new target socket.
+   * @brief bindTarget bind a new bus target and add its start & end addresses
+   * to the routing table.
+   * @param t target
    */
-  int addTarget(const int startAddress, const int endAddress) {
-    checkOverlapExistingTarget(startAddress, endAddress);
-    m_routingTable.push_back(
-        std::tuple<const unsigned, const unsigned>(startAddress, endAddress));
-    iSockets.push_back(new tlm::tlm_initiator_socket<>());
-    iSockets.back()->bind(*this);
-    return iSockets.size() - 1;
+  void bindTarget(BusTarget &t) {
+    m_routingTable.emplace_back(
+        std::make_pair(t.startAddress(), t.endAddress()));
+    iSocket.bind(t.tSocket);
+    sc_assert(m_routingTable.size() == iSocket.size());
   }
 
   /**
-   * @brief addInitiator Add a target (slave) socket and return its port
-   * number.
-   * @param BusTarget new target.
-   * @retval port number of the new target socket.
+   * @brief routeForward Find outgoing port of a transaction, and adjust the
+   * transaction's address by subtracting the target's start address.
+   * @param trans transaction object
+   * @retval the outgoing port number, returns -1 if the target was not found.
    */
-  int addTarget(const BusTarget &target) {
-    checkOverlapExistingTarget(target.startAddress(), target.endAddress());
-    auto portNumber = m_routingTable.size();
-    m_routingTable.push_back(std::tuple<const unsigned, const unsigned>(
-        target.startAddress(), target.endAddress()));
-    iSockets.push_back(new tlm::tlm_initiator_socket<>());
-    iSockets[portNumber]->bind(*this);
-    return portNumber;
-  }
-
-  /**
-   * @brief checkTransaction Check the that a transaction's address and length
-   * conforms to its target. Issue errors otherwise.
-   * @param trans transaction
-   * @param targetPort target port number
-   */
-  void checkTransaction(const tlm::tlm_generic_payload &trans,
-                        int targetPort) const {
-    const auto addr = trans.get_address();
-    const auto len = trans.get_data_length();
-    sc_assert(inRange(addr, m_routingTable[targetPort]));  // Start address
-    sc_assert(
-        inRange(addr + len - 1, m_routingTable[targetPort]));  // End address
-    sc_assert(addr % len == 0);                                // Alignment
-    sc_assert(len <= TARGET_WORD_SIZE);                        // Size
+  int routeForward(tlm::tlm_generic_payload &trans) const {
+    auto addr = trans.get_address();
+    auto it = std::find_if(
+        m_routingTable.begin(), m_routingTable.end(),
+        [addr, this](const std::pair<const unsigned, const unsigned> &rt) {
+          return this->inRange(addr, rt);
+        });
+    if (it == m_routingTable.end()) {
+      return -1;
+    }
+    trans.set_address(addr - it->first);
+    return it - m_routingTable.begin();
   }
 
   /**
    * @brief b_transport blocking bus transaction. Adjust address and forward
    * transaction to target.
    */
-  void b_transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
-    auto addr = trans.get_address();
-
-    // Address decode
-    int port = -1;
-    for (unsigned int i = 0; i < m_routingTable.size(); i++) {
-      if (Bus::inRange(addr, m_routingTable[i])) {
-        port = i;
-        break;
-      }
-    }
+  void b_transport([[maybe_unused]] const int id,
+                   tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
+    auto port = routeForward(trans);
     if (port == -1) {
-      spdlog::error(
-          "{:s}:b_transport Target for transaction with address "
-          "0x{:08x} not found.",
-          this->name(), addr);
-      SC_REPORT_FATAL(this->name(), "Target for transaction not found");
+      std::stringstream s;
+      s << *this;
+      SC_REPORT_FATAL(
+          this->name(),
+          fmt::format("{:s}:routeForward Target for transaction with address "
+                      "0x{:08x} not found.\n{:s}",
+                      this->name(), trans.get_address(), s.str())
+              .c_str());
     }
-
     checkTransaction(trans, port);
-    trans.set_address(addr - std::get<0>(m_routingTable[port]));
-    (*iSockets[port])->b_transport(trans, delay);
+    iSocket[port]->b_transport(trans, delay);
   }
 
-  unsigned int transport_dbg(tlm::tlm_generic_payload &trans) {
-    auto addr = trans.get_address();
+  /**
+   * @brief transport_dbg Transport without timing
+   */
+  unsigned int transport_dbg([[maybe_unused]] const int id,
+                             tlm::tlm_generic_payload &trans) {
     auto len = trans.get_data_length();
-    // Address decode
-    int port = -1;
-    for (unsigned int i = 0; i < m_routingTable.size(); i++) {
-      if (Bus::inRange(addr, m_routingTable[i])) {
-        port = i;
-        break;
-      }
-    }
-    if (port == -1) {
+    auto addr = trans.get_address();
+    auto port = routeForward(trans);
+
+    if (port >= 0) {
+      // Check address bounds, any size permitted
+      sc_assert(inRange(addr, m_routingTable[port]));  // Start address
+      sc_assert(inRange(addr + len - 1, m_routingTable[port]));  // End address
+      return iSocket[port]->transport_dbg(trans);
+    } else {
+      std::stringstream s;
+      s << *this;
       spdlog::warn(
           "{:s}::transport_dbg: Target for transaction with address "
-          "0x{:08x} not found, returning 0.",
-          this->name(), addr);
-      spdlog::warn("Memory map:");
-      for (unsigned int i = 0; i < m_routingTable.size(); i++) {
-        spdlog::warn("Port {}, startAddress 0x{:08x}, endAddress 0x{:08x}", i,
-                     std::get<0>(m_routingTable[i]),
-                     std::get<1>(m_routingTable[i]));
-      }
-
-      // SC_REPORT_FATAL(this->name(), "Target for transaction not found");
+          "0x{:08x} not found, returning 0.\n{:s}",
+          this->name(), addr, s.str());
       std::memset(trans.get_data_ptr(), 0, len);
       trans.set_response_status(tlm::TLM_OK_RESPONSE);
       return len;
     }
-
-    // Check address bounds
-    sc_assert(inRange(addr, m_routingTable[port]));            // Start address
-    sc_assert(inRange(addr + len - 1, m_routingTable[port]));  // End address
-    // Note: Any size permitted
-
-    trans.set_address(addr - std::get<0>(m_routingTable[port]));
-    return (*iSockets[port])->transport_dbg(trans);
   }
 
  private:
   /* ------ Private variables ------ */
-  /* Routing table port number = index, holds <startAddress, endAddress> */
-  std::vector<std::tuple<const unsigned, const unsigned>> m_routingTable{};
+  /* Routing table, index is port number, holds <startAddress, endAddress> */
+  std::vector<std::pair<const unsigned, const unsigned>> m_routingTable{};
 
   /* ------ Private methods ------ */
   /**
@@ -174,72 +132,67 @@ class Bus : sc_core::sc_module,
   /**
    * @brief Check if a is within the bounds specified by b
    * @param a address to check
-   * @param b tuple of min and max bounds.
+   * @param b pair of min and max bounds.
    * @retval true iff b<0> <= a <= b<1>
    */
   bool inRange(const unsigned a,
-               const std::tuple<const unsigned, const unsigned> &b) const {
-    return (a <= std::get<1>(b) && a >= std::get<0>(b));
+               const std::pair<const unsigned, const unsigned> &b) const {
+    return (a >= b.first) && (a <= b.second);
   }
 
   /**
    * @brief Check whether the address range [startAddress, endAddress] overlaps
    * with an existing entry in the routing table.
+   * @param startAddress
+   * @param endAddress
+   * @retval true if startAddress or endAddress overlaps with an existing bus
+   * target
    */
-  bool checkOverlapExistingTarget(const int startAddress,
-                                  const int endAddress) const {
-    auto hit = std::find_if(
-        m_routingTable.begin(), m_routingTable.end(),
-        [startAddress, endAddress](std::tuple<unsigned, unsigned> a) {
-          return (std::get<1>(a) > startAddress) &&  // end1 > start0
-                 (std::get<0>(a) < endAddress);      // start1 < end0
-        });
-    bool retval = (hit != m_routingTable.end());
-    if (retval) {
-      spdlog::error(
-          "{}: Overlapping target addresses:\n\t0x{:08x} - "
-          "0x{:08x}\n\t0x{:08x} - 0x{:08x}",
-          this->name(), std::get<0>(*hit), std::get<1>(*hit), startAddress,
-          endAddress);
-      SC_REPORT_FATAL(this->name(), "Overlapping target addresses");
+  bool overlapsExistingTarget(const int startAddress,
+                              const int endAddress) const {
+    const auto hit =
+        std::find_if(m_routingTable.begin(), m_routingTable.end(),
+                     [startAddress,
+                      endAddress](std::pair<const unsigned, const unsigned> a) {
+                       return (a.second > startAddress) &&  // end1 > start0
+                              (a.first < endAddress);       // start1 < end0
+                     });
+    return hit != m_routingTable.end();
+  }
+
+  /**
+   * @brief checkTransaction Check the that a transaction's address and length
+   * conforms to its target. Issue errors otherwise.
+   * @param trans transaction
+   * @param targetPort target port number
+   */
+  void checkTransaction(const tlm::tlm_generic_payload &trans,
+                        const int targetPort) const {
+    const auto addr = trans.get_address();
+    const auto len = trans.get_data_length();
+    sc_assert((addr + len - 1) < (m_routingTable[targetPort].second -
+                                  m_routingTable[targetPort].first));
+    sc_assert(addr % len == 0);          // Alignment
+    sc_assert(len <= TARGET_WORD_SIZE);  // Size
+  }
+
+  /**
+   * @brief << debug printout.
+   * @note the rhs reference should be const, but SystemC prevents this because
+   * the size() method used below is not declared as const (by the SystemC
+   * standard).
+   */
+  friend std::ostream &operator<<(std::ostream &os, Bus &rhs) {
+    os << "<Bus> " << rhs.name() << "\n";
+    os << "Initiators: " << rhs.tSocket.size() << "\n";
+    os << "Targets: " << rhs.iSocket.size() << "\n";
+    os << "Memory map:\n"
+       << "Port    address(start)    address(end)\n";
+    for (unsigned int i = 0; i < rhs.m_routingTable.size(); i++) {
+      os << fmt::format("{: <8d}0x{:08x}        0x{:08x}\n", i,
+                        rhs.m_routingTable[i].first,
+                        rhs.m_routingTable[i].second);
     }
-    return retval;
-  }
-
-  /*------ Dummy methods --------------------------------------------------*/
-
- public:
-  // Dummy method
-  [[noreturn]] virtual tlm::tlm_sync_enum nb_transport_fw(
-      tlm::tlm_generic_payload &trans[[maybe_unused]],
-      tlm::tlm_phase &phase[[maybe_unused]],
-      sc_core::sc_time &delay[[maybe_unused]]) {
-    SC_REPORT_FATAL(this->name(), "nb_transport_fw is not implemented");
-    exit(1);
-  }
-
-  // Dummy method
-  [[noreturn]] bool get_direct_mem_ptr(
-      tlm::tlm_generic_payload &trans[[maybe_unused]],
-      tlm::tlm_dmi &dmi_data[[maybe_unused]]) {
-    SC_REPORT_FATAL(this->name(), "get_direct_mem_ptr is not implemented");
-    exit(1);
-  }
-
-      // Dummy method:
-      [[noreturn]] void invalidate_direct_mem_ptr(
-          sc_dt::uint64 start_range[[maybe_unused]],
-          sc_dt::uint64 end_range[[maybe_unused]]) {
-    SC_REPORT_FATAL(this->name(), "invalidate_direct_mem_ptr not implement");
-    exit(1);
-  }
-
-  // Dummy method:
-  [[noreturn]] tlm::tlm_sync_enum nb_transport_bw(
-      tlm::tlm_generic_payload &trans[[maybe_unused]],
-      tlm::tlm_phase &phase[[maybe_unused]],
-      sc_core::sc_time &delay[[maybe_unused]]) {
-    SC_REPORT_FATAL(this->name(), "nb_transport_bw is not implemented");
-    exit(1);
+    return os;
   }
 };
