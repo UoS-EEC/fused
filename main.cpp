@@ -138,7 +138,6 @@ int sc_main(int argc, char *argv[]) {
     mcu->ioPortC[i].bind(DIOCPins[i]);
     mcu->ioPortD[i].bind(DIODPins[i]);
   }
-
 #endif
   mcu->vcc.bind(vcc);
   mcu->nReset.bind(nReset);
@@ -190,12 +189,14 @@ int sc_main(int argc, char *argv[]) {
   auto *vcdfile = sca_util::sca_create_vcd_trace_file(
       (Config::get().getString("OutputDirectory") + "/ext.vcd").c_str());
 
+#if defined(MSP430_ARCH)
   for (int i = 0; i < DIOAPins.size(); i++) {
     sca_trace(vcdfile, DIOAPins[i], fmt::format("PA{:02d}", i));
     sca_trace(vcdfile, DIOBPins[i], fmt::format("PB{:02d}", i));
     sca_trace(vcdfile, DIOCPins[i], fmt::format("PC{:02d}", i));
     sca_trace(vcdfile, DIODPins[i], fmt::format("PD{:02d}", i));
   }
+#endif
 
   // Creates a csv-like file
   auto *tabfile = sca_util::sca_create_tabular_trace_file(
@@ -237,6 +238,7 @@ int sc_main(int argc, char *argv[]) {
       return 1;
     }
     IntelHexFile programFile(fn);
+    sc_start(SC_ZERO_TIME);  // Finish elaboration before programming
     for (const auto &s : programFile.getProgramData()) {
       simCtrl.writeMem(&s.second[0], s.first, s.second.size());
     }
