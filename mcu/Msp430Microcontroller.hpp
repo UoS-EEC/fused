@@ -24,6 +24,7 @@
 #include "mcu/msp430fr5xx/Adc12.hpp"
 #include "mcu/msp430fr5xx/ClockSystem.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
+#include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "mcu/msp430fr5xx/Frctl_a.hpp"
 #include "mcu/msp430fr5xx/InterruptArbiter.hpp"
 #include "mcu/msp430fr5xx/Mpy32.hpp"
