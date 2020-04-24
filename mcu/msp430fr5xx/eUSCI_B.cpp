@@ -54,10 +54,13 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 }
 
 void eUSCI_B::reset(void) {
-  // Reset register values. All are defined as either 0 or undefined
-  // Reset all to 0 for now
-  for (uint16_t i = 0; i < m_regs.size(); i++) {
-    m_regs.write(2 * i, 0);
+  if (pwrOn.read()) { // Posedge of pwrOn
+  // Reset register file
+    for (uint16_t i = 0; i < m_regs.size(); i++) {
+      m_regs.write(2 * i, 0);
+    }
+    m_regs.write(OFS_UCB0CTLW0, 0X01C1);
+    m_regs.write(OFS_UCB0IFG, 0x0002);
   }
 }
 

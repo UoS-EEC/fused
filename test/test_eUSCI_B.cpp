@@ -19,6 +19,10 @@
 #include "utilities/Utilities.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
 
+extern "C" {
+#include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
+}
+
 using namespace sc_core;
 using namespace Utility;
 
@@ -42,7 +46,7 @@ SC_MODULE(dut) {
     irq.write(false);
   }
 
-  eUSCI_B m_dut{"dut",0 , 0x2f,  sc_time(1, SC_NS)};
+  eUSCI_B m_dut{"dut", 0 , 0x2f,  sc_time(1, SC_NS)};
 };
 
 SC_MODULE(tester) {
@@ -53,14 +57,17 @@ SC_MODULE(tester) {
     test.pwrGood.write(true);
     wait(SC_ZERO_TIME);
 
-    // ------ TEST: ISER Write-one-to-set
+    // ------ TEST: Initialization and Reset
     test.m_dut.reset();
-/*
-    write32(OFS_NVIC_ISER, 0xAAAAAAAA, false);
-    write32(OFS_NVIC_ISER, 0x00000000, false);  // Should have no effect
-    sc_assert(read32(OFS_NVIC_ISER) == 0xAAAAAAAA);
-    sc_assert(read32(OFS_NVIC_ICER) == 0xAAAAAAAA);
-*/
+    
+    sc_assert(read16(OFS_UCB0CTLW0) == 0x01C1);        
+    sc_assert(read16(OFS_UCB0BRW) == 0x0000);   
+    sc_assert(read16(OFS_UCB0STATW) == 0x0000); 
+    sc_assert(read16(OFS_UCB0RXBUF) == 0x0000); 
+    sc_assert(read16(OFS_UCB0TXBUF) == 0x0000); 
+    sc_assert(read16(OFS_UCB0IE) == 0x0000); 
+    sc_assert(read16(OFS_UCB0IFG) == 0x0002); 
+    sc_assert(read16(OFS_UCB0IV) == 0x0000); 
 
     sc_stop();
   }
