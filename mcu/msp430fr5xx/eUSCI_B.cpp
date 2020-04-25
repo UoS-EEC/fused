@@ -11,7 +11,7 @@
 #include "utilities/Config.hpp"
 
 extern "C" {
-#include "device_includes/msp430fr5994.h"
+  #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
 }
 
 using namespace sc_core;
@@ -38,15 +38,54 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   // Access register file
   BusTarget::b_transport(trans, delay);
   auto addr = trans.get_address();
-  
+
   // Handle serial communication tasks
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     switch (addr) {
+      case OFS_UCB0CTLW0:
+        // Control Register 0
+        // Setting UCSWRST resets the eUSCI module.
+        if (m_regs.read(OFS_UCB0CTLW0) & UCSWRST) {
+          this->reset();
+        }
+        // Update tlm_generic_paylod extension.
+        break;
+      case OFS_UCB0BRW:
+        // Bit Rate Control Register 1
+        // Update tlm_generic_payload clk parameter.
+        break;
+      case OFS_UCB0STATW:
+        // Status Register
+        // Setting UCLISTEN enable tx -> rx feedback.
+        break;
+      case OFS_UCB0RXBUF:
+        // Receive Buffer Register. Read only.
+        break;
+      case OFS_UCB0TXBUF:
+        // Transmit Buffer Register 
+        // Transmission starts after write.
+        // UCTXIFG reset.
+        break;
+      case OFS_UCB0IE:
+        // Interrupt Enable Register
+        // Set UCTXIE and UCRXIE to enable interrupts.
+        break;
+      case OFS_UCB0IFG:
+        // Interrupt Flag Register
+        break;
+      case OFS_UCB0IV:
+        // Interrupt Vector Register. Read only.
+        // Access resets the highest-pending interrupt flag.
+        // If another flag is set, a second interrupt follows.
+        break;
       default:
         break;
     }
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     switch (addr) {
+      case OFS_UCB0RXBUF:
+        // Reading from the RX buffer clears UCSWRST and UCOE.
+        break;
       default:
         break;
     }

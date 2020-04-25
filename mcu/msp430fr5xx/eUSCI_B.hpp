@@ -15,11 +15,6 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
 
-extern "C" {
-
-
-}
-
 /**
  * @brief The eUSCI_B class Modelling operation of eUSCI_Bn 
  * serial communication module (SPI/I2C)

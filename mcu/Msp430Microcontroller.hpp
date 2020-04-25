@@ -210,6 +210,7 @@ class Msp430Microcontroller : public Microcontroller {
   DummyPeripheral *portJ;
   NonvolatileMemory *fram;
   Cache *cache;
+  eUSCI_B *eusci_b;
   Frctl_a *fram_ctl;
   GenericMemory *vectors;
   InterruptArbiter<37> *interruptArbiter;

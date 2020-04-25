@@ -58,8 +58,7 @@ SC_MODULE(tester) {
     wait(SC_ZERO_TIME);
 
     // ------ TEST: Initialization and Reset
-    test.m_dut.reset();
-    
+    // Power on reset
     sc_assert(read16(OFS_UCB0CTLW0) == 0x01C1);        
     sc_assert(read16(OFS_UCB0BRW) == 0x0000);   
     sc_assert(read16(OFS_UCB0STATW) == 0x0000); 
@@ -68,11 +67,24 @@ SC_MODULE(tester) {
     sc_assert(read16(OFS_UCB0IE) == 0x0000); 
     sc_assert(read16(OFS_UCB0IFG) == 0x0002); 
     sc_assert(read16(OFS_UCB0IV) == 0x0000); 
+    // Explicitly set UCSWRST bit
+    write16(OFS_UCB0BRW, 0x00AA, false);
+    sc_assert(read16(OFS_UCB0BRW) == 0x00AA);
+    write16(OFS_UCB0CTLW0, UCSWRST, false);
+    sc_assert(read16(OFS_UCB0CTLW0) == 0x01C1);        
+    sc_assert(read16(OFS_UCB0BRW) == 0x0000);   
+    sc_assert(read16(OFS_UCB0STATW) == 0x0000); 
+    sc_assert(read16(OFS_UCB0RXBUF) == 0x0000); 
+    sc_assert(read16(OFS_UCB0TXBUF) == 0x0000); 
+    sc_assert(read16(OFS_UCB0IE) == 0x0000); 
+    sc_assert(read16(OFS_UCB0IFG) == 0x0002); 
+     
+    // ------ TEST:
 
     sc_stop();
   }
 
-  void write16(const uint32_t addr, const uint32_t val, bool doWait = true) {
+  void write16(const uint16_t addr, const uint16_t val, bool doWait = true) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
     unsigned char data[2];
