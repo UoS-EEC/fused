@@ -4,7 +4,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
 #include <spdlog/spdlog.h>
 #include <tlm_utils/simple_initiator_socket.h>
 #include <tlm_utils/simple_target_socket.h>
@@ -33,6 +32,7 @@ SC_MODULE(dut) {
   sc_signal<bool> irq{"irq"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   tlm_utils::simple_target_socket<dut> tSocket{"tSocket"};
+  tlm_utils::simple_target_socket<dut> tEusciSocket{"tEusciSocket"};
   ClockSourceChannel smclk{"smclk", sc_time(1, SC_US)};
   ClockSourceChannel aclk{"aclk", sc_time(1, SC_US)};
 
@@ -40,12 +40,25 @@ SC_MODULE(dut) {
     m_dut.pwrOn.bind(pwrGood);
     m_dut.tSocket.bind(iSocket);
     m_dut.iSocket.bind(tSocket);
+    m_dut.iEusciSocket.bind(tEusciSocket);
     m_dut.aclk.bind(aclk);
     m_dut.smclk.bind(smclk);
     m_dut.irq.bind(irq);
-    irq.write(false);
+    
+    tEusciSocket.register_b_transport(this, &dut::b_transport);  
+  }
+  
+  virtual void b_transport(tlm::tlm_generic_payload& trans, sc_time& delay)
+  {
+    msg = *(trans.get_data_ptr());
+    trans.set_response_status(tlm::TLM_OK_RESPONSE);
   }
 
+  bool checkPayload(uint8_t c) {
+    return msg == c;
+  }
+  
+  uint8_t msg;
   eUSCI_B m_dut{"dut", 0 , 0x2f,  sc_time(1, SC_NS)};
 };
 
@@ -78,8 +91,15 @@ SC_MODULE(tester) {
     sc_assert(read16(OFS_UCB0TXBUF) == 0x0000); 
     sc_assert(read16(OFS_UCB0IE) == 0x0000); 
     sc_assert(read16(OFS_UCB0IFG) == 0x0002); 
+    sc_assert(read16(OFS_UCB0IV) == 0x0000); 
      
-    // ------ TEST:
+    // ------ TEST: Tx Operation
+    // Writing to TXBUF clears TXIFG
+    write16(OFS_UCB0TXBUF, 0x00AB, true);
+    sc_assert(read16(OFS_UCB0IFG) == 0x0000);
+    // Payload transport via eusciSocket
+    sc_assert(test.checkPayload(0x00AB));
+    // TXIFG sets when Tx done 
 
     sc_stop();
   }
@@ -100,7 +120,7 @@ SC_MODULE(tester) {
     }
   }
 
-  uint32_t read16(const uint32_t addr, bool doWait = true) {
+  uint16_t read16(const uint16_t addr, bool doWait = true) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
     unsigned char data[2];

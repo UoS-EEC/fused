@@ -31,7 +31,7 @@ eUSCI_B::eUSCI_B(sc_module_name name, const uint16_t startAddress,
   sensitive << pwrOn;
 
   SC_METHOD(process);
-  //sensitive << tx_event << rx_event;
+  sensitive << m_euscibTxEvent;
 }
 
 void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
@@ -65,6 +65,7 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
         // Transmit Buffer Register 
         // Transmission starts after write.
         // UCTXIFG reset.
+        m_euscibTxEvent.notify();
         break;
       case OFS_UCB0IE:
         // Interrupt Enable Register
@@ -105,6 +106,31 @@ void eUSCI_B::reset(void) {
 
 void eUSCI_B::process(void) {
   if (pwrOn.read()) {
+    // Clear the TXIFG flag
+    m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~(UCTXIFG));
+    // Prepare payload object
+    tlm::tlm_generic_payload * trans = new tlm::tlm_generic_payload;
+    tlm::tlm_command cmd = tlm::TLM_WRITE_COMMAND;   
+    uint8_t message = m_regs.read(OFS_UCB0TXBUF);
+    sc_time delay = sc_time(0,SC_NS);  
+
+    trans->set_command(cmd);
+    trans->set_address(0);
+    trans->set_data_ptr(&message);
+    trans->set_data_length(1);
+    trans->set_streaming_width(1);
+    trans->set_byte_enable_ptr(0);
+    trans->set_dmi_allowed(false);
+    trans->set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
+    
+    // Blocking transport call 
+    iEusciSocket->b_transport(*trans, delay);
+    
+    // Check response status
+    if (trans->is_response_error())
+        SC_REPORT_ERROR("eUSCI_B0", "Response error from TX.");
+    
+    next_trigger(); 
   } else {
   }
   return;

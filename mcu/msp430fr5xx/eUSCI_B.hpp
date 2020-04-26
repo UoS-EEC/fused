@@ -24,6 +24,7 @@ class eUSCI_B : public BusTarget {
 
  public:
   tlm_utils::simple_initiator_socket<eUSCI_B> iSocket{"iSocket"};
+  tlm_utils::simple_initiator_socket<eUSCI_B> iEusciSocket{"iEusciSocket"};
   sc_core::sc_in<bool> irq{"irq"};
   
   // Clock inputs    
@@ -60,7 +61,8 @@ class eUSCI_B : public BusTarget {
 
  private:
   /* ------ Private variables ------ */
-
+  sc_core::sc_event m_euscibTxEvent{"euscibTxEvent"};
+  sc_core::sc_event m_euscibRxEvent{"euscibRxEvent"};
   /* ------ Private methods ------ */
 
   /**
