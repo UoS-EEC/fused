@@ -51,13 +51,15 @@ SC_MODULE(dut) {
   virtual void b_transport(tlm::tlm_generic_payload& trans, sc_time& delay)
   {
     msg = *(trans.get_data_ptr());
+    trans.set_data_ptr(&ret_msg); 
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
   }
 
   bool checkPayload(uint8_t c) {
     return msg == c;
   }
-  
+ 
+  uint8_t ret_msg = 0xCD; 
   uint8_t msg;
   eUSCI_B m_dut{"dut", 0 , 0x2f,  sc_time(1, SC_NS)};
 };
@@ -95,16 +97,23 @@ SC_MODULE(tester) {
      
     // ------ TEST: Tx Operation
     // Writing to TXBUF clears TXIFG
-    write16(OFS_UCB0TXBUF, 0x00AB, true);
-    sc_assert(read16(OFS_UCB0IFG) == 0x0000);
+    // TXIFG sets when Tx done
+    write16(OFS_UCB0TXBUF, 0x00AB, false);
+    wait(SC_ZERO_TIME);
+    // sc_assert(read16(OFS_UCB0IFG) == 0x0000);
     // Payload transport via eusciSocket
     sc_assert(test.checkPayload(0x00AB));
-    // TXIFG sets when Tx done 
+    // TXIFG sets when Tx done (buffer empty)
+    // RXIFG sets when Rx done (buffer full) 
+    sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));
+    // Target reply in RXBUF 
+    sc_assert(read16(OFS_UCB0RXBUF) == 0x00CD);
+    // Reading from RXBUF clears RFIFG
+    sc_assert(read16(OFS_UCB0IFG) == UCTXIFG);
 
     sc_stop();
   }
-
-  void write16(const uint16_t addr, const uint16_t val, bool doWait = true) {
+void write16(const uint16_t addr, const uint16_t val, bool doWait = true) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
     unsigned char data[2];

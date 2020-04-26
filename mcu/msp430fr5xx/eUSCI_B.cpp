@@ -85,7 +85,8 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     switch (addr) {
       case OFS_UCB0RXBUF:
-        // Reading from the RX buffer clears UCSWRST and UCOE.
+        // Reading from the RX buffer clears UCRXIFG and UCOE.
+        m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~UCRXIFG);
         break;
       default:
         break;
@@ -112,7 +113,7 @@ void eUSCI_B::process(void) {
     tlm::tlm_generic_payload * trans = new tlm::tlm_generic_payload;
     tlm::tlm_command cmd = tlm::TLM_WRITE_COMMAND;   
     uint8_t message = m_regs.read(OFS_UCB0TXBUF);
-    sc_time delay = sc_time(0,SC_NS);  
+    sc_time delay = sc_time(0,SC_US);  
 
     trans->set_command(cmd);
     trans->set_address(0);
@@ -130,7 +131,11 @@ void eUSCI_B::process(void) {
     if (trans->is_response_error())
         SC_REPORT_ERROR("eUSCI_B0", "Response error from TX.");
     
-    next_trigger(); 
+    // Tx Done, Rx Done
+    m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) | UCTXIFG | UCRXIFG);
+    // Process returned message
+    m_regs.write(OFS_UCB0RXBUF, *(trans->get_data_ptr()));   
+
   } else {
   }
   return;
