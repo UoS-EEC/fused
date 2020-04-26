@@ -23,6 +23,16 @@ class eUSCI_B : public BusTarget {
   SC_HAS_PROCESS(eUSCI_B);
 
  public:
+
+  // SPI data package structure
+  struct Spi_package {
+    uint8_t message;
+    uint16_t spi_parameters;
+    sc_core::sc_time spi_clk_period;
+  };  
+  
+  struct Spi_package spi_package; 
+  
   tlm_utils::simple_initiator_socket<eUSCI_B> iSocket{"iSocket"};
   tlm_utils::simple_initiator_socket<eUSCI_B> iEusciSocket{"iEusciSocket"};
   sc_core::sc_in<bool> irq{"irq"};

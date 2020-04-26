@@ -50,15 +50,33 @@ SC_MODULE(dut) {
   
   virtual void b_transport(tlm::tlm_generic_payload& trans, sc_time& delay)
   {
-    msg = *(trans.get_data_ptr());
-    trans.set_data_ptr(&ret_msg); 
+    unsigned char * ptr = trans.get_data_ptr();
+    unsigned int len = trans.get_data_length();
+
+    memcpy(&rx_spi_package, ptr, len);
+    msg = rx_spi_package.message;
+
+    // SPI peripheral device checks if params and clock valid
+
+    trans.set_data_ptr(&ret_msg);
+    trans.set_data_length(1);
+    trans.set_streaming_width(1); 
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
   }
 
   bool checkPayload(uint8_t c) {
     return msg == c;
   }
+
+  bool checkParams(uint16_t c) {
+    return rx_spi_package.spi_parameters == c;
+  }
+  
+  bool checkClock(sc_time c) {
+    return rx_spi_package.spi_clk_period == c;
+  }
  
+  eUSCI_B::Spi_package rx_spi_package;
   uint8_t ret_msg = 0xCD; 
   uint8_t msg;
   eUSCI_B m_dut{"dut", 0 , 0x2f,  sc_time(1, SC_NS)};
@@ -100,7 +118,7 @@ SC_MODULE(tester) {
     // TXIFG sets when Tx done
     write16(OFS_UCB0TXBUF, 0x00AB, false);
     wait(SC_ZERO_TIME);
-    // sc_assert(read16(OFS_UCB0IFG) == 0x0000);
+    // sc_assert(read16(OFS_UCB0IFG) == 0x0000);  // blocking, overwritten
     // Payload transport via eusciSocket
     sc_assert(test.checkPayload(0x00AB));
     // TXIFG sets when Tx done (buffer empty)
@@ -110,6 +128,20 @@ SC_MODULE(tester) {
     sc_assert(read16(OFS_UCB0RXBUF) == 0x00CD);
     // Reading from RXBUF clears RFIFG
     sc_assert(read16(OFS_UCB0IFG) == UCTXIFG);
+
+    // ------ TEST: SPI Formatted Packet
+    // Reset
+    write16(OFS_UCB0CTLW0, UCSWRST, false);
+    // Configure SPI parameters
+    // set phase, active high, 8-bit, master, 3-pin, aclk
+    write16(OFS_UCB0CTLW0, UCCKPH | UCCKPL | UCMST | UCSSEL0);
+    // Configure bit rate = aclk/10
+    write16(OFS_UCB0BRW, 0x000a, false);    
+    // TX with SPI packet
+    write16(OFS_UCB0TXBUF, 0x00AC, true);
+    sc_assert(test.checkPayload(0x00AC));
+    sc_assert(test.checkParams(UCCKPH | UCCKPL | UCMST | UCSSEL0));
+    sc_assert(test.checkClock(sc_time(10,SC_US)));
 
     sc_stop();
   }

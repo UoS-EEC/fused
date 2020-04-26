@@ -112,14 +112,18 @@ void eUSCI_B::process(void) {
     // Prepare payload object
     tlm::tlm_generic_payload * trans = new tlm::tlm_generic_payload;
     tlm::tlm_command cmd = tlm::TLM_WRITE_COMMAND;   
-    uint8_t message = m_regs.read(OFS_UCB0TXBUF);
+    
+    spi_package.message = m_regs.read(OFS_UCB0TXBUF);
+    spi_package.spi_parameters = m_regs.read(OFS_UCB0CTLW0);
+    spi_package.spi_clk_period = aclk->getPeriod()*m_regs.read(OFS_UCB0BRW);
+
     sc_time delay = sc_time(0,SC_US);  
 
     trans->set_command(cmd);
     trans->set_address(0);
-    trans->set_data_ptr(&message);
-    trans->set_data_length(1);
-    trans->set_streaming_width(1);
+    trans->set_data_ptr(reinterpret_cast<unsigned char*>(&spi_package));
+    trans->set_data_length(11);
+    trans->set_streaming_width(11);
     trans->set_byte_enable_ptr(0);
     trans->set_dmi_allowed(false);
     trans->set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
