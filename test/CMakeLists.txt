@@ -71,6 +71,7 @@ add_executable(testMsp430fr5xxeUSCI_B
   test_eUSCI_B.cpp
   ../mcu/BusTarget.cpp
   ../mcu/RegisterFile.cpp
+  ../mcu/SpiTransactionExtension.hpp
   ../mcu/msp430fr5xx/eUSCI_B.hpp
   ../mcu/msp430fr5xx/eUSCI_B.cpp
 )

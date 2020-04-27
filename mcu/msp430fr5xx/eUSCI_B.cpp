@@ -6,6 +6,7 @@
  */
 
 #include <systemc>
+#include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
@@ -17,21 +18,21 @@ extern "C" {
 using namespace sc_core;
 
 eUSCI_B::eUSCI_B(sc_module_name name, const uint16_t startAddress,
-    const uint16_t endAddress, const sc_time delay)
-  : BusTarget(name, startAddress, endAddress, delay) {
-    // Register events
+                 const uint16_t endAddress, const sc_time delay)
+    : BusTarget(name, startAddress, endAddress, delay) {
+  // Register events
 
-    // Initialise register file
-    uint16_t endOffset = endAddress - startAddress + 1;
-    for (uint16_t i = 0; i < endOffset; i += 2) {
-      m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
-    }
-
-    SC_METHOD(reset);
-    sensitive << pwrOn;
-
-    SC_THREAD(process);
+  // Initialise register file
+  uint16_t endOffset = endAddress - startAddress + 1;
+  for (uint16_t i = 0; i < endOffset; i += 2) {
+    m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
   }
+
+  SC_METHOD(reset);
+  sensitive << pwrOn;
+
+  SC_THREAD(process);
+}
 
 void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   // Access register file
@@ -61,7 +62,7 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
         // Receive Buffer Register. Read only.
         break;
       case OFS_UCB0TXBUF:
-        // Transmit Buffer Register 
+        // Transmit Buffer Register
         // Transmission starts after write.
         // UCTXIFG reset.
         m_euscibTxEvent.notify();
@@ -94,7 +95,7 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 }
 
 void eUSCI_B::reset(void) {
-  if (pwrOn.read()) { // Posedge of pwrOn
+  if (pwrOn.read()) {  // Posedge of pwrOn
     // Reset register file
     for (uint16_t i = 0; i < m_regs.size(); i++) {
       m_regs.write(2 * i, 0);
@@ -105,10 +106,16 @@ void eUSCI_B::reset(void) {
 }
 
 void eUSCI_B::process(void) {
+  // Prepare payload object
+  tlm::tlm_generic_payload trans;
+  SpiTransactionExtension spiExtension;
+  trans.set_extension(&spiExtension);
+  trans.set_address(0);      // SPI doesn't use address
+  trans.set_data_length(1);  // Transfer size up to 1 byte
 
-  wait(SC_ZERO_TIME);// Wait for sim to start
+  wait(SC_ZERO_TIME);  // Wait for sim to start
 
-  while(1) {
+  while (1) {
     if (pwrOn.read() == false) {
       wait(pwrOn.posedge_event());
     }
@@ -118,44 +125,45 @@ void eUSCI_B::process(void) {
     m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~(UCTXIFG));
     std::cout << "TXIFG cleared: " << sc_time_stamp() << std::endl;
     std::cout << "UCB0IFG: " << m_regs.read(OFS_UCB0IFG) << std::endl;
-    // Prepare payload object
-    tlm::tlm_generic_payload trans;
-    tlm::tlm_command cmd = tlm::TLM_WRITE_COMMAND;   
 
-    spi_package.message = m_regs.read(OFS_UCB0TXBUF);
-    spi_package.spi_parameters = m_regs.read(OFS_UCB0CTLW0);
-    spi_package.spi_clk_period = aclk->getPeriod()*m_regs.read(OFS_UCB0BRW);
+    auto data = m_regs.readByte(OFS_UCB0TXBUF);
+    auto spiParameters = m_regs.read(OFS_UCB0CTLW0);
+    spiExtension.clkPeriod = aclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
+    spiExtension.nDataBits = (spiParameters & UC7BIT) ? 7 : 8;
+    spiExtension.phase =
+        (spiParameters & UCCKPH)
+            ? SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE
+            : SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
+    spiExtension.polarity = (spiParameters & UCCKPL)
+                                ? SpiTransactionExtension::SpiPolarity::LOW
+                                : SpiTransactionExtension::SpiPolarity::HIGH;
+    spiExtension.bitOrder =
+        (spiParameters & UCMSB)
+            ? SpiTransactionExtension::SpiBitOrder::LSB_FIRST
+            : SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
+    sc_time delay = spiExtension.transferTime();
 
-    // Delay depends on packet size
-    int n = (spi_package.spi_parameters & UC7BIT) ? 7 : 8;
-    sc_time delay = spi_package.spi_clk_period*n;  
-
-    trans.set_command(cmd);
-    trans.set_address(0);
-    trans.set_data_ptr(reinterpret_cast<unsigned char*>(&spi_package));
-    trans.set_data_length(11);
-    trans.set_streaming_width(11);
-    trans.set_byte_enable_ptr(0);
-    trans.set_dmi_allowed(false);
+    trans.set_command(tlm::TLM_WRITE_COMMAND);
+    trans.set_data_ptr(&data);
     trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
 
-    // Blocking transport call 
+    // Blocking transport call
     iEusciSocket->b_transport(trans, delay);
 
     // Check response status
-    if (trans.is_response_error())
-      SC_REPORT_ERROR("eUSCI_B0", "Response error from TX.");
+    if (trans.is_response_error()) {
+      SC_REPORT_FATAL(this->name(), "Response error");
+    }
 
-    std::cout << "Before TX Done: " << sc_time_stamp() << std::endl; 
-    std::cout << "Delay: " << delay << std::endl; 
+    std::cout << "Before TX Done: " << sc_time_stamp() << std::endl;
+    std::cout << "Delay: " << delay << std::endl;
     wait(delay);
 
     // Tx Done, Rx Done
-    std::cout << "TX Done: " << sc_time_stamp() << std::endl; 
+    std::cout << "TX Done: " << sc_time_stamp() << std::endl;
     m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) | UCTXIFG | UCRXIFG);
 
-    // Process returned message
-    m_regs.write(OFS_UCB0RXBUF, *(trans.get_data_ptr()));   
-
+    // Save reponse
+    m_regs.write(OFS_UCB0RXBUF, spiExtension.response);
   }
 }

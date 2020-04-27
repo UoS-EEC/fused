@@ -10,36 +10,42 @@
 #include <systemc>
 #include <tlm>
 
-struct SpiTransaction : pubic tlm::tlm_extension<SpiTransaction> {
+struct SpiTransactionExtension
+    : public tlm::tlm_extension<SpiTransactionExtension> {
  public:
   /* ------ Types ------ */
   //! Polarity, clock idles high or low.
-  enum class SpiPolarity { SPI_POLARITY_HIGH, SPI_POLARITY_LOW };
+  enum class SpiPolarity { HIGH, LOW };
 
   enum class SpiPhase {
-    SPI_PHASE_0,  //! Data transmitted on first edge, captured on second.
-    SPI_PHASE_1   //! Data is transmitted on second edge, captured on first.
+    CAPTURE_SECOND_EDGE,  //! Data transmitted on first edge, captured on
+                          //! second.
+    CAPTURE_FIRST_EDGE    //! Data is transmitted on second edge, captured on
+                          //! first.
   };
 
   //! Transfer order, LSB or MSB first
-  enum class SpiBitOrder { SPI_LSB_FIRST, SPI_MSB_FIRST };
+  enum class SpiBitOrder { LSB_FIRST, MSB_FIRST };
 
   /* ------ Public variables ------ */
-  int nDataBits;
-  sc_core::sc_time clkPeriod;
-  SpiPolarity polarity;
-  SpiPhase phase;
-  SpiBitOrder bitOrder;
+  int nDataBits{0};
+  sc_core::sc_time clkPeriod{sc_core::SC_ZERO_TIME};
+  SpiPolarity polarity{SpiPolarity::LOW};
+  SpiPhase phase{SpiPhase::CAPTURE_FIRST_EDGE};
+  SpiBitOrder bitOrder{SpiBitOrder::LSB_FIRST};
+  int response{0};  //! Response message
 
  public:
   /* ------ Public methods ------ */
 
+  SpiTransactionExtension(void) = default;
   /**
    * @brief constructor
    */
-  SpiTransaction(const nDataBits_, const sc_time clkPeriod_,
-                 const SpiPolarity polarity_, const SpiPhase phase_,
-                 const SpiBitOrder bitOrder_)
+  SpiTransactionExtension(const int nDataBits_,
+                          const sc_core::sc_time clkPeriod_,
+                          const SpiPolarity polarity_, const SpiPhase phase_,
+                          const SpiBitOrder bitOrder_)
       : nDataBits(nDataBits_),
         clkPeriod(clkPeriod_),
         polarity(polarity_),
@@ -64,38 +70,42 @@ struct SpiTransaction : pubic tlm::tlm_extension<SpiTransaction> {
    * Mandatory function for tlm payload extensions
    */
   virtual tlm::tlm_extension_base *clone() const override {
-    return new SpiTransaction(nDatabits, clkPeriod, polarity, phase, bitOrder);
+    return new SpiTransactionExtension(nDataBits, clkPeriod, polarity, phase,
+                                       bitOrder);
   }
 
   /**
    * Mandatory function for tlm payload extensions
    */
   virtual void copy_from(const tlm::tlm_extension_base &ext) override {
-    auto &source = static_cast<SpiTransaction>;
+    auto &source = static_cast<const SpiTransactionExtension &>(ext);
     nDataBits = source.nDataBits;
     clkPeriod = source.clkPeriod;
     polarity = source.polarity;
     phase = source.phase;
     bitOrder = source.bitOrder;
+    response = source.response;
   }
 
   /**
    * @brief << debug printout.
    */
-  friend std::ostream &operator<<(std::ostream &os, const SpiTransaction &rhs) {
-    os << "<SpiTransaction>:\n";
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const SpiTransactionExtension &rhs) {
+    os << "<SpiTransactionExtension>:\n";
     os << "\tnDataBits: " << rhs.nDataBits << "\n";
     os << "\tclkPeriod: " << rhs.clkPeriod.to_string() << "\n";
-    os << "\tpolarity: "
-       << (rhs.polarity == SpiPolarity::SPI_POLARITY_HIGH ? "HIGH" : "LOW")
+    os << "\tpolarity: " << (rhs.polarity == SpiPolarity::HIGH ? "HIGH" : "LOW")
        << "\n";
-    os << "\tphase: " << (rhs.phase == SpiPhase::SPI_PHASE_0 ? "0" : "1")
+    os << "\tphase: "
+       << (rhs.phase == SpiPhase::CAPTURE_FIRST_EDGE ? "CAPTURE_FIRST_EDGE"
+                                                     : "CAPTURE_SECOND_EDGE")
        << "\n";
     os << "\tbitOrder: "
-       << (rhs.bitOrder == SpiBitOrder::SPI_LSB_FIRST ? "LSB_FIRST"
-                                                      : "MSB_FIRST")
+       << (rhs.bitOrder == SpiBitOrder::LSB_FIRST ? "LSB_FIRST" : "MSB_FIRST")
        << "\n";
-    os << "\tTransfer time: " << rhs.transferTime.to_seconds() << "\n";
+    os << "\tresponse: " << fmt::format("0x{:08x}", rhs.response) << "\n";
+    os << "\tTransfer time: " << rhs.transferTime().to_seconds() << "\n";
     return os;
   }
 };
