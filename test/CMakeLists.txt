@@ -67,6 +67,22 @@ target_link_libraries(testMsp430fr5xxTimerA
     Microcontroller
   )
 
+add_executable(testMsp430fr5xxeUSCI_B
+  test_eUSCI_B.cpp
+  ../mcu/BusTarget.cpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/msp430fr5xx/eUSCI_B.hpp
+  ../mcu/msp430fr5xx/eUSCI_B.cpp
+)
+
+target_link_libraries(testMsp430fr5xxeUSCI_B
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
+
 ELSEIF(${TARGET_ARCH} STREQUAL "cm0")
 
 add_executable(testCm0SysTick

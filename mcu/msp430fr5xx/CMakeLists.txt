@@ -12,6 +12,8 @@ add_library(
   ClockSystem.cpp
   ClockSystem.hpp
   device_includes/msp430fr5994.h
+  eUSCI_B.cpp
+  eUSCI_B.hpp
   DigitalIo.cpp
   DigitalIo.hpp
   Frctl_a.cpp
