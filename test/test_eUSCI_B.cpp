@@ -57,6 +57,7 @@ SC_MODULE(dut) {
     msg = rx_spi_package.message;
 
     // SPI peripheral device checks if params and clock valid
+    // then respond 
 
     trans.set_data_ptr(&ret_msg);
     trans.set_data_length(1);
@@ -90,6 +91,8 @@ SC_MODULE(tester) {
     test.pwrGood.write(true);
     wait(SC_ZERO_TIME);
 
+    std::cout << std::endl << "TESTING STARTS" << std::endl;
+
     // ------ TEST: Initialization and Reset
     // Power on reset
     sc_assert(read16(OFS_UCB0CTLW0) == 0x01C1);        
@@ -116,9 +119,7 @@ SC_MODULE(tester) {
     // ------ TEST: Tx Operation
     // Writing to TXBUF clears TXIFG
     // TXIFG sets when Tx done
-    write16(OFS_UCB0TXBUF, 0x00AB, false);
-    wait(SC_ZERO_TIME);
-    // sc_assert(read16(OFS_UCB0IFG) == 0x0000);  // blocking, overwritten
+    write16(OFS_UCB0TXBUF, 0x00AB, true);
     // Payload transport via eusciSocket
     sc_assert(test.checkPayload(0x00AB));
     // TXIFG sets when Tx done (buffer empty)
@@ -139,10 +140,32 @@ SC_MODULE(tester) {
     write16(OFS_UCB0BRW, 0x000a, false);    
     // TX with SPI packet
     write16(OFS_UCB0TXBUF, 0x00AC, true);
+    // Checked if received packet correct
     sc_assert(test.checkPayload(0x00AC));
     sc_assert(test.checkParams(UCCKPH | UCCKPL | UCMST | UCSSEL0));
     sc_assert(test.checkClock(sc_time(10,SC_US)));
 
+    wait(sc_time(80,SC_US));
+
+    // ------ TEST: SPI Operation Timing
+    std::cout << "SPI Operation Timing Test" << std::endl;
+    // Reset
+    write16(OFS_UCB0CTLW0, UCSWRST, false);
+    // Configure SPI parameters
+    // set phase, active high, 8-bit, master, 3-pin, aclk
+    write16(OFS_UCB0CTLW0, UCCKPH | UCCKPL | UCMST | UCSSEL0);
+    // Configure bit rate = aclk/10
+    write16(OFS_UCB0BRW, 0x000a, false);    
+    // Tx with SPI packet
+    std::cout << "Begin Tx: " << sc_time_stamp() << std::endl;
+    write16(OFS_UCB0TXBUF, 0x00AD, true);
+    std::cout << "Checking if TXIFG set @ " << sc_time_stamp() << std::endl;
+    sc_assert(read16(OFS_UCB0IFG) == 0x0000);  
+    wait(sc_time(80, SC_US));
+    std::cout << "RXDONE and TXDONE @ " << sc_time_stamp() << std::endl;
+    sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));
+    
+    std::cout << std::endl << "TESTING DONE" << std::endl;
     sc_stop();
   }
 void write16(const uint16_t addr, const uint16_t val, bool doWait = true) {
