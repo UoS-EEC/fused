@@ -89,6 +89,7 @@ class Adc12 : public BusTarget {
  private:
   /* ------ Private variables ------ */
   EventLog::eventId m_sampleEvent;
+  bool m_active{false};
 
   /* ------ SC events ------ */
   sc_core::sc_event samplingClockUpdateEvent{"samplingClockUpdateEvent"};

@@ -82,8 +82,11 @@ void Adc12::reset(void) {
 
     modeEvent.cancel();              // Cancel pending events
     modeEvent.notify(SC_ZERO_TIME);  // initialize process
-  } else {
-    EventLog::getInstance().reportState(this->name(), "off");
+  } else {                           // Negedge of pwrOn
+    if (m_active) {
+      EventLog::getInstance().reportState(this->name(), "off");
+      m_active = false;
+    }
   }
 }
 
@@ -95,10 +98,17 @@ void Adc12::process() {
     if (m_regs.testBitMask(OFS_ADC12CTL0, ADC12ON) &&
         m_regs.testBitMask(OFS_ADC12CTL0, ADC12ENC) && pwrOn.read()) {
       // ADC is on
-      EventLog::getInstance().reportState(this->name(), "on");
+      if (!m_active) {
+        m_active = true;
+        EventLog::getInstance().reportState(this->name(), "on");
+      }
+
     } else {
       // ADC is off, wait for bus transaction
-      EventLog::getInstance().reportState(this->name(), "off");
+      if (m_active) {
+        EventLog::getInstance().reportState(this->name(), "off");
+        m_active = false;
+      }
       next_trigger(modeEvent | pwrOn.negedge_event());
       irq.write(false);
       return;
