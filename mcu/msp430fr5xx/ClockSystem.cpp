@@ -225,7 +225,7 @@ void ClockSystem::updateClocks(void) {
         break;
     }
 
-    sc_time mclkPeriod = sourcePeriod * getDivider(m_regs.read(OFS_CSCTL3), 4);
+    sc_time mclkPeriod = sourcePeriod * getDivider(m_regs.read(OFS_CSCTL3), 0);
     if (mclk->getPeriod() != mclkPeriod) {
       mclk->setPeriod(mclkPeriod);
     }
