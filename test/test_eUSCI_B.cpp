@@ -87,8 +87,6 @@ SC_MODULE(tester) {
     test.pwrGood.write(true);
     wait(SC_ZERO_TIME);
 
-    std::cout << std::endl << "TESTING STARTS" << std::endl;
-
     // ------ TEST: Initialization and Reset
     // Power on reset
     sc_assert(read16(OFS_UCB0CTLW0) == 0x01C1);
@@ -148,7 +146,6 @@ SC_MODULE(tester) {
     wait(sc_time(80, SC_US));
 
     // ------ TEST: SPI Operation Timing
-    std::cout << "SPI Operation Timing Test" << std::endl;
     // Reset
     write16(OFS_UCB0CTLW0, UCSWRST, false);
     // Configure SPI parameters
@@ -157,13 +154,13 @@ SC_MODULE(tester) {
     // Configure bit rate = aclk/10
     write16(OFS_UCB0BRW, 0x000a, false);
     // Tx with SPI packet
-    std::cout << "Begin Tx: " << sc_time_stamp() << std::endl;
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
     write16(OFS_UCB0TXBUF, 0x00AD, true);
-    std::cout << "Checking if TXIFG set @ " << sc_time_stamp() << std::endl;
     sc_assert(read16(OFS_UCB0IFG) == 0x0000);
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x01); // eUSCI busy
     wait(sc_time(80, SC_US));
-    std::cout << "RXDONE and TXDONE @ " << sc_time_stamp() << std::endl;
-    sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));
+    sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));       
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
 
     std::cout << std::endl << "TESTING DONE" << std::endl;
     sc_stop();

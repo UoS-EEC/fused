@@ -84,6 +84,8 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     }
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     switch (addr) {
+      case OFS_UCB0STATW:
+        // UCBUSY bit indicates TX or RX in progress
       case OFS_UCB0RXBUF:
         // Reading from the RX buffer clears UCRXIFG and UCOE.
         m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~UCRXIFG);
@@ -123,8 +125,8 @@ void eUSCI_B::process(void) {
 
     // Clear the TXIFG flag
     m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~(UCTXIFG));
-    std::cout << "TXIFG cleared: " << sc_time_stamp() << std::endl;
-    std::cout << "UCB0IFG: " << m_regs.read(OFS_UCB0IFG) << std::endl;
+    // Set the eUSCI busy flag
+    m_regs.write(OFS_UCB0STATW, m_regs.read(OFS_UCB0STATW) | UCBUSY);
 
     auto data = m_regs.readByte(OFS_UCB0TXBUF);
     auto spiParameters = m_regs.read(OFS_UCB0CTLW0);
@@ -155,15 +157,13 @@ void eUSCI_B::process(void) {
       SC_REPORT_FATAL(this->name(), "Response error");
     }
 
-    std::cout << "Before TX Done: " << sc_time_stamp() << std::endl;
-    std::cout << "Delay: " << delay << std::endl;
     wait(delay);
 
     // Tx Done, Rx Done
-    std::cout << "TX Done: " << sc_time_stamp() << std::endl;
     m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) | UCTXIFG | UCRXIFG);
-
     // Save reponse
     m_regs.write(OFS_UCB0RXBUF, spiExtension.response);
+    // eUSCI no longer busy
+    m_regs.write(OFS_UCB0STATW, m_regs.read(OFS_UCB0STATW) & ~(UCBUSY));
   }
 }
