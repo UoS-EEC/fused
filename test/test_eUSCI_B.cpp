@@ -30,6 +30,7 @@ SC_MODULE(dut) {
  public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood"};
+  sc_signal<bool> ira{"ira"};
   sc_signal<bool> irq{"irq"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   tlm_utils::simple_target_socket<dut> tSocket{"tSocket"};
@@ -45,6 +46,7 @@ SC_MODULE(dut) {
     m_dut.aclk.bind(aclk);
     m_dut.smclk.bind(smclk);
     m_dut.irq.bind(irq);
+    m_dut.ira.bind(ira);
 
     tEusciSocket.register_b_transport(this, &dut::b_transport);
   }
@@ -153,13 +155,25 @@ SC_MODULE(tester) {
     write16(OFS_UCB0CTLW0, UCCKPH | UCCKPL | UCMST | UCSSEL0);
     // Configure bit rate = aclk/10
     write16(OFS_UCB0BRW, 0x000a, false);
+    // Enable interrupts
+    write16(OFS_UCB0IE, UCTXIE | UCRXIE);
     // Tx with SPI packet
     sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
     write16(OFS_UCB0TXBUF, 0x00AD, true);
     sc_assert(read16(OFS_UCB0IFG) == 0x0000);
     sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x01); // eUSCI busy
-    wait(sc_time(80, SC_US));
+    wait(test.irq.posedge_event());
+    std::cout << "Responding to irq" << std::endl;
+    test.ira.write(1);
+    std::cout << "ira done" << std::endl;
+    wait(test.irq.negedge_event());
+    test.ira.write(0);
+    wait(test.irq.posedge_event());
+    test.ira.write(1);
+    std::cout << "Responding to irq" << std::endl;
+    std::cout << "ira done" << std::endl;
     sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));       
+    std::cout << "Checking UCBUSY @ " << sc_time_stamp() << std::endl;
     sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
 
     std::cout << std::endl << "TESTING DONE" << std::endl;

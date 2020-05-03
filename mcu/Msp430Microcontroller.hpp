@@ -70,6 +70,9 @@ class Msp430Microcontroller : public Microcontroller {
   sc_core::sc_signal<bool> port7_irq{"port7_irq"};
   sc_core::sc_signal<bool> port8_irq{"port8_irq"};
 
+  sc_core::sc_signal<bool> euscib_irq{"euscib_irq"};
+  sc_core::sc_signal<bool> euscib_ira{"euscib_ira"};
+
   /* ------ Clocks ------ */
   ClockSourceChannel mclk{"mclk"};
   ClockSourceChannel smclk{"smclk"};
@@ -210,7 +213,7 @@ class Msp430Microcontroller : public Microcontroller {
   DummyPeripheral *portJ;
   NonvolatileMemory *fram;
   Cache *cache;
-  eUSCI_B *eusci_b;
+  eUSCI_B *euscib;
   Frctl_a *fram_ctl;
   GenericMemory *vectors;
   InterruptArbiter<37> *interruptArbiter;

@@ -18,21 +18,21 @@ extern "C" {
 using namespace sc_core;
 
 eUSCI_B::eUSCI_B(sc_module_name name, const uint16_t startAddress,
-                 const uint16_t endAddress, const sc_time delay)
-    : BusTarget(name, startAddress, endAddress, delay) {
-  // Register events
+    const uint16_t endAddress, const sc_time delay)
+  : BusTarget(name, startAddress, endAddress, delay) {
+    // Register events
 
-  // Initialise register file
-  uint16_t endOffset = endAddress - startAddress + 1;
-  for (uint16_t i = 0; i < endOffset; i += 2) {
-    m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
+    // Initialise register file
+    uint16_t endOffset = endAddress - startAddress + 1;
+    for (uint16_t i = 0; i < endOffset; i += 2) {
+      m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
+    }
+
+    SC_METHOD(reset);
+    sensitive << pwrOn;
+
+    SC_THREAD(process);
   }
-
-  SC_METHOD(reset);
-  sensitive << pwrOn;
-
-  SC_THREAD(process);
-}
 
 void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   // Access register file
@@ -133,16 +133,16 @@ void eUSCI_B::process(void) {
     spiExtension.clkPeriod = aclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
     spiExtension.nDataBits = (spiParameters & UC7BIT) ? 7 : 8;
     spiExtension.phase =
-        (spiParameters & UCCKPH)
-            ? SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE
-            : SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
+      (spiParameters & UCCKPH)
+      ? SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE
+      : SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
     spiExtension.polarity = (spiParameters & UCCKPL)
-                                ? SpiTransactionExtension::SpiPolarity::LOW
-                                : SpiTransactionExtension::SpiPolarity::HIGH;
+      ? SpiTransactionExtension::SpiPolarity::LOW
+      : SpiTransactionExtension::SpiPolarity::HIGH;
     spiExtension.bitOrder =
-        (spiParameters & UCMSB)
-            ? SpiTransactionExtension::SpiBitOrder::LSB_FIRST
-            : SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
+      (spiParameters & UCMSB)
+      ? SpiTransactionExtension::SpiBitOrder::LSB_FIRST
+      : SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
     sc_time delay = spiExtension.transferTime();
 
     trans.set_command(tlm::TLM_WRITE_COMMAND);
@@ -159,11 +159,52 @@ void eUSCI_B::process(void) {
 
     wait(delay);
 
-    // Tx Done, Rx Done
+    // Tx Done, Rx Done; Set Interrupt Flags
     m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) | UCTXIFG | UCRXIFG);
+
+    // Generate peripheral interrupt vector 
+    if (m_regs.read(OFS_UCB0IE) & UCTXIE) {         // Prioritize TX
+      m_regs.write(OFS_UCB0IV, 0x02);
+      m_regs.write(OFS_UCB0IV, 0x00);
+    } else if (m_regs.read(OFS_UCB0IE) & UCRXIE) {
+      m_regs.write(OFS_UCB0IV, 0x04); 
+    }    
+
+    // Generate Interrupt if TX or RX Interrupt Enabled
+    if (m_regs.read(OFS_UCB0IE)) {
+      // Set IRQ if TX or RX interrupt flag set 
+      irq.write(m_regs.read(OFS_UCB0IFG) > 0);
+      wait(ira.posedge_event());
+      if (m_regs.read(OFS_UCB0IFG) & UCTXIFG) { // Interrupt was due to TX
+        m_regs.clearBit(OFS_UCB0IFG, UCTXIFG);
+        m_regs.write(OFS_UCB0IV, 0x00);
+        irq.write(false);
+          // Another interrupt immediately if UCRXIE & UCRxIFG set
+          if ((m_regs.read(OFS_UCB0IE) & UCRXIE) && 
+              (m_regs.read(OFS_UCB0IFG) & UCRXIFG)) {
+            // Configure interrupt vector register for RX
+            m_regs.write(OFS_UCB0IV, 0x04);
+            // Reguest another interrupt
+            wait(SC_ZERO_TIME);
+            irq.write(true);
+            wait(ira.posedge_event());
+            m_regs.clearBit(OFS_UCB0IFG, UCRXIFG);
+            m_regs.write(OFS_UCB0IV, 0x00);
+            irq.write(false);
+            std::cout << "Interrupt handling done @ " << sc_time_stamp() << std::endl;
+          } 
+      } else if (m_regs.read(OFS_UCB0IFG) & UCRXIFG) { // due to RX
+        m_regs.clearBit(OFS_UCB0IFG, UCRXIFG);
+        m_regs.write(OFS_UCB0IV, 0x00); 
+        irq.write(false);
+      }
+    } 
+
     // Save reponse
     m_regs.write(OFS_UCB0RXBUF, spiExtension.response);
     // eUSCI no longer busy
     m_regs.write(OFS_UCB0STATW, m_regs.read(OFS_UCB0STATW) & ~(UCBUSY));
+    std::cout << "Tx done @ " << sc_time_stamp() << std::endl;
   }
 }
+

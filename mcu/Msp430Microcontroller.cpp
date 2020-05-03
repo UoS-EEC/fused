@@ -56,7 +56,7 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   tima = new TimerA("tima", TA0_BASE, m_cycleTime);
   interruptArbiter = new InterruptArbiter<37>("interruptArbiter", false);
   mpy32 = new Mpy32("mpy32", MPY32_BASE, MPY32_BASE + 0x2e, m_cycleTime);
-  eusci_b = new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2e, m_cycleTime);
+  euscib = new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2e, m_cycleTime);
 
   slaves.push_back(cache);
   slaves.push_back(fram_ctl);
@@ -75,7 +75,7 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   slaves.push_back(tima);
   slaves.push_back(mpy32);
   slaves.push_back(mon);
-  slaves.push_back(eusci_b);
+  slaves.push_back(euscib);
 
   // Sort slaves by address
   std::sort(slaves.begin(), slaves.end(), [](BusTarget *a, BusTarget *b) {
@@ -107,6 +107,9 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   adc->mclk.bind(mclk);
   adc->smclk.bind(smclk);
 
+  euscib->aclk.bind(aclk);
+  euscib->smclk.bind(smclk);
+
   // Interrupts
   m_cpu.ira.bind(cpu_ira);
   m_cpu.irq.bind(cpu_irq);
@@ -126,6 +129,11 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   pmm->irq.bind(pmm_irq);
   interruptArbiter->irqIn[0].bind(pmm_irq);
   interruptArbiter->iraOut[0].bind(pmm_ira);
+
+  euscib->ira.bind(euscib_ira);
+  euscib->irq.bind(euscib_irq);
+  interruptArbiter->irqIn[8].bind(euscib_irq);  // (0xfffe - 0xffee)/2 = 8
+  interruptArbiter->iraOut[8].bind(euscib_ira);
 
   adc->irq.bind(adc_irq);
 
