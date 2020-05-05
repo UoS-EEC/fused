@@ -56,9 +56,8 @@ class EventLog : public sc_core::sc_module {
 
   /**
    * @brief dumpCsv dump eventlog to csv
-   * @param path
    */
-  void dumpCsv(std::string path = "");
+  void dumpCsv();
 
   /**
    * @brief getStartLoggingEvent get the event that triggers the start of event
@@ -96,6 +95,8 @@ class EventLog : public sc_core::sc_module {
   enum logIndex { EVENT_NAME, EVENT_VALUES };
   PowerCalculator m_pcalc;
   double m_staticConsumption;
+  const static int m_dumpThreshold =
+      100E3;  //! Dump to file when number of log entries grows bigger than this
 
   sc_core::sc_event m_startLoggingEvent{"startLoggingEvent"};
   sc_core::sc_time m_timestep;

@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <stdint.h>
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <numeric>
 #include <systemc>
@@ -20,6 +21,16 @@ using namespace sc_core;
 
 EventLog::EventLog(sc_module_name nm) : sc_module(nm) {
   SC_THREAD(process)
+
+  // create/overwrite log file
+  auto path = Config::get().getString("OutputDirectory") + "/eventLog.csv";
+  std::ofstream f(path);
+  if (!f.good()) {
+    SC_REPORT_FATAL(
+        this->name(),
+        fmt::format("Can't open eventLog file at {}", path).c_str());
+  }
+
   // Load energy cost of events
   m_pcalc = PowerCalculator();
   m_timestep = sc_core::sc_time::from_seconds(
@@ -61,15 +72,15 @@ void EventLog::reportState(const std::string &reporter,
   }
 }
 
-void EventLog::dumpCsv(std::string path) {
-  if (path == "") {
-    path = Config::get().getString("OutputDirectory") + "/eventLog.csv";
-  }
-  std::ofstream f(path);
-  // Header
-  for (unsigned int i = 0; i < m_log.size(); i++) {
-    f << std::get<EVENT_NAME>(m_log[i])
-      << ((i < m_log.size() - 1) ? ',' : '\n');
+void EventLog::dumpCsv() {
+  auto path = Config::get().getString("OutputDirectory") + "/eventLog.csv";
+  std::ofstream f(path, std::ios::out | std::ios::app);
+  if (f.tellp() == 0) {
+    // Header
+    for (unsigned int i = 0; i < m_log.size(); i++) {
+      f << std::get<EVENT_NAME>(m_log[i])
+        << ((i < m_log.size() - 1) ? ',' : '\n');
+    }
   }
 
   // Values
@@ -79,8 +90,6 @@ void EventLog::dumpCsv(std::string path) {
         << ((j < m_log.size() - 1) ? ',' : '\n');
     }
   }
-
-  f.close();
 }
 
 void EventLog::process() {
@@ -137,6 +146,14 @@ void EventLog::process() {
           return a + (i.second * std::get<EVENT_VALUES>(m_log[i.first]).back());
         });
     dynamicEnergy->write(e);
+
+    // Dump file when log gets too large (to conserve memory)
+    if (std::get<EVENT_VALUES>(m_log[0]).size() > m_dumpThreshold) {
+      dumpCsv();
+      for (auto &v : m_log) {
+        std::get<EVENT_VALUES>(v).clear();
+      }
+    }
 
     // Create new log entry
     for (auto &v : m_log) {
