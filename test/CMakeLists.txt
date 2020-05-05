@@ -84,6 +84,25 @@ target_link_libraries(testMsp430fr5xxeUSCI_B
     Utilities
   )
 
+add_executable(testSpiDevice
+  test_SpiDevice.cpp
+  ../sd/SpiDevice.hpp
+  ../sd/SpiDevice.cpp
+  ../sd/DummySpiDevice.hpp
+  ../sd/DummySpiDevice.cpp
+  ../mcu/SpiTransactionExtension.hpp
+  ../ps/DynamicEnergyChannel.hpp
+)
+
+target_link_libraries(testSpiDevice
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
+
+
 ELSEIF(${TARGET_ARCH} STREQUAL "cm0")
 
 add_executable(testCm0SysTick

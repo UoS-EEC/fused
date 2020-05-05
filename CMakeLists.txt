@@ -79,6 +79,7 @@ include_directories(.)
 add_subdirectory(mcu)
 add_subdirectory(ps)
 add_subdirectory(utilities)
+add_subdirectory(sd)
 
 configure_file(config/config.yaml.in config.yaml)
 
@@ -88,6 +89,7 @@ target_link_libraries(
   fused
   Microcontroller
   PowerSystem
+  SerialDevices
   systemc-ams
   systemc
   spdlog::spdlog
