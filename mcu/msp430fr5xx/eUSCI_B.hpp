@@ -23,7 +23,6 @@ class eUSCI_B : public BusTarget {
   SC_HAS_PROCESS(eUSCI_B);
 
  public:
-  tlm_utils::simple_initiator_socket<eUSCI_B> iSocket{"iSocket"};
   tlm_utils::simple_initiator_socket<eUSCI_B> iEusciSocket{"iEusciSocket"};
   sc_core::sc_in<bool> ira{"ira"};  // Interrupt reqest accepted signal
   sc_core::sc_out<bool> irq{"irq"}; // Interrupt request output

@@ -33,7 +33,6 @@ SC_MODULE(dut) {
   sc_signal<bool> ira{"ira"};
   sc_signal<bool> irq{"irq"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
-  tlm_utils::simple_target_socket<dut> tSocket{"tSocket"};
   tlm_utils::simple_target_socket<dut> tEusciSocket{"tEusciSocket"};
   ClockSourceChannel smclk{"smclk", sc_time(1, SC_US)};
   ClockSourceChannel aclk{"aclk", sc_time(1, SC_US)};
@@ -41,7 +40,6 @@ SC_MODULE(dut) {
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
     m_dut.tSocket.bind(iSocket);
-    m_dut.iSocket.bind(tSocket);
     m_dut.iEusciSocket.bind(tEusciSocket);
     m_dut.aclk.bind(aclk);
     m_dut.smclk.bind(smclk);
