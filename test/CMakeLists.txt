@@ -67,8 +67,8 @@ target_link_libraries(testMsp430fr5xxTimerA
     Microcontroller
   )
 
-add_executable(testMsp430fr5xxeUSCI_B
-  test_eUSCI_B.cpp
+add_executable(testMsp430fr5xxeUsciB
+  test_msp430fr5xxeUsciB.cpp
   ../mcu/BusTarget.cpp
   ../mcu/RegisterFile.cpp
   ../mcu/SpiTransactionExtension.hpp
@@ -76,7 +76,7 @@ add_executable(testMsp430fr5xxeUSCI_B
   ../mcu/msp430fr5xx/eUSCI_B.cpp
 )
 
-target_link_libraries(testMsp430fr5xxeUSCI_B
+target_link_libraries(testMsp430fr5xxeUsciB
   PRIVATE
     systemc
     spdlog::spdlog
