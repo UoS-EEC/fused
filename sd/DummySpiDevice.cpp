@@ -12,22 +12,26 @@ DummySpiDevice::DummySpiDevice(const sc_core::sc_module_name name)
     : SpiDevice(name) {
   // Initialise memory mapped control registers.
   // In this case just make a single dummy.
-  c_reg reg0 = {0x0000, 0x0F};
+  c_reg reg0 = {0x0000, 0x00};
   c_regs.push_back(reg0);
 }
 
 void DummySpiDevice::reset(void) {
-  // Clear the memory mapped control registers
+  // Clear the memory mapped control registers.
   for (int i = 0; i < n_regs(); i++) {
     c_regs[i].val = 0;
   }
+  // Reset SPI shift registers.
+  SpiDevice::reset();
 }
 
 void DummySpiDevice::process(void) {
-  // Read from si_reg and decode. Skip for now.
-  uint8_t payload = readSiReg();
-  // Prepare next reponse in so_reg.
-  writeSoReg(c_regs[0].val | payload);
+  if (pwrOn.read()) {
+    // Read from si_reg and decode. Skip for now.
+    uint8_t payload = readSiReg();
+    // Prepare next reponse in so_reg.
+    writeSoReg(c_regs[0].val | payload);
+  }
 }
 
 uint32_t DummySpiDevice::n_regs(void) { return c_regs.size(); }

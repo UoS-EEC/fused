@@ -22,10 +22,10 @@ class SpiDevice : public sc_core::sc_module {
 
  public:
   /* ------ Ports ------ */
-  // Supply voltage
-  // sc_core::sc_in<double> vcc{"vcc"};
+  // Supply Power
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};
   // Chip select
-  // sc_core::sc_in<bool> cs{"cs"};
+  sc_core::sc_in<bool> csn{"csn"};
   // TLM socket for SPI
   tlm_utils::simple_target_socket<SpiDevice> tSpiSocket{"tSpiSocket"};
 
