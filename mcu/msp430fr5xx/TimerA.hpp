@@ -54,7 +54,7 @@ class TimerA : public BusTarget {
    * @brief end_of_elaboration used to register SC_METHODs and build sensitivity
    * list.
    */
-  void end_of_elaboration();
+  virtual void end_of_elaboration() override;
 
  public:
   /*------ Internal signals/channels ------*/

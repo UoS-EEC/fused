@@ -45,6 +45,7 @@ void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }
 
+  m_lastAccessAddress addr;
   delay += m_delay;
   trans.set_response_status(tlm::TLM_OK_RESPONSE);
 }
