@@ -140,6 +140,12 @@ int sc_main(int argc, char *argv[]) {
     mcu->ioPortC[i].bind(DIOCPins[i]);
     mcu->ioPortD[i].bind(DIODPins[i]);
   }
+
+  // Instantiate off-chip serial devices
+  DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
+  dummySpiDevice->nReset.bind(nReset);
+  dummySpiDevice->chipSelect.bind(chipSelectDummySpi);
+  dummySpiDevice->tSocket.bind(mcu->euscib->iEusciSocket);
 #endif
 
   // Print memory map
@@ -148,12 +154,6 @@ int sc_main(int argc, char *argv[]) {
   mcu->vcc.bind(vcc);
   mcu->nReset.bind(nReset);
   mcu->staticPower.bind(staticConsumptionBoot);
-
-  // Instantiate off-chip serial devices
-  DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
-  dummySpiDevice->nReset.bind(nReset);
-  dummySpiDevice->chipSelect.bind(chipSelectDummySpi);
-  dummySpiDevice->tSocket.bind(mcu->euscib->iEusciSocket);
 
   // Power circuitry
   // Static + dynamic -> static

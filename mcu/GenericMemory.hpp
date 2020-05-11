@@ -18,12 +18,6 @@ class GenericMemory : public BusTarget {
 
  public:
   /* ------ Types ------ */
-  struct powerConsumption {
-    double onCurrent = 0.0;    //! Current consumption when on [A]
-    double offCurrent = 0.0;   //! Current consumption when off [A]
-    double writeEnergy = 0.0;  //! Write energy [J]
-    double readEnergy = 0.0;   //! Read energy [J]
-  };
 
   /* ------ Public methods ------ */
   GenericMemory(sc_core::sc_module_name name, unsigned startAddress,

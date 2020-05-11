@@ -44,7 +44,6 @@ target_link_libraries(testDigitalIo
     Microcontroller
 )
 
-
 add_executable(testMsp430fr5xxClockSystem test_msp430fr5xxClockSystem.cpp)
 
 target_link_libraries(testMsp430fr5xxClockSystem
@@ -104,6 +103,27 @@ target_link_libraries(testSpiDevice
     Utilities
   )
 
+add_executable(testMsp430fr5xxDma
+  test_msp430fr5xxDma.cpp
+  ../mcu/msp430fr5xx/Dma.cpp
+  ../mcu/msp430fr5xx/Dma.hpp
+  ../mcu/BusTarget.cpp
+  ../mcu/BusTarget.hpp
+  ../mcu/msp430fr5xx/Dma.cpp
+  ../mcu/msp430fr5xx/Dma.hpp
+  ../mcu/GenericMemory.cpp
+  ../mcu/GenericMemory.hpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/RegisterFile.hpp
+  )
+
+target_link_libraries(testMsp430fr5xxDma
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
 
 ELSEIF(${TARGET_ARCH} STREQUAL "cm0")
 
