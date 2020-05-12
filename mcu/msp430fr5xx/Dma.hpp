@@ -22,9 +22,11 @@ SC_MODULE(DmaChannel) {
  public:
   /*------ Ports ------*/
   sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! clock input
-  sc_core::sc_out<bool> interruptFlag;
   sc_core::sc_out<bool> pending;  //! Flag if a transfer is pending
   sc_core::sc_in<bool> accept;    //! Flag if transfer was accepted
+
+  // Flags
+  bool interruptFlag;
 
   // Types
   enum class AutoIncrementMode { Unchanged, Decrement, Increment };
@@ -148,11 +150,12 @@ class Dma : public BusTarget {
 
  private:
   /*------ Private variables ------*/
-  std::array<sc_core::sc_signal<bool>, NCHANNELS> m_interruptFlags;
+  bool m_clearIfg;
   std::array<sc_core::sc_signal<bool>, NCHANNELS> m_channelPending;
   std::array<sc_core::sc_signal<bool>, NCHANNELS> m_channelAccept;
 
   sc_core::sc_event m_updateEvent{"m_updateEvent"};
+  sc_core::sc_event m_updateIrqEvent{"m_updateIrqEvent"};
 
   /*------ Private methods ------*/
   /**
@@ -170,4 +173,9 @@ class Dma : public BusTarget {
    * for all channels.
    */
   void updateChannelAddresses();
+
+  /**
+   * @brief interruptUpdate update interrupt state & flags
+   */
+  void interruptUpdate();
 };

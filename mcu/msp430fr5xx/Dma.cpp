@@ -22,7 +22,6 @@ Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
   for (auto i = 0; i < NCHANNELS; i++) {
     m_channels[i] = new DmaChannel(fmt::format("ch{:d}", i).c_str());
     m_channels[i]->clk.bind(clk);
-    m_channels[i]->interruptFlag.bind(m_interruptFlags[i]);
     m_channels[i]->pending.bind(m_channelPending[i]);
     m_channels[i]->accept.bind(m_channelAccept[i]);
   }
@@ -63,6 +62,9 @@ Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
   // Set up methods & threads
   SC_METHOD(reset);
   sensitive << pwrOn;
+
+  SC_METHOD(interruptUpdate);
+  sensitive << m_updateIrqEvent;
 
   SC_THREAD(process);
 }
@@ -179,19 +181,15 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans,
           m_updateEvent.notify(delay);
         }
         break;
-      case (OFS_DMAIV):
-        // Clear pending and set next pending
-        break;
     }
   } else if (trans.get_command() == TLM_READ_COMMAND) {
-    switch (addr) {
-      case (OFS_DMAIV):
-        // Clear pending and set next pending
-        break;
-    }
   }
 
-  if (addr >= OFS_DMA0SA && addr <= OFS_DMA5SZ) {
+  if (addr == OFS_DMAIV) {
+    // Clear pending and set next pending
+    m_clearIfg = true;
+    m_updateIrqEvent.notify(delay);
+  } else if (addr >= OFS_DMA0SA && addr <= OFS_DMA5SZ) {
     updateChannelAddresses();
   }
 }
@@ -223,10 +221,16 @@ void Dma::process() {
       // Accept, perform transfer, update state & registers
       auto &ch = *m_channels[channelIdx];
       m_channelAccept[channelIdx].write(true);
-      transfer(ch);
       ch.updateState();
+      transfer(ch);
       const auto offset = channelIdx * (OFS_DMA1CTL - OFS_DMA0CTL);
       m_regs.write(OFS_DMA0SZ + offset, ch.size);
+      if (!ch.enable) {
+        m_regs.clearBitMask(OFS_DMA0CTL + offset, DMAEN);
+      }
+      if (ch.interruptFlag) {
+        m_updateIrqEvent.notify(SC_ZERO_TIME);
+      }
       m_channelAccept[channelIdx].write(false);
     }
   }
@@ -241,17 +245,49 @@ void Dma::transfer(DmaChannel &ch) {
 
   // Read
   trans.set_command(TLM_READ_COMMAND);
-  trans.set_address(ch.sourceAddress);
+  trans.set_address(ch.m_tSourceAddress);
   delay = SC_ZERO_TIME;
   iSocket->b_transport(trans, delay);
   wait(delay);
 
   // Write
-  trans.set_address(ch.destinationAddress);
+  trans.set_address(ch.m_tDestinationAddress);
   trans.set_command(TLM_WRITE_COMMAND);
   delay = SC_ZERO_TIME;
   iSocket->b_transport(trans, delay);
   wait(delay);
+}
+
+void Dma::interruptUpdate() {
+  int highestPrioChannel = -1;
+  for (auto i = 0; i < m_channels.size(); i++) {
+    const auto offset = i * (OFS_DMA1CTL - OFS_DMA0CTL);
+    if (m_channels[i]->interruptFlag) {
+      m_regs.setBitMask(OFS_DMA0CTL + offset, DMAIFG);
+      highestPrioChannel = (highestPrioChannel == -1) ? i : highestPrioChannel;
+    } else {
+      m_regs.clearBitMask(OFS_DMA0CTL + offset, DMAIFG);
+    }
+  }
+
+  if (m_clearIfg) {
+    // Clear highest priority pending flag & re-update interrupt state
+    m_clearIfg = false;
+    m_channels[highestPrioChannel]->interruptFlag = false;
+    m_updateEvent.notify(SC_ZERO_TIME);
+    return;
+  }
+
+  // Set IV & irq
+  if (highestPrioChannel > -1) {
+    m_regs.write(OFS_DMAIV, 1u << (highestPrioChannel + 1), /*force=*/true);
+    if (m_channels[highestPrioChannel]->interruptEnable) {
+      irq.write(true);
+    }
+  } else {
+    m_regs.write(OFS_DMAIV, 0, /*force=*/true);
+    irq.write(false);
+  }
 }
 
 void DmaChannel::updateAddresses() {
@@ -434,15 +470,16 @@ void DmaChannel::updateState() {
   if (size == m_tSize) {  // First transfer ->set internal registers
     m_tSourceAddress = sourceAddress;
     m_tDestinationAddress = destinationAddress;
+  } else {
+    updateAddresses();
   }
-
-  updateAddresses();
 
   if (size > 1) {
     size--;
   } else {
     // Job done, reset size
     size = m_tSize;
+    interruptFlag = true;
     enable &=  // Clear enable unless repeated transfer mode
         (transferMode == TransferMode::RepeatedSingle) |
         (transferMode == TransferMode::RepeatedBlock) |
@@ -480,7 +517,7 @@ void DmaChannel::reset() {
 std::ostream &operator<<(std::ostream &os, const DmaChannel &rhs) {
   os << "<DmaChannel> " << rhs.name() << "\n";
   os << "Signals:\n";
-  os << "\tinterruptFlag: " << rhs.interruptFlag.read() << "\n";
+  os << "\tinterruptFlag: " << rhs.interruptFlag << "\n";
   os << "\tpending: " << rhs.pending.read() + "\n";
   os << "Settings:\n";
   os << "\tenable: " << rhs.enable << "\n";
