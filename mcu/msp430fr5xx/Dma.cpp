@@ -270,11 +270,11 @@ void Dma::interruptUpdate() {
     }
   }
 
-  if (m_clearIfg) {
+  if (m_clearIfg && (highestPrioChannel != -1)) {
     // Clear highest priority pending flag & re-update interrupt state
     m_clearIfg = false;
     m_channels[highestPrioChannel]->interruptFlag = false;
-    m_updateEvent.notify(SC_ZERO_TIME);
+    m_updateIrqEvent.notify(SC_ZERO_TIME);
     return;
   }
 
@@ -512,6 +512,7 @@ void DmaChannel::reset() {
   abort = false;
   softwareTrigger = false;
   transferMode = TransferMode::Single;
+  interruptFlag = false;
 }
 
 std::ostream &operator<<(std::ostream &os, const DmaChannel &rhs) {

@@ -77,7 +77,7 @@ SC_MODULE(tester) {
     write16(OFS_DMA0SZ, 32);
     write16(OFS_DMA0CTL, DMADT_0 | DMADSTINCR_3 | DMASRCINCR_3 |
                              DMADSTBYTE__WORD | DMASRCBYTE__WORD |
-                             DMALEVEL__EDGE | DMAEN_1);
+                             DMALEVEL__EDGE | DMAEN_1 | DMAIE);
     // Trigger
     for (auto i = 0; i < 32; i++) {
       std::cout << *test.m_dut.m_channels[0] << std::endl;
@@ -88,15 +88,28 @@ SC_MODULE(tester) {
     }
     std::cout << *test.m_dut.m_channels[0] << std::endl;
 
+    // Should be disabled after completed transfer
+    sc_assert(!test.m_dut.m_channels[0]->enable);
+    sc_assert(!(read16(OFS_DMA0CTL) & DMAEN));
+
+    // Check interrupt flag
+    sc_assert(test.m_dut.m_channels[0]->interruptFlag);
+    sc_assert(test.irq.read());
+    sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
+    wait(test.clk.getPeriod());
+    auto tmp = read16(OFS_DMAIV);
+    std::cout << "DMAIV: " << tmp << std::endl;
+    // sc_assert(read16(OFS_DMAIV) == 0);
+
+    sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
+    sc_assert(!test.irq.read());
+
     // Check memory contents
     for (auto i = 0; i < 31; i++) {
       std::cout << 2 * i + 128 << ": " << readMemory16(2 * i + 128)
                 << std::endl;
       sc_assert(readMemory16(2 * i + 128) == i);
     }
-    // Should be disabled after completed transfer
-    sc_assert(!test.m_dut.m_channels[0]->enable);
-    sc_assert(!(read16(OFS_DMA0CTL) & DMAEN));
 
     // TEST -- CSR reset value
     // sc_assert(read32(OFS_SYST_CSR) == 0x4);
