@@ -141,6 +141,8 @@ int sc_main(int argc, char *argv[]) {
     mcu->ioPortD[i].bind(DIODPins[i]);
   }
 
+  // TODO: need to bind a pin to csn0 (chip nSelect for dummySpiDevice)
+
 #endif
   mcu->vcc.bind(vcc);
   mcu->nReset.bind(nReset);

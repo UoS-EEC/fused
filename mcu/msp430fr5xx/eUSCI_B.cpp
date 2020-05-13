@@ -45,7 +45,7 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
       case OFS_UCB0CTLW0:
         // Control Register 0
         // Setting UCSWRST resets the eUSCI module.
-        if (m_regs.read(OFS_UCB0CTLW0) & UCSWRST) {
+        if (m_regs.read(OFS_UCB0CTLW1) & UCSWRST) {
           this->reset();
         }
         // Update tlm_generic_paylod extension.
@@ -86,9 +86,17 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     switch (addr) {
       case OFS_UCB0STATW:
         // UCBUSY bit indicates TX or RX in progress
+        break;
       case OFS_UCB0RXBUF:
         // Reading from the RX buffer clears UCRXIFG and UCOE.
         m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~UCRXIFG);
+        break;
+      case OFS_UCB0IV:
+        if(m_regs.read(OFS_UCB0IFG) & UCRXIFG) {
+          m_regs.write(OFS_UCB0IV, 0x02);
+        } else {
+          m_regs.write(OFS_UCB0IV, 0x00);
+        }
         break;
       default:
         break;
@@ -99,10 +107,11 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 void eUSCI_B::reset(void) {
   if (pwrOn.read()) {  // Posedge of pwrOn
     // Reset register file
+    std::cout << "USCI Logic reset" << std::endl;
     for (uint16_t i = 0; i < m_regs.size(); i++) {
       m_regs.write(2 * i, 0);
     }
-    m_regs.write(OFS_UCB0CTLW0, 0X01C1);
+    m_regs.write(OFS_UCB0CTLW0, 0X0101);
     m_regs.write(OFS_UCB0IFG, 0x0002);
   }
 }
@@ -134,15 +143,15 @@ void eUSCI_B::process(void) {
     spiExtension.nDataBits = (spiParameters & UC7BIT) ? 7 : 8;
     spiExtension.phase =
       (spiParameters & UCCKPH)
-      ? SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE
-      : SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
+      ? SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE
+      : SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE;
     spiExtension.polarity = (spiParameters & UCCKPL)
-      ? SpiTransactionExtension::SpiPolarity::LOW
-      : SpiTransactionExtension::SpiPolarity::HIGH;
+      ? SpiTransactionExtension::SpiPolarity::HIGH
+      : SpiTransactionExtension::SpiPolarity::LOW;
     spiExtension.bitOrder =
       (spiParameters & UCMSB)
-      ? SpiTransactionExtension::SpiBitOrder::LSB_FIRST
-      : SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
+      ? SpiTransactionExtension::SpiBitOrder::MSB_FIRST
+      : SpiTransactionExtension::SpiBitOrder::LSB_FIRST;
     sc_time delay = spiExtension.transferTime();
 
     trans.set_command(tlm::TLM_WRITE_COMMAND);
@@ -164,38 +173,31 @@ void eUSCI_B::process(void) {
 
     // Generate peripheral interrupt vector 
     if (m_regs.read(OFS_UCB0IE) & UCTXIE) {         // Prioritize TX
-      m_regs.write(OFS_UCB0IV, 0x02);
-      m_regs.write(OFS_UCB0IV, 0x00);
+      m_regs.write(OFS_UCB0IV, 0x04);
     } else if (m_regs.read(OFS_UCB0IE) & UCRXIE) {
-      m_regs.write(OFS_UCB0IV, 0x04); 
+      m_regs.write(OFS_UCB0IV, 0x02); 
     }    
 
     // Generate Interrupt if TX or RX Interrupt Enabled
     if (m_regs.read(OFS_UCB0IE)) {
+      std::cout << "Interrupt handling done @ " << sc_time_stamp() << std::endl;
       // Set IRQ if TX or RX interrupt flag set 
       irq.write(m_regs.read(OFS_UCB0IFG) > 0);
       wait(ira.posedge_event());
-      if (m_regs.read(OFS_UCB0IFG) & UCTXIFG) { // Interrupt was due to TX
-        m_regs.clearBit(OFS_UCB0IFG, UCTXIFG);
-        m_regs.write(OFS_UCB0IV, 0x00);
+      if (m_regs.read(OFS_UCB0IFG) & UCTXIFG &&
+          m_regs.read(OFS_UCB0IE) & UCTXIE) { // Interrupt was due to TX
         irq.write(false);
           // Another interrupt immediately if UCRXIE & UCRxIFG set
           if ((m_regs.read(OFS_UCB0IE) & UCRXIE) && 
               (m_regs.read(OFS_UCB0IFG) & UCRXIFG)) {
-            // Configure interrupt vector register for RX
-            m_regs.write(OFS_UCB0IV, 0x04);
             // Reguest another interrupt
             wait(SC_ZERO_TIME);
             irq.write(true);
             wait(ira.posedge_event());
-            m_regs.clearBit(OFS_UCB0IFG, UCRXIFG);
-            m_regs.write(OFS_UCB0IV, 0x00);
             irq.write(false);
-            std::cout << "Interrupt handling done @ " << sc_time_stamp() << std::endl;
           } 
-      } else if (m_regs.read(OFS_UCB0IFG) & UCRXIFG) { // due to RX
-        m_regs.clearBit(OFS_UCB0IFG, UCRXIFG);
-        m_regs.write(OFS_UCB0IV, 0x00); 
+      } else if (m_regs.read(OFS_UCB0IFG) & UCRXIFG &&
+                 m_regs.read(OFS_UCB0IE) & UCRXIE) { // due to RX
         irq.write(false);
       }
     } 
@@ -205,6 +207,7 @@ void eUSCI_B::process(void) {
     // eUSCI no longer busy
     m_regs.write(OFS_UCB0STATW, m_regs.read(OFS_UCB0STATW) & ~(UCBUSY));
     std::cout << "Tx done @ " << sc_time_stamp() << std::endl;
+    std::cout << std::hex << (int) m_regs.read(OFS_UCB0IFG) << std::endl; 
   }
 }
 

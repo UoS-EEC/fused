@@ -55,8 +55,8 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   cs = new ClockSystem("cs", CS_BASE, m_cycleTime);
   tima = new TimerA("tima", TA0_BASE, m_cycleTime);
   interruptArbiter = new InterruptArbiter<37>("interruptArbiter", false);
-  mpy32 = new Mpy32("mpy32", MPY32_BASE, MPY32_BASE + 0x2e, m_cycleTime);
-  euscib = new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2e, m_cycleTime);
+  mpy32 = new Mpy32("mpy32", MPY32_BASE, MPY32_BASE + 0x2f, m_cycleTime);
+  euscib = new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2f, m_cycleTime);
 
   slaves.push_back(cache);
   slaves.push_back(fram_ctl);

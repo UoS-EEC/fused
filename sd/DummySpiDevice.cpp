@@ -18,6 +18,7 @@ DummySpiDevice::DummySpiDevice(const sc_core::sc_module_name name)
 
 void DummySpiDevice::reset(void) {
   // Clear the memory mapped control registers.
+  std::cout << "DummySpiDevice Reset" << std::endl;
   for (int i = 0; i < n_regs(); i++) {
     c_regs[i].val = 0;
   }
@@ -29,6 +30,7 @@ void DummySpiDevice::process(void) {
   if (pwrOn.read()) {
     // Read from si_reg and decode. Skip for now.
     uint8_t payload = readSiReg();
+    std::cout << "DummySpiDevice received payload: " << payload << std::endl;
     // Prepare next reponse in so_reg.
     writeSoReg(c_regs[0].val | payload);
   }
