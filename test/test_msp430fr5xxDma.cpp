@@ -82,14 +82,14 @@ SC_MODULE(tester) {
                              DMALEVEL__EDGE | DMAEN_1 | DMAIE);
     // Trigger
     for (auto i = 0; i < 32; i++) {
-      std::cout << *test.m_dut.m_channels[0] << std::endl;
+      // std::cout << *test.m_dut.m_channels[0] << std::endl;
       test.trigger[0].write(true);
       sc_assert(test.m_dut.m_channels[0]->enable);
       wait(1 * test.clk.getPeriod());
       test.trigger[0].write(false);
       wait(4 * test.clk.getPeriod());
     }
-    std::cout << *test.m_dut.m_channels[0] << std::endl;
+    // std::cout << *test.m_dut.m_channels[0] << std::endl;
 
     // Should be disabled after completed transfer
     sc_assert(!test.m_dut.m_channels[0]->enable);
@@ -106,8 +106,8 @@ SC_MODULE(tester) {
 
     // Check memory contents
     for (auto i = 0; i < 31; i++) {
-      std::cout << 2 * i + 128 << ": " << readMemory16(2 * i + 128)
-                << std::endl;
+      // std::cout << 2 * i + 128 << ": " << readMemory16(2 * i + 128)
+      //<< std::endl;
       sc_assert(readMemory16(2 * i + 128) == i);
     }
 
@@ -127,13 +127,12 @@ SC_MODULE(tester) {
     wait(test.clk.getPeriod());
     test.trigger[0].write(false);
     for (auto i = 0; i < 32; i++) {
-      std::cout << *test.m_dut.m_channels[0] << std::endl;
-      std::cout << "i: " << i << std::endl;
+      // std::cout << *test.m_dut.m_channels[0] << std::endl;
       sc_assert(test.m_dut.m_channels[0]->enable);
       wait(2 * test.clk.getPeriod());
     }
     wait(test.clk.getPeriod());
-    std::cout << *test.m_dut.m_channels[0] << std::endl;
+    // std::cout << *test.m_dut.m_channels[0] << std::endl;
     sc_assert(!test.m_dut.m_channels[0]->enable);
 
     // Check interrupt flag
@@ -147,21 +146,47 @@ SC_MODULE(tester) {
 
     // Check memory contents
     for (auto i = 0; i < 31; i++) {
-      std::cout << 2 * i + 256 << ": " << readMemory16(2 * i + 256)
-                << std::endl;
+      // std::cout << 2 * i + 256 << ": " << readMemory16(2 * i + 256)
+      //<< std::endl;
       sc_assert(readMemory16(2 * i + 256) == i);
     }
 
-    // TEST -- CSR reset value
-    // sc_assert(read32(OFS_SYST_CSR) == 0x4);
+    // TEST -- Software trigger
+    //   - Transfermode Single,
+    //   - increment source and destination address
+    //   - size: 32 byte
+    //   - word size: 16-bit
+    spdlog::info("Testing software trigger");
 
-    // TEST -- TENMS register
-    /*
-    sc_assert(
-        read32(OFS_SYST_CALIB, false) ==
-        (SYST_CALIB_NOREF |
-         (static_cast<int>(sc_time(10, SC_MS) / test.clk.getPeriod()) - 1)));
-         */
+    // Configure DMA
+    write16(OFS_DMA0SA, 0);
+    write16(OFS_DMA0DA, 128);
+    write16(OFS_DMA0SZ, 32);
+    unsigned ctrl = DMADT_0 | DMADSTINCR_3 | DMASRCINCR_3 | DMADSTBYTE__WORD |
+                    DMASRCBYTE__WORD | DMALEVEL__EDGE | DMAEN_1 | DMAIE;
+
+    write16(OFS_DMA0CTL, ctrl);  // Trigger
+    for (auto i = 0; i < 32; i++) {
+      std::cout << *test.m_dut.m_channels[0] << std::endl;
+      write16(OFS_DMA0CTL, ctrl | DMAREQ);
+      sc_assert(test.m_dut.m_channels[0]->enable);
+      wait(3 * test.clk.getPeriod());
+    }
+    std::cout << *test.m_dut.m_channels[0] << std::endl;
+
+    // Should be disabled after completed transfer
+    sc_assert(!test.m_dut.m_channels[0]->enable);
+    sc_assert(!(read16(OFS_DMA0CTL) & DMAEN));
+
+    // Check interrupt flag
+    sc_assert(test.m_dut.m_channels[0]->interruptFlag);
+    sc_assert(test.irq.read());
+    sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
+    wait(test.clk.getPeriod());
+    sc_assert(read16(OFS_DMAIV) == 0);
+    sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
+    sc_assert(!test.irq.read());
+
     sc_stop();
   }
 

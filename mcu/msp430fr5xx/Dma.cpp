@@ -208,6 +208,7 @@ void Dma::process() {
       const auto offset = channelIdx * (OFS_DMA1CTL - OFS_DMA0CTL);
       trans.set_data_length((ch.sourceBytes == DmaChannel::Bytes::Byte) ? 1
                                                                         : 2);
+      m_regs.clearBitMask(OFS_DMA0CTL + offset, DMAREQ);
       while (ch.pending.read()) {
         // Read
         trans.set_command(TLM_READ_COMMAND);
