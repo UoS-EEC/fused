@@ -133,17 +133,14 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans,
       case OFS_DMACTL0:
         setTrigger(m_channels[0], val & 0x1f);
         setTrigger(m_channels[1], (val & (0x1f << 8)) >> 8);
-        m_updateEvent.notify(delay);
         break;
       case OFS_DMACTL1:
         setTrigger(m_channels[2], val & 0x1f);
         setTrigger(m_channels[3], (val & (0x1f << 8)) >> 8);
-        m_updateEvent.notify(delay);
         break;
       case OFS_DMACTL2:
         setTrigger(m_channels[4], val & 0x1f);
         setTrigger(m_channels[5], (val & (0x1f << 8)) >> 8);
-        m_updateEvent.notify(delay);
         break;
       case OFS_DMACTL4:
         spdlog::warn("{}: DMACTL4 functionality is not implemented");
@@ -153,33 +150,18 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans,
         break;
       case OFS_DMA1CTL:
         m_channels[1]->updateConfig(val);
-        if (val & DMAREQ) {
-          m_updateEvent.notify(delay);
-        }
         break;
       case OFS_DMA2CTL:
         m_channels[2]->updateConfig(val);
-        if (val & DMAREQ) {
-          m_updateEvent.notify(delay);
-        }
         break;
       case OFS_DMA3CTL:
         m_channels[3]->updateConfig(val);
-        if (val & DMAREQ) {
-          m_updateEvent.notify(delay);
-        }
         break;
       case OFS_DMA4CTL:
         m_channels[4]->updateConfig(val);
-        if (val & DMAREQ) {
-          m_updateEvent.notify(delay);
-        }
         break;
       case OFS_DMA5CTL:
         m_channels[5]->updateConfig(val);
-        if (val & DMAREQ) {
-          m_updateEvent.notify(delay);
-        }
         break;
     }
   } else if (trans.get_command() == TLM_READ_COMMAND) {
@@ -195,7 +177,10 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans,
 }
 
 void Dma::process() {
-  // Make this sensitive to triggers & updateSensitivityEvent
+  uint8_t data[2];
+  sc_time delay = SC_ZERO_TIME;
+  tlm_generic_payload trans;  //! Outgoing transaction
+  trans.set_data_ptr(data);
   wait(SC_ZERO_TIME);  // Wait for simulation start
 
   // Sensitivity list
@@ -205,11 +190,8 @@ void Dma::process() {
   }
 
   while (true) {
-    // Wait for any pending channel or an update event
-    wait(waitfor);
-
-    // Find highest-priority (lowest channel number) triggered channel
     int channelIdx = -1;
+    // Find highest-priority (lowest channel number) triggered channel
     for (auto i = 0; i < m_channelPending.size(); i++) {
       if (m_channelPending[i].read()) {
         channelIdx = i;
@@ -218,44 +200,43 @@ void Dma::process() {
     }
 
     if (channelIdx >= 0) {
+      // DMA spends "1 or 2 clock cycles to synchronize to mclk"
+      wait(clk->getPeriod());
+
       // Accept, perform transfer, update state & registers
-      auto &ch = *m_channels[channelIdx];
-      m_channelAccept[channelIdx].write(true);
-      ch.updateState();
-      transfer(ch);
+      const auto &ch = *m_channels[channelIdx];
       const auto offset = channelIdx * (OFS_DMA1CTL - OFS_DMA0CTL);
-      m_regs.write(OFS_DMA0SZ + offset, ch.size);
+      trans.set_data_length((ch.sourceBytes == DmaChannel::Bytes::Byte) ? 1
+                                                                        : 2);
+      while (ch.pending.read()) {
+        // Read
+        trans.set_command(TLM_READ_COMMAND);
+        trans.set_address(ch.m_tSourceAddress);
+        delay = SC_ZERO_TIME;
+        iSocket->b_transport(trans, delay);
+        wait(delay);
+
+        // Write
+        trans.set_address(ch.m_tDestinationAddress);
+        trans.set_command(TLM_WRITE_COMMAND);
+        m_channelAccept[channelIdx].write(true);
+        delay = SC_ZERO_TIME;
+        iSocket->b_transport(trans, delay);
+        wait(delay);
+        m_channelAccept[channelIdx].write(false);
+        m_regs.write(OFS_DMA0SZ + offset, ch.size);
+      }
+
       if (!ch.enable) {
         m_regs.clearBitMask(OFS_DMA0CTL + offset, DMAEN);
       }
-      if (ch.interruptFlag) {
+      if (ch.interruptFlag && ch.interruptEnable) {
         m_updateIrqEvent.notify(SC_ZERO_TIME);
       }
-      m_channelAccept[channelIdx].write(false);
+    } else {
+      wait(waitfor);
     }
   }
-}
-
-void Dma::transfer(DmaChannel &ch) {
-  uint8_t data[2];
-  sc_time delay = SC_ZERO_TIME;
-  tlm_generic_payload trans;  //! Outgoing transaction
-  trans.set_data_ptr(data);
-  trans.set_data_length((ch.sourceBytes == DmaChannel::Bytes::Byte) ? 1 : 2);
-
-  // Read
-  trans.set_command(TLM_READ_COMMAND);
-  trans.set_address(ch.m_tSourceAddress);
-  delay = SC_ZERO_TIME;
-  iSocket->b_transport(trans, delay);
-  wait(delay);
-
-  // Write
-  trans.set_address(ch.m_tDestinationAddress);
-  trans.set_command(TLM_WRITE_COMMAND);
-  delay = SC_ZERO_TIME;
-  iSocket->b_transport(trans, delay);
-  wait(delay);
 }
 
 void Dma::interruptUpdate() {
@@ -272,11 +253,11 @@ void Dma::interruptUpdate() {
 
   if (m_clearIfg && (highestPrioChannel != -1)) {
     // Clear highest priority pending flag & re-update interrupt state
-    m_clearIfg = false;
     m_channels[highestPrioChannel]->interruptFlag = false;
     m_updateIrqEvent.notify(SC_ZERO_TIME);
     return;
   }
+  m_clearIfg = false;
 
   // Set IV & irq
   if (highestPrioChannel > -1) {
@@ -314,7 +295,6 @@ void DmaChannel::updateAddresses() {
 }
 
 void DmaChannel::updateConfig(const unsigned cfg) {
-  softwareTrigger = cfg & DMAREQ;
   interruptEnable = cfg & DMAIE;
   enable = cfg & DMAEN;
   levelSensitive = cfg & DMALEVEL;
@@ -397,93 +377,127 @@ void DmaChannel::process() {
       wait(m_trigger | m_softwareTrigger);
     }
 
-    // DMA spends "1 or 2 clock cycles to synchronize to mclk"
-    wait(clk->getPeriod());
-
-    // Transfer sequence
-    auto transfer = [=]() {
-      pending.write(true);
-      wait(accept.posedge_event());
-      pending.write(false);
-    };
-
     switch (transferMode) {
       case TransferMode::Single:
         // One transfer per trigger
-        transfer();
+        if (size == m_tSize) {  // First transfer ->load internal registers
+          m_tSourceAddress = sourceAddress;
+          m_tDestinationAddress = destinationAddress;
+        }
+        pending.write(true);
+        wait(accept.posedge_event());
+        updateAddresses();
+        if (size > 1) {  // Continue
+          size--;
+        } else {  // Job done, reset size
+          size = m_tSize;
+          interruptFlag = true;
+          enable = false;
+        }
+        pending.write(false);
         break;
       case DmaChannel::TransferMode::Block:
         // Transfer whole block after first trigger
-        for (auto i = 0; size > 0; i++) {
-          transfer();
+        size = m_tSize;
+        m_tSourceAddress = sourceAddress;
+        m_tDestinationAddress = destinationAddress;
+        pending.write(true);
+        while (size) {
+          std::cout << "Block-transfer: remaining " << size << std::endl;
+          wait(accept.posedge_event());
+          updateAddresses();
           if (!enable) {
             break;
           }
+          size--;
         }
+        size = m_tSize;
+        enable = false;
+        interruptFlag = true;
+        pending.write(false);
         break;
       case DmaChannel::TransferMode::BurstBlock:
         //  CPU activity interleaved with transfer
         //  Delay for 2 cycles every 4 transfers
-        for (auto i = 0; i < size; i++) {
-          transfer();
-          if ((i > 0) && (i % 4 == 0)) {
+        size = m_tSize;
+        m_tSourceAddress = sourceAddress;
+        m_tDestinationAddress = destinationAddress;
+        pending.write(true);
+        while (size) {
+          wait(accept.posedge_event());
+          updateAddresses();
+          if ((size > 0) && (size < m_tSize) && (size % 4 == 0)) {
             wait(2 * clk->getPeriod());
           }
           if (!enable) {
             break;
           }
+          size--;
         }
+        size = m_tSize;
+        interruptFlag = true;
+        enable = false;
+        pending.write(false);
         break;
       case TransferMode::RepeatedSingle:
         // One transfer per trigger
-        transfer();
+        if (size == m_tSize) {  // First transfer ->load internal registers
+          m_tSourceAddress = sourceAddress;
+          m_tDestinationAddress = destinationAddress;
+        }
+        pending.write(true);
+        wait(accept.posedge_event());
+        updateAddresses();
+        if (size > 1) {
+          size--;
+        } else {  // Job done, reset size
+          size = m_tSize;
+          interruptFlag = true;
+        }
+        pending.write(false);
         break;
       case DmaChannel::TransferMode::RepeatedBlock:
         // Transfer one whole block after first trigger, don't clear enable
-        for (auto i = 0; i < size; i++) {
-          transfer();
+        size = m_tSize;
+        m_tSourceAddress = sourceAddress;
+        m_tDestinationAddress = destinationAddress;
+        pending.write(true);
+        while (size) {
+          wait(accept.posedge_event());
+          updateAddresses();
           if (!enable) {
             break;
           }
         }
+        size = m_tSize;
+        interruptFlag = true;
+        pending.write(false);
         break;
       case DmaChannel::TransferMode::RepeatedBurstBlock:
         // Continue burst-transfer indefinitely after first trigger, until
         // breakout condition
+        pending.write(true);
         while (1) {
-          for (auto i = 0; i < size; i++) {
-            transfer();
-            if ((i > 0) && (i % 4 == 0)) {
+          size = m_tSize;
+          m_tSourceAddress = sourceAddress;
+          m_tDestinationAddress = destinationAddress;
+          while (size) {
+            wait(accept.posedge_event());
+            updateAddresses();
+            if ((size > 0) && (size < m_tSize) && (size % 4 == 0)) {
               wait(2 * clk->getPeriod());
             }
             if (!enable) {
               break;
             }
+            size--;
           }
+          size = m_tSize;
+          interruptFlag = true;
         }
+        pending.write(false);
         break;
     }
-  }
-}
-
-void DmaChannel::updateState() {
-  if (size == m_tSize) {  // First transfer ->set internal registers
-    m_tSourceAddress = sourceAddress;
-    m_tDestinationAddress = destinationAddress;
-  } else {
-    updateAddresses();
-  }
-
-  if (size > 1) {
-    size--;
-  } else {
-    // Job done, reset size
-    size = m_tSize;
-    interruptFlag = true;
-    enable &=  // Clear enable unless repeated transfer mode
-        (transferMode == TransferMode::RepeatedSingle) |
-        (transferMode == TransferMode::RepeatedBlock) |
-        (transferMode == TransferMode::RepeatedBurstBlock);
   }
 }
 
@@ -510,7 +524,6 @@ void DmaChannel::reset() {
   enable = false;
   levelSensitive = false;
   abort = false;
-  softwareTrigger = false;
   transferMode = TransferMode::Single;
   interruptFlag = false;
 }
@@ -518,8 +531,7 @@ void DmaChannel::reset() {
 std::ostream &operator<<(std::ostream &os, const DmaChannel &rhs) {
   os << "<DmaChannel> " << rhs.name() << "\n";
   os << "Signals:\n";
-  os << "\tinterruptFlag: " << rhs.interruptFlag << "\n";
-  os << "\tpending: " << rhs.pending.read() + "\n";
+  os << "\tpending: " << rhs.pending.read() << "\n";
   os << "Settings:\n";
   os << "\tenable: " << rhs.enable << "\n";
   os << "\tinterruptEnable: " << rhs.interruptEnable << "\n";
@@ -577,6 +589,7 @@ std::ostream &operator<<(std::ostream &os, const DmaChannel &rhs) {
      << ((rhs.sourceBytes == DmaChannel::Bytes::Byte) ? "byte" : "word")
      << "\n";
   os << "Variables:\n";
+  os << "\tinterruptFlag: " << rhs.interruptFlag << "\n";
   os << "\ttSize: " << rhs.m_tSize << "\n";
   os << "\ttDestinationAddress: 0x" << std::hex << rhs.m_tDestinationAddress
      << std::dec << "\n";

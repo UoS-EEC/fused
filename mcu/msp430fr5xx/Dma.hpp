@@ -52,13 +52,11 @@ SC_MODULE(DmaChannel) {
   bool levelSensitive{false};  //! 0: edge sensitive, 1: level sensitive
   bool interruptEnable{false};
   bool abort{false};  //! Indicate if transfer was aborted by an NMI
-  bool softwareTrigger{false};
   TransferMode transferMode{TransferMode::Single};
 
   /*------ Public methods ------*/
 
   SC_CTOR(DmaChannel) { SC_THREAD(process); }
-  // DmaChannel(const sc_core::sc_module_name nm) : sc_core::sc_module(nm) {}
 
   /**
    * @brief updateAddresses Update source and destination addresses according
@@ -76,11 +74,6 @@ SC_MODULE(DmaChannel) {
    * @brief updateConfig updated channel configuration from DMAxCTL value
    */
   void updateConfig(const unsigned cfg);
-
-  /**
-   * @brief updateState Utility for updating channel state after each transfer
-   */
-  void updateState();
 
   /**
    * @brief reset reset state to power-on defaults
@@ -154,7 +147,6 @@ class Dma : public BusTarget {
   std::array<sc_core::sc_signal<bool>, NCHANNELS> m_channelPending;
   std::array<sc_core::sc_signal<bool>, NCHANNELS> m_channelAccept;
 
-  sc_core::sc_event m_updateEvent{"m_updateEvent"};
   sc_core::sc_event m_updateIrqEvent{"m_updateIrqEvent"};
 
   /*------ Private methods ------*/
@@ -162,11 +154,6 @@ class Dma : public BusTarget {
    * @brief process main control loop
    */
   void process();
-
-  /**
-   * @brief transfer perform one DMA transfer (read & write)
-   */
-  void transfer(DmaChannel &ch);
 
   /**
    * @brief updateChannelAddresses update addresses & size from register values
