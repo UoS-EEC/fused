@@ -21,7 +21,6 @@
 
 static void gpio_init();
 static void cs_init();
-static void __stack_set();
 
 void indicate_workload_begin() {
   P1OUT |= BIT2;
@@ -98,21 +97,11 @@ static void gpio_init() {
   PM5CTL0 &= ~LOCKLPM5;
 }
 
-// Reset stack to 0s during boot (for clean backtrace when debugging)
-__attribute__((optimize(0))) static void __stack_set() {
-  extern uint8_t __stack_low, __stack_high;
-  register uint16_t *start = (uint16_t *)&__stack_low;
-  register uint16_t *end = (uint16_t *)&__stack_high;
-  while (start < end) {
-    *start++ = 0x00;
-  }
-}
-
 // Boot
 __attribute__((interrupt(RESET_VECTOR), naked, used, optimize(0),
                section(".ftext"))) void
 _start() {
-  extern uint8_t __stack_low, __stack_high;
+  extern uint8_t __stack_high;
   WDTCTL = (WDTPW | WDTHOLD);
   __set_SP_register(&__stack_high);  // Set SP
   __bic_SR_register(GIE);            // Disable interrupts during boot

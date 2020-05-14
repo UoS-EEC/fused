@@ -17,7 +17,7 @@ using namespace sc_core;
 using namespace tlm;
 
 Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
-    : BusTarget(name, DMA_BASE, DMA_BASE + 0xb, delay) {
+    : BusTarget(name, DMA_BASE, DMA_BASE + 0x6f, delay) {
   // Construct & bind submodules
   for (auto i = 0; i < NCHANNELS; i++) {
     m_channels[i] = new DmaChannel(fmt::format("ch{:d}", i).c_str());
@@ -35,8 +35,10 @@ Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
   m_regs.addRegister(OFS_DMACTL4, 0);
   m_regs.addRegister(OFS_DMAIV, 0, RegisterFile::READ);
   m_regs.addRegister(OFS_DMA0CTL, 0);
-  m_regs.addRegister(OFS_DMA0SA, undef);
-  m_regs.addRegister(OFS_DMA0DA, undef);
+  m_regs.addRegister(OFS_DMA0SA_L, undef);
+  m_regs.addRegister(OFS_DMA0SA_H, undef);
+  m_regs.addRegister(OFS_DMA0DA_L, undef);
+  m_regs.addRegister(OFS_DMA0DA_H, undef);
   m_regs.addRegister(OFS_DMA0SZ, undef);
   m_regs.addRegister(OFS_DMA1CTL, 0);
   m_regs.addRegister(OFS_DMA1SA, undef);
@@ -78,8 +80,10 @@ void Dma::reset() {
   m_regs.write(OFS_DMACTL4, 0, /*force=*/true);
   m_regs.write(OFS_DMAIV, 0, /*force=*/true);
   m_regs.write(OFS_DMA0CTL, 0, /*force=*/true);
-  m_regs.write(OFS_DMA0SA, undef, /*force=*/true);
-  m_regs.write(OFS_DMA0DA, undef, /*force=*/true);
+  m_regs.write(OFS_DMA0SA_L, undef, /*force=*/true);
+  m_regs.write(OFS_DMA0SA_H, undef, /*force=*/true);
+  m_regs.write(OFS_DMA0DA_L, undef, /*force=*/true);
+  m_regs.write(OFS_DMA0DA_H, undef, /*force=*/true);
   m_regs.write(OFS_DMA0SZ, undef, /*force=*/true);
   m_regs.write(OFS_DMA1CTL, 0, /*force=*/true);
   m_regs.write(OFS_DMA1SA, undef, /*force=*/true);
@@ -386,6 +390,9 @@ void DmaChannel::process() {
         if (size == m_tSize) {  // First transfer ->load internal registers
           m_tSourceAddress = sourceAddress;
           m_tDestinationAddress = destinationAddress;
+          spdlog::info(
+              "{}: Initiated single transfer {:d} beats 0x{08x}->0x{:08x}",
+              this->name(), size, sourceAddress, destinationAddress);
         }
         pending.write(true);
         wait(accept.posedge_event());
@@ -404,6 +411,8 @@ void DmaChannel::process() {
         size = m_tSize;
         m_tSourceAddress = sourceAddress;
         m_tDestinationAddress = destinationAddress;
+        spdlog::info("{}: Block transfer {:d} beats 0x{08x}->0x{:08x}",
+                     this->name(), size, sourceAddress, destinationAddress);
         pending.write(true);
         while (size) {
           std::cout << "Block-transfer: remaining " << size << std::endl;
@@ -425,6 +434,8 @@ void DmaChannel::process() {
         size = m_tSize;
         m_tSourceAddress = sourceAddress;
         m_tDestinationAddress = destinationAddress;
+        spdlog::info("{}: Block-burst transfer {:d} beats 0x{08x}->0x{:08x}",
+                     this->name(), size, sourceAddress, destinationAddress);
         pending.write(true);
         while (size) {
           wait(accept.posedge_event());
@@ -447,6 +458,10 @@ void DmaChannel::process() {
         if (size == m_tSize) {  // First transfer ->load internal registers
           m_tSourceAddress = sourceAddress;
           m_tDestinationAddress = destinationAddress;
+          spdlog::info(
+              "{}: Initiated repeated single transfer {:d} beats "
+              "0x{08x}->0x{:08x}",
+              this->name(), size, sourceAddress, destinationAddress);
         }
         pending.write(true);
         wait(accept.posedge_event());
@@ -464,6 +479,8 @@ void DmaChannel::process() {
         size = m_tSize;
         m_tSourceAddress = sourceAddress;
         m_tDestinationAddress = destinationAddress;
+        spdlog::info("{}: Repeated block transfer {:d} beats 0x{08x}->0x{:08x}",
+                     this->name(), size, sourceAddress, destinationAddress);
         pending.write(true);
         while (size) {
           wait(accept.posedge_event());
@@ -484,6 +501,9 @@ void DmaChannel::process() {
           size = m_tSize;
           m_tSourceAddress = sourceAddress;
           m_tDestinationAddress = destinationAddress;
+          spdlog::info(
+              "{}: Repeated block-burst transfer {:d} beats 0x{08x}->0x{:08x}",
+              this->name(), size, sourceAddress, destinationAddress);
           while (size) {
             wait(accept.posedge_event());
             updateAddresses();
