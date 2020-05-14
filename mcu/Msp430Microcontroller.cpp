@@ -56,7 +56,9 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   tima = new TimerA("tima", TA0_BASE, m_cycleTime);
   interruptArbiter = new InterruptArbiter<37>("interruptArbiter", false);
   mpy32 = new Mpy32("mpy32", MPY32_BASE, MPY32_BASE + 0x2f, m_cycleTime);
-  euscib = new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2f, m_cycleTime);
+  euscib =
+      new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2f, m_cycleTime);
+  dma = new Dma("Dma", m_cycleTime);
 
   slaves.push_back(cache);
   slaves.push_back(fram_ctl);
@@ -74,6 +76,7 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   slaves.push_back(cs);
   slaves.push_back(tima);
   slaves.push_back(mpy32);
+  slaves.push_back(dma);
   slaves.push_back(mon);
   slaves.push_back(euscib);
 
@@ -110,6 +113,8 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   euscib->aclk.bind(aclk);
   euscib->smclk.bind(smclk);
 
+  dma->clk.bind(mclk);
+
   // Interrupts
   m_cpu.ira.bind(cpu_ira);
   m_cpu.irq.bind(cpu_irq);
@@ -130,14 +135,17 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   interruptArbiter->irqIn[0].bind(pmm_irq);
   interruptArbiter->iraOut[0].bind(pmm_ira);
 
-  euscib->ira.bind(euscib_ira);
   euscib->irq.bind(euscib_irq);
-  interruptArbiter->irqIn[8].bind(euscib_irq);  // (0xfffe - 0xffee)/2 = 8
+  interruptArbiter->irqIn[8].bind(euscib_irq);
   interruptArbiter->iraOut[8].bind(euscib_ira);
   euscib->dmaTrigger.bind(dma_dummy);
 
-  adc->irq.bind(adc_irq);
+  dma->irq.bind(dma_irq);
+  dma->ira.bind(dma_ira);
+  interruptArbiter->irqIn[13].bind(dma_irq);
+  interruptArbiter->iraOut[13].bind(dma_ira);
 
+  adc->irq.bind(adc_irq);
   interruptArbiter->irqIn[9].bind(adc_irq);
 
   portA->irq[0].bind(port1_irq);
@@ -176,9 +184,16 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   // Miscellaneous
   fram_ctl->waitStates.bind(framWaitStates);
   fram->waitStates.bind(framWaitStates);
+  m_cpu.busStall.bind(cpuStall);
+  dma->stallCpu.bind(cpuStall);
+
+  for (size_t i = 0; i < dmaTrigger.size(); ++i) {
+    dma->trigger[i].bind(dmaTrigger[i]);
+  }
 
   // Bus
   m_cpu.iSocket.bind(bus.tSocket);
+  dma->iSocket.bind(bus.tSocket);
   for (const auto &s : slaves) {
     bus.bindTarget(*s);
   }

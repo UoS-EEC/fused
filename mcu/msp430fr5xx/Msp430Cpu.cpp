@@ -221,6 +221,9 @@ void Msp430Cpu::writeMem(const uint32_t addr, uint8_t *const data,
     sc_stop();
   }
 
+  if (busStall.read()) {
+    wait(busStall.negedge_event());
+  }
   wait(delay);
 }
 
@@ -241,6 +244,9 @@ void Msp430Cpu::readMem(const uint32_t addr, uint8_t *const data,
     sc_stop();
   }
 
+  if (busStall.read()) {
+    wait(busStall.negedge_event());
+  }
   wait(delay);
 }
 

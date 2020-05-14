@@ -31,6 +31,7 @@ SC_MODULE(dut) {
   sc_signal<bool> nreset{"nreset", false};
   sc_signal<bool> irq{"irq"};
   sc_signal<bool> ira{"ira"};
+  sc_signal<bool> stallCpu{"stallCpu"};
   std::array<sc_signal<bool>, 30> trigger;
   GenericMemory mem{"mem", 0, 0xFFFF, sc_time(1, SC_US)};  //! 65k memory
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
@@ -44,6 +45,7 @@ SC_MODULE(dut) {
     m_dut.clk.bind(clk);
     m_dut.irq.bind(irq);
     m_dut.ira.bind(ira);
+    m_dut.stallCpu.bind(stallCpu);
     for (auto i = 0; i < trigger.size(); i++) {
       m_dut.trigger[i].bind(trigger[i]);
     }
@@ -84,8 +86,9 @@ SC_MODULE(tester) {
     for (auto i = 0; i < 32; i++) {
       // std::cout << *test.m_dut.m_channels[0] << std::endl;
       test.trigger[0].write(true);
-      sc_assert(test.m_dut.m_channels[0]->enable);
       wait(1 * test.clk.getPeriod());
+      sc_assert(test.m_dut.m_channels[0]->enable);
+      sc_assert(test.stallCpu.read());
       test.trigger[0].write(false);
       wait(4 * test.clk.getPeriod());
     }
@@ -94,6 +97,7 @@ SC_MODULE(tester) {
     // Should be disabled after completed transfer
     sc_assert(!test.m_dut.m_channels[0]->enable);
     sc_assert(!(read16(OFS_DMA0CTL) & DMAEN));
+    sc_assert(!test.stallCpu.read());
 
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
@@ -129,11 +133,13 @@ SC_MODULE(tester) {
     for (auto i = 0; i < 32; i++) {
       // std::cout << *test.m_dut.m_channels[0] << std::endl;
       sc_assert(test.m_dut.m_channels[0]->enable);
+      sc_assert(test.stallCpu.read());
       wait(2 * test.clk.getPeriod());
     }
     wait(test.clk.getPeriod());
     // std::cout << *test.m_dut.m_channels[0] << std::endl;
     sc_assert(!test.m_dut.m_channels[0]->enable);
+    sc_assert(!test.stallCpu.read());
 
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
@@ -170,12 +176,14 @@ SC_MODULE(tester) {
       std::cout << *test.m_dut.m_channels[0] << std::endl;
       write16(OFS_DMA0CTL, ctrl | DMAREQ);
       sc_assert(test.m_dut.m_channels[0]->enable);
+      sc_assert(test.stallCpu.read());
       wait(3 * test.clk.getPeriod());
     }
     std::cout << *test.m_dut.m_channels[0] << std::endl;
 
     // Should be disabled after completed transfer
     sc_assert(!test.m_dut.m_channels[0]->enable);
+    sc_assert(!test.stallCpu.read());
     sc_assert(!(read16(OFS_DMA0CTL) & DMAEN));
 
     // Check interrupt flag

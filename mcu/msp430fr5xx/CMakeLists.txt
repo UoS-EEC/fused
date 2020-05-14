@@ -16,6 +16,8 @@ add_library(
   eUSCI_B.hpp
   DigitalIo.cpp
   DigitalIo.hpp
+  Dma.cpp
+  Dma.hpp
   Frctl_a.cpp
   Frctl_a.hpp
   InterruptArbiter.hpp

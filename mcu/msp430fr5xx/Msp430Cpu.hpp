@@ -21,11 +21,12 @@
 class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
  public:
   /*------ Ports ------*/
-  tlm::tlm_initiator_socket<> iSocket;        //! TLM initiator socket
-  sc_core::sc_in<bool> irq{"irq_in"};         //! Interrupt request line
-  sc_core::sc_out<bool> ira{"ira_out"};       //! irq accepted
-  sc_core::sc_in<unsigned> irqIdx{"irqIdx"};  //! Irq source index
-  sc_core::sc_in<bool> pwrOn{"pwrOn"};        //! "power-good" signal
+  tlm::tlm_initiator_socket<> iSocket{"iSocket"};  //! TLM initiator socket
+  sc_core::sc_in<bool> irq{"irq_in"};              //! Interrupt request line
+  sc_core::sc_in<unsigned> irqIdx{"irqIdx"};       //! Irq source index
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};             //! "power-good" signal
+  sc_core::sc_in<bool> busStall{"busStall"};       //! indicate busy bus
+  sc_core::sc_out<bool> ira{"ira_out"};            //! irq accepted
 
   //! Decides whether to wait for peripheral's ack of IRA asserted or
   //! just wait one cycle

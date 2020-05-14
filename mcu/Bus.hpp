@@ -170,8 +170,8 @@ class Bus : sc_core::sc_module {
                         const int targetPort) const {
     const auto addr = trans.get_address();
     const auto len = trans.get_data_length();
-    sc_assert((addr + len - 1) < (m_routingTable[targetPort].second -
-                                  m_routingTable[targetPort].first));
+    sc_assert((addr + len - 1) <= (m_routingTable[targetPort].second -
+                                   m_routingTable[targetPort].first));
     sc_assert(addr % len == 0);          // Alignment
     sc_assert(len <= TARGET_WORD_SIZE);  // Size
   }

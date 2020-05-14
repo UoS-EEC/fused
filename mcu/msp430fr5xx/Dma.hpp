@@ -107,11 +107,12 @@ class Dma : public BusTarget {
  public:
   /*------ Ports ------*/
   sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! clock input
-  sc_core::sc_out<bool> irq{"irq"};  //! Interrupt request output
-  sc_core::sc_in<bool> ira{"ira"};   //! Interrupt request accepted
-  tlm_utils::simple_initiator_socket<Dma> iSocket{
-      "iSocket"};                                //! Outgoing socket
+  sc_core::sc_in<bool> ira{"ira"};               //! Interrupt request accepted
   std::array<sc_core::sc_in<bool>, 30> trigger;  //! External triggers
+  sc_core::sc_out<bool> irq{"irq"};              //! Interrupt request output
+  sc_core::sc_out<bool> stallCpu{"stallCpu"};    // Stall CPU while transfering
+  tlm_utils::simple_initiator_socket<Dma> iSocket{
+      "iSocket"};  //! Outgoing socket
 
   /*------ Public methods ------*/
 

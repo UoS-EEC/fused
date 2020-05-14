@@ -24,13 +24,14 @@
 #include "mcu/msp430fr5xx/Adc12.hpp"
 #include "mcu/msp430fr5xx/ClockSystem.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
-#include "mcu/msp430fr5xx/eUSCI_B.hpp"
+#include "mcu/msp430fr5xx/Dma.hpp"
 #include "mcu/msp430fr5xx/Frctl_a.hpp"
 #include "mcu/msp430fr5xx/InterruptArbiter.hpp"
 #include "mcu/msp430fr5xx/Mpy32.hpp"
 #include "mcu/msp430fr5xx/Msp430Cpu.hpp"
 #include "mcu/msp430fr5xx/PowerManagementModule.hpp"
 #include "mcu/msp430fr5xx/TimerA.hpp"
+#include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/SimpleMonitor.hpp"
 
@@ -52,6 +53,9 @@ class Msp430Microcontroller : public Microcontroller {
   sc_core::sc_signal<bool> cpu_irq{"cpu_irq"};
   sc_core::sc_signal<bool> cpu_ira{"cpu_ira"};
   sc_core::sc_signal<unsigned> cpu_irqIdx{"cpu_irqIdx"};
+
+  sc_core::sc_signal<bool> dma_irq{"dma_irq"};
+  sc_core::sc_signal<bool> dma_ira{"dma_ira"};
 
   sc_core::sc_signal<bool> tima_irq{"tima_irq"};
   sc_core::sc_signal<bool> tima_ira{"tima_ira"};
@@ -85,7 +89,14 @@ class Msp430Microcontroller : public Microcontroller {
   sc_core::sc_signal<double> vref{"vref"};
 
   /* ------ Miscellaneous ------ */
+  //! Number of wait states in fram memory
   sc_core::sc_signal<unsigned int> framWaitStates{"framWaitStates"};
+
+  //! Signal from DMA to take over bus
+  sc_core::sc_signal<bool> cpuStall{"cpuStall"};
+
+  //! DMA triggers
+  std::array<sc_core::sc_signal<bool>, 30> dmaTrigger;
 
   //! Constructor
   explicit Msp430Microcontroller(sc_core::sc_module_name nm);
@@ -222,6 +233,7 @@ class Msp430Microcontroller : public Microcontroller {
   PowerManagementModule *pmm;
   TimerA *tima;
   VolatileMemory *sram;
+  Dma *dma;
   SimpleMonitor *mon;
 
   /* ------- CPU & bus ------ */

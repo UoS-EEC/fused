@@ -201,6 +201,7 @@ void Dma::process() {
 
     if (channelIdx >= 0) {
       // DMA spends "1 or 2 clock cycles to synchronize to mclk"
+      stallCpu.write(true);
       wait(clk->getPeriod());
 
       // Accept, perform transfer, update state & registers
@@ -234,6 +235,7 @@ void Dma::process() {
       if (ch.interruptFlag && ch.interruptEnable) {
         m_updateIrqEvent.notify(SC_ZERO_TIME);
       }
+      stallCpu.write(false);
     } else {
       wait(waitfor);
     }
