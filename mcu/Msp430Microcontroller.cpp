@@ -191,6 +191,9 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
     dma->trigger[i].bind(dmaTrigger[i]);
   }
 
+  // DMA triggers
+  tima->dmaTrigger.bind(dmaTrigger[1]);
+
   // Bus
   m_cpu.iSocket.bind(bus.tSocket);
   dma->iSocket.bind(bus.tSocket);

@@ -76,27 +76,25 @@ void TimerA::end_of_elaboration() {
 }
 
 void TimerA::reset(void) {
-  if (pwrOn.read()) {  // Posedge of pwrOn
-    // Reset registers
-    m_regs.write(OFS_TA1CTL, 0);
-    m_regs.write(OFS_TA1CCTL0, 0);
-    m_regs.write(OFS_TA1CCTL1, 0);
-    m_regs.write(OFS_TA1CCTL2, 0);
-    // m_regs.write(OFS_TA1CCTL3, 0); // Not implemented in hw
-    // m_regs.write(OFS_TA1CCTL4, 0); // Not implemented in hw
-    // m_regs.write(OFS_TA1CCTL5, 0); // Not implemented in hw
-    // m_regs.write(OFS_TA1CCTL6, 0); // Not implemented in hw
-    m_regs.write(OFS_TA1R, 0);
-    m_regs.write(OFS_TA1CCR0, 0);
-    m_regs.write(OFS_TA1CCR1, 0);
-    m_regs.write(OFS_TA1CCR2, 0);
-    // m_regs.write(OFS_TA1CCR3, 0); // Not implemented in hw
-    // m_regs.write(OFS_TA1CCR4, 0); // Not implemented in hw
-    // m_regs.write(OFS_TA1CCR5, 0); // Not implemented in hw
-    // m_regs.write(OFS_TA1CCR6, 0); // Not implemented in hw
-    m_regs.write(OFS_TA1IV, 0, true);
-    m_regs.write(OFS_TA1EX0, 0);
-  }
+  // Reset registers
+  m_regs.write(OFS_TA1CTL, 0);
+  m_regs.write(OFS_TA1CCTL0, 0);
+  m_regs.write(OFS_TA1CCTL1, 0);
+  m_regs.write(OFS_TA1CCTL2, 0);
+  // m_regs.write(OFS_TA1CCTL3, 0); // Not implemented in hw
+  // m_regs.write(OFS_TA1CCTL4, 0); // Not implemented in hw
+  // m_regs.write(OFS_TA1CCTL5, 0); // Not implemented in hw
+  // m_regs.write(OFS_TA1CCTL6, 0); // Not implemented in hw
+  m_regs.write(OFS_TA1R, 0);
+  m_regs.write(OFS_TA1CCR0, 0);
+  m_regs.write(OFS_TA1CCR1, 0);
+  m_regs.write(OFS_TA1CCR2, 0);
+  // m_regs.write(OFS_TA1CCR3, 0); // Not implemented in hw
+  // m_regs.write(OFS_TA1CCR4, 0); // Not implemented in hw
+  // m_regs.write(OFS_TA1CCR5, 0); // Not implemented in hw
+  // m_regs.write(OFS_TA1CCR6, 0); // Not implemented in hw
+  m_regs.write(OFS_TA1IV, 0, true);
+  m_regs.write(OFS_TA1EX0, 0);
 }
 
 void TimerA::process(void) {
@@ -115,7 +113,8 @@ void TimerA::process(void) {
           crntCnt++;
           m_regs.write(OFS_TA1R, crntCnt);
         } else {
-          m_regs.setBit(OFS_TA1CTL, 0);  // Set IRQ flag
+          m_regs.setBit(OFS_TA1CTL, 0);  // Set IFG
+          m_regs.write(OFS_TA1R, 0);     // Clear count
           EventLog::getInstance().increment(m_triggerEvent);
         }
         break;
@@ -125,7 +124,8 @@ void TimerA::process(void) {
           crntCnt++;
           m_regs.write(OFS_TA1R, crntCnt);
         } else {
-          m_regs.setBit(OFS_TA1CTL, 0);  // Set IRQ flag
+          m_regs.setBitMask(OFS_TA1CTL, TAIFG);
+          m_regs.write(OFS_TA1R, 0);  // Clear count
           EventLog::getInstance().increment(m_triggerEvent);
         }
         break;
@@ -134,7 +134,7 @@ void TimerA::process(void) {
         if (direction && (crntCnt < m_regs.read(OFS_TA1CCR0))) {
           crntCnt++;
           m_regs.write(OFS_TA1R, crntCnt);
-          direction = !(crntCnt < m_regs.read(OFS_TA2CCR0));
+          direction = !(crntCnt < m_regs.read(OFS_TA1CCR0));
         } else if ((crntCnt > 0) && (!direction)) {
           crntCnt--;
           m_regs.write(OFS_TA1R, crntCnt);
@@ -142,7 +142,7 @@ void TimerA::process(void) {
         }
 
         if (crntCnt == 0) {
-          m_regs.setBit(OFS_TA1CTL, 0);  // Set IRQ flag
+          m_regs.setBitMask(OFS_TA1CTL, TAIFG);
           EventLog::getInstance().increment(m_triggerEvent);
         }
         break;
@@ -157,13 +157,24 @@ void TimerA::process(void) {
     }
 
     // Clear interrupt flag if interrupt request accepted (acknowledged)
+    const bool irqEnabled =
+        (m_regs.read(OFS_TA1CTL) & TAIE) || (m_regs.read(OFS_TA1CCTL0) & CCIE);
     if (ira.read()) {
-      m_regs.clearBit(OFS_TA1CTL, 0);  // Clear TAIFG
+      m_regs.clearBitMask(OFS_TA1CTL, TAIFG);  // Auto-cleared
       irq.write(false);
-    } else if ((m_regs.read(OFS_TA1CTL) & TAIE) ||
-               (m_regs.read(OFS_TA1CCTL0) & CCIE)) {
-      // Set IRQ if interrupt flag enabled
+    } else if (irqEnabled) {
+      // Set IRQ if interrupt flag set
       irq.write(m_regs.read(OFS_TA1CTL) & TAIFG);
+    }
+
+    // Set DMA trigger if interrupts diabled & interrupt flag set
+    if (!irqEnabled && (m_regs.read(OFS_TA1CTL) & TAIFG)) {
+      dmaTrigger.write(true);
+      m_regs.clearBitMask(OFS_TA1CTL, TAIFG);  // Auto-cleared
+      spdlog::info("{}: @{:s} DMA trigger", this->name(),
+                   sc_time_stamp().to_string());
+    } else {
+      dmaTrigger.write(false);
     }
 
     if (stopped) {

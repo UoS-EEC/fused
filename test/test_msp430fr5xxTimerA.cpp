@@ -30,6 +30,8 @@ SC_MODULE(dut) {
   sc_signal<bool> pwrGood{"pwrGood"};
   sc_signal<bool> irq{"irq"};
   sc_signal<bool> ira{"ira"};
+  sc_signal<bool> dmaTrigger{"dmaTrigger"};
+
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel smclk_sig{"smclk_sig", sc_time(1, SC_US)};
   ClockSourceChannel aclk_sig{"aclk_sig", sc_time(1, SC_US)};
@@ -41,6 +43,7 @@ SC_MODULE(dut) {
     m_dut.aclk.bind(aclk_sig);
     m_dut.irq.bind(irq);
     m_dut.ira.bind(ira);
+    m_dut.dmaTrigger.bind(dmaTrigger);
   }
 
   TimerA m_dut{"dut", 0, sc_time(1, SC_NS)};
@@ -51,31 +54,18 @@ SC_MODULE(tester) {
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
-    unsigned char data[] = {255, 255};
-    sc_time delay;
-    tlm::tlm_generic_payload trans;
-    trans.set_data_ptr(data);
-    trans.set_data_length(2);
-
     test.pwrGood.write(true);
     wait(SC_ZERO_TIME);
 
     // TEST -- Up mode: a basic interrupt
 
     // Mode control + interrupt enable + select ACLK
-    Utility::unpackBytes(data, Utility::htots(MC_1 | TAIE | TASSEL_1), 2);
-    trans.set_command(tlm::TLM_WRITE_COMMAND);
-    trans.set_address(OFS_TA1CTL);
-    test.iSocket->b_transport(trans, delay);
-    sc_assert(trans.get_response_status() == tlm::TLM_OK_RESPONSE);
+    write16(OFS_TA1CTL, MC_1 | TAIE | TASSEL_1);
 
     // Target value
-    Utility::unpackBytes(data, Utility::htots(10 - 1), 2);
-    trans.set_address(OFS_TA1CCR0);
-    test.iSocket->b_transport(trans, delay);
-    sc_assert(trans.get_response_status() == tlm::TLM_OK_RESPONSE);
-    wait(delay);
+    write16(OFS_TA1CCR0, 10 - 1);
 
+    // Check
     wait(sc_time(10, SC_US));
     sc_assert(test.irq.read() == true);
     test.ira.write(true);
@@ -83,7 +73,52 @@ SC_MODULE(tester) {
     sc_assert(test.irq.read() == false);
     test.ira.write(false);
 
+    // TEST -- Up mode: dma trigger
+    test.pwrGood.write(false);
+    wait(sc_time(2, SC_US));
+    test.pwrGood.write(true);
+    wait(sc_time(1, SC_US));
+    write16(OFS_TA1CTL, MC_1 | TASSEL_1);  // Disable irq
+    write16(OFS_TA1CCR0, 10 - 1);
+
+    wait(sc_time(10, SC_US));
+    sc_assert(test.dmaTrigger.read() == true);
+    wait(sc_time(2, SC_US));
+    sc_assert(test.dmaTrigger.read() == false);
+
     sc_stop();
+  }
+
+  void write16(const uint32_t addr, const uint32_t val, bool doWait = true) {
+    sc_time delay = SC_ZERO_TIME;
+    tlm::tlm_generic_payload trans;
+    unsigned char data[2];
+    trans.set_data_ptr(data);
+    trans.set_data_length(2);
+    trans.set_command(tlm::TLM_WRITE_COMMAND);
+    trans.set_address(addr);
+
+    Utility::unpackBytes(data, Utility::htots(val), 2);
+    test.iSocket->b_transport(trans, delay);
+    if (doWait) {
+      wait(delay);
+    }
+  }
+
+  uint32_t read16(const uint32_t addr, bool doWait = true) {
+    sc_time delay = SC_ZERO_TIME;
+    tlm::tlm_generic_payload trans;
+    unsigned char data[2];
+    trans.set_data_ptr(data);
+    trans.set_data_length(2);
+    trans.set_command(tlm::TLM_READ_COMMAND);
+    trans.set_address(addr);
+    test.iSocket->b_transport(trans, delay);
+
+    if (doWait) {
+      wait(delay);
+    }
+    return Utility::ttohs(Utility::packBytes(data, 2));
   }
 
   dut test{"dut"};

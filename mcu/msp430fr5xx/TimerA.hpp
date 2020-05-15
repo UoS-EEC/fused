@@ -23,8 +23,9 @@ class TimerA : public BusTarget {
   sc_core::sc_port<ClockSourceConsumerIf> aclk{"aclk"};  //! Auxillary clock in
   sc_core::sc_port<ClockSourceConsumerIf> smclk{
       "smclk"};                      //! Subsystem Master Clock
-  sc_core::sc_out<bool> irq{"irq"};  //! Interrupt request output
   sc_core::sc_in<bool> ira{"ira"};   //! Interrupt request accepted
+  sc_core::sc_out<bool> irq{"irq"};  //! Interrupt request output
+  sc_core::sc_out<bool> dmaTrigger{"dmaTrigger"};  //! DMA trigger out
 
   /*------ Methods ------*/
 
