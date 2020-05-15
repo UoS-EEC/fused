@@ -202,12 +202,20 @@ int sc_main(int argc, char *argv[]) {
       (Config::get().getString("OutputDirectory") + "/ext.vcd").c_str());
 
 #if defined(MSP430_ARCH)
-  for (int i = 0; i < DIOAPins.size(); i++) {
+  for (int i = 0; i < DIOAPins.size(); ++i) {
     sca_trace(vcdfile, DIOAPins[i], fmt::format("PA{:02d}", i));
     sca_trace(vcdfile, DIOBPins[i], fmt::format("PB{:02d}", i));
     sca_trace(vcdfile, DIOCPins[i], fmt::format("PC{:02d}", i));
     sca_trace(vcdfile, DIODPins[i], fmt::format("PD{:02d}", i));
   }
+  for (size_t i = 0; i < mcu->dmaTrigger.size(); ++i) {
+    sca_trace(vcdfile, mcu->dmaTrigger[i], fmt::format("dmatrigger{:02d}", i));
+  }
+  for (int i = 0; i < Dma::NCHANNELS; ++i) {
+    sca_trace(vcdfile, mcu->dma->m_channels[i]->trigger,
+              fmt::format("dma_channel{:02d}_trigger", i));
+  }
+  sca_trace(vcdfile, mcu->cpuStall, "cpuStall");
 #endif
 
   // Creates a csv-like file

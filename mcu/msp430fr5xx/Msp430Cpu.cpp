@@ -209,6 +209,11 @@ void Msp430Cpu::writeMem(const uint32_t addr, uint8_t *const data,
   sc_time delay;
   tlm::tlm_generic_payload trans;
 
+  if (busStall.read()) {
+    wait(busStall.negedge_event());
+  }
+  wait(delay);
+
   delay = SC_ZERO_TIME;
   trans.set_address(addr);
   trans.set_data_length(bytelen);
@@ -220,17 +225,16 @@ void Msp430Cpu::writeMem(const uint32_t addr, uint8_t *const data,
     spdlog::error("{} Failed write to address 0x{:08x}.", this->name(), addr);
     sc_stop();
   }
-
-  if (busStall.read()) {
-    wait(busStall.negedge_event());
-  }
-  wait(delay);
 }
 
 void Msp430Cpu::readMem(const uint32_t addr, uint8_t *const data,
                         const size_t bytelen) {
   sc_time delay;
   tlm::tlm_generic_payload trans;
+
+  if (busStall.read()) {
+    wait(busStall.negedge_event());
+  }
 
   delay = SC_ZERO_TIME;
   trans.set_address(addr);
@@ -244,9 +248,6 @@ void Msp430Cpu::readMem(const uint32_t addr, uint8_t *const data,
     sc_stop();
   }
 
-  if (busStall.read()) {
-    wait(busStall.negedge_event());
-  }
   wait(delay);
 }
 

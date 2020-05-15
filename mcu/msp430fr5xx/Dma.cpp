@@ -19,11 +19,21 @@ using namespace tlm;
 Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
     : BusTarget(name, DMA_BASE, DMA_BASE + 0x6f, delay) {
   // Construct & bind submodules
-  for (auto i = 0; i < NCHANNELS; i++) {
+  for (int i = 0; i < NCHANNELS; i++) {
+    m_triggerMuxes[i] =
+        new TriggerMux(fmt::format("ch{:d}_trigger_mux", i).c_str());
+    for (size_t j = 0; j < trigger.size(); ++j) {
+      m_triggerMuxes[i]->in[j].bind(trigger[j]);
+    }
+    m_triggerMuxes[i]->out.bind(m_channelTrigger[i]);
+    m_triggerMuxes[i]->select.bind(m_channelTriggerSelect[i]);
+    m_triggerMuxes[i]->nreset.bind(pwrOn);
+
     m_channels[i] = new DmaChannel(fmt::format("ch{:d}", i).c_str());
     m_channels[i]->clk.bind(clk);
     m_channels[i]->pending.bind(m_channelPending[i]);
     m_channels[i]->accept.bind(m_channelAccept[i]);
+    m_channels[i]->trigger.bind(m_channelTrigger[i]);
   }
 
   const unsigned undef = 0xAAAA;
@@ -33,7 +43,7 @@ Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
   m_regs.addRegister(OFS_DMACTL1, 0);
   m_regs.addRegister(OFS_DMACTL2, 0);
   m_regs.addRegister(OFS_DMACTL4, 0);
-  m_regs.addRegister(OFS_DMAIV, 0, RegisterFile::READ);
+  m_regs.addRegister(OFS_DMAIV, 0);
   m_regs.addRegister(OFS_DMA0CTL, 0);
   m_regs.addRegister(OFS_DMA0SA_L, undef);
   m_regs.addRegister(OFS_DMA0SA_H, undef);
@@ -107,9 +117,8 @@ void Dma::reset() {
   m_regs.write(OFS_DMA5SZ, undef, /*force=*/true);
 
   // Reset channels
-  for (auto &c : m_channels) {
-    c->setTrigger(trigger[0].posedge_event());
-    c->reset();
+  for (size_t i = 0; i < NCHANNELS; ++i) {
+    m_channels[i]->reset();
   }
 }
 
@@ -120,31 +129,33 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans,
   auto val = m_regs.read(addr);
 
   // Utility for setting the trigger source for a channel
-  auto setTrigger = [=](DmaChannel *ch, int n) {
-    if (n < 30) {
-      ch->setTrigger(trigger[n].posedge_event());
-    } else if (n == 30) {
+  auto setTrigger = [=](const int channelNumber, int triggerNumber) {
+    if (triggerNumber < 30) {
+      m_channelTriggerSelect[channelNumber].write(triggerNumber);
+    } else if (triggerNumber == 30) {
       spdlog::warn("Internal DMA triggers not yet implemented.");
       sc_abort();
     } else {
       spdlog::error("DMAE0 trigger not yet implemented");
       sc_abort();
     }
+    spdlog::info("{:s}: Channel {:d} trigger set to {:d}", this->name(),
+                 channelNumber, triggerNumber);
   };
 
   if (trans.get_command() == TLM_WRITE_COMMAND) {
     switch (addr) {
       case OFS_DMACTL0:
-        setTrigger(m_channels[0], val & 0x1f);
-        setTrigger(m_channels[1], (val & (0x1f << 8)) >> 8);
+        setTrigger(0, val & 0x1f);
+        setTrigger(1, (val & (0x1f << 8)) >> 8);
         break;
       case OFS_DMACTL1:
-        setTrigger(m_channels[2], val & 0x1f);
-        setTrigger(m_channels[3], (val & (0x1f << 8)) >> 8);
+        setTrigger(2, val & 0x1f);
+        setTrigger(3, (val & (0x1f << 8)) >> 8);
         break;
       case OFS_DMACTL2:
-        setTrigger(m_channels[4], val & 0x1f);
-        setTrigger(m_channels[5], (val & (0x1f << 8)) >> 8);
+        setTrigger(4, val & 0x1f);
+        setTrigger(5, (val & (0x1f << 8)) >> 8);
         break;
       case OFS_DMACTL4:
         spdlog::warn("{}: DMACTL4 functionality is not implemented");
@@ -173,6 +184,7 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans,
 
   if (addr == OFS_DMAIV) {
     // Clear pending and set next pending
+    m_regs.write(OFS_DMAIV, 0, /*force=*/true);
     m_clearIfg = true;
     m_updateIrqEvent.notify(delay);
   } else if (addr >= OFS_DMA0SA && addr <= OFS_DMA5SZ) {
@@ -371,17 +383,13 @@ void DmaChannel::updateConfig(const unsigned cfg) {
   }
 }
 
-void DmaChannel::setTrigger(const sc_event &e) {
-  m_trigger = sc_event_or_list(e);
-}
-
 void DmaChannel::process() {
   wait(SC_ZERO_TIME);  // Wait for simulation to start
 
   while (true) {
-    wait(m_trigger | m_softwareTrigger);
+    wait(trigger.posedge_event() | m_softwareTrigger);
     while (!enable) {
-      wait(m_trigger | m_softwareTrigger);
+      wait(trigger.posedge_event() | m_softwareTrigger);
     }
 
     switch (transferMode) {
@@ -391,7 +399,7 @@ void DmaChannel::process() {
           m_tSourceAddress = sourceAddress;
           m_tDestinationAddress = destinationAddress;
           spdlog::info(
-              "{}: Initiated single transfer {:d} beats 0x{08x}->0x{:08x}",
+              "{:s}: Initiated single transfer {:d} beats 0x{:08x}->0x{:08x}",
               this->name(), size, sourceAddress, destinationAddress);
         }
         pending.write(true);
@@ -411,7 +419,7 @@ void DmaChannel::process() {
         size = m_tSize;
         m_tSourceAddress = sourceAddress;
         m_tDestinationAddress = destinationAddress;
-        spdlog::info("{}: Block transfer {:d} beats 0x{08x}->0x{:08x}",
+        spdlog::info("{}: Block transfer {:d} beats 0x{:08x}->0x{:08x}",
                      this->name(), size, sourceAddress, destinationAddress);
         pending.write(true);
         while (size) {
@@ -434,7 +442,7 @@ void DmaChannel::process() {
         size = m_tSize;
         m_tSourceAddress = sourceAddress;
         m_tDestinationAddress = destinationAddress;
-        spdlog::info("{}: Block-burst transfer {:d} beats 0x{08x}->0x{:08x}",
+        spdlog::info("{}: Block-burst transfer {:d} beats 0x{:08x}->0x{:08x}",
                      this->name(), size, sourceAddress, destinationAddress);
         pending.write(true);
         while (size) {
@@ -460,7 +468,7 @@ void DmaChannel::process() {
           m_tDestinationAddress = destinationAddress;
           spdlog::info(
               "{}: Initiated repeated single transfer {:d} beats "
-              "0x{08x}->0x{:08x}",
+              "0x{:08x}->0x{:08x}",
               this->name(), size, sourceAddress, destinationAddress);
         }
         pending.write(true);
@@ -479,8 +487,9 @@ void DmaChannel::process() {
         size = m_tSize;
         m_tSourceAddress = sourceAddress;
         m_tDestinationAddress = destinationAddress;
-        spdlog::info("{}: Repeated block transfer {:d} beats 0x{08x}->0x{:08x}",
-                     this->name(), size, sourceAddress, destinationAddress);
+        spdlog::info(
+            "{}: Repeated block transfer {:d} beats 0x{:08x}->0x{:08x}",
+            this->name(), size, sourceAddress, destinationAddress);
         pending.write(true);
         while (size) {
           wait(accept.posedge_event());
@@ -502,7 +511,7 @@ void DmaChannel::process() {
           m_tSourceAddress = sourceAddress;
           m_tDestinationAddress = destinationAddress;
           spdlog::info(
-              "{}: Repeated block-burst transfer {:d} beats 0x{08x}->0x{:08x}",
+              "{}: Repeated block-burst transfer {:d} beats 0x{:08x}->0x{:08x}",
               this->name(), size, sourceAddress, destinationAddress);
           while (size) {
             wait(accept.posedge_event());

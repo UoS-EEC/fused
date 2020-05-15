@@ -17,13 +17,44 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
 
-// class DmaChannel : public sc_core::sc_module {
+// Trigger multiplexer for one DMA channel
+SC_MODULE(TriggerMux) {
+ public:
+  sc_core::sc_in<int> select;
+  std::array<sc_core::sc_in<bool>, 30> in;
+  sc_core::sc_in<bool> nreset{"nreset"};
+  sc_core::sc_out<bool> out{"out"};
+
+  SC_CTOR(TriggerMux) {}
+
+  virtual void end_of_elaboration() override {
+    SC_METHOD(process);
+    sensitive << select.value_changed_event() << in[0].value_changed_event()
+              << nreset.negedge_event();
+    dont_initialize();
+  }
+
+  void process() {
+    if (!nreset.read()) {
+      out.write(false);
+      next_trigger(nreset.posedge_event());
+    } else {
+      const auto s = select.read();
+      out.write(in[s].read());
+      next_trigger(in[s].value_changed_event() | select.value_changed_event() |
+                   nreset.negedge_event());
+    }
+  }
+};
+
+// DMA  channel
 SC_MODULE(DmaChannel) {
  public:
   /*------ Ports ------*/
   sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! clock input
   sc_core::sc_out<bool> pending;  //! Flag if a transfer is pending
   sc_core::sc_in<bool> accept;    //! Flag if transfer was accepted
+  sc_core::sc_in<bool> trigger;   //! Transfer trigger
 
   // Flags
   bool interruptFlag;
@@ -65,12 +96,6 @@ SC_MODULE(DmaChannel) {
   void updateAddresses();
 
   /**
-   * @brief updateTrigger set a new trigger for the channel
-   * @param e event to be sensitive to
-   */
-  void setTrigger(const sc_core::sc_event &e);
-
-  /**
    * @brief updateConfig updated channel configuration from DMAxCTL value
    */
   void updateConfig(const unsigned cfg);
@@ -86,7 +111,6 @@ SC_MODULE(DmaChannel) {
   friend std::ostream &operator<<(std::ostream &os, const DmaChannel &rhs);
 
   /*------ Private variables ------*/
-  sc_core::sc_event_or_list m_trigger;
   sc_core::sc_event m_softwareTrigger{"m_softwareTrigger"};
 
   int m_tSize{0};                //! Local copy
@@ -101,6 +125,7 @@ SC_MODULE(DmaChannel) {
   void process();
 };
 
+// DMA module -- implements the register file & orchestrates channels
 class Dma : public BusTarget {
   SC_HAS_PROCESS(Dma);
 
@@ -113,6 +138,11 @@ class Dma : public BusTarget {
   sc_core::sc_out<bool> stallCpu{"stallCpu"};    // Stall CPU while transfering
   tlm_utils::simple_initiator_socket<Dma> iSocket{
       "iSocket"};  //! Outgoing socket
+
+  /*------ Submodules ------*/
+  static const int NCHANNELS = 6;
+  std::array<DmaChannel *, NCHANNELS> m_channels;
+  std::array<TriggerMux *, NCHANNELS> m_triggerMuxes;
 
   /*------ Public methods ------*/
 
@@ -135,18 +165,15 @@ class Dma : public BusTarget {
   virtual void b_transport(tlm::tlm_generic_payload &trans,
                            sc_core::sc_time &delay) override;
 
-  /*------ Static constants ------*/
-  static const unsigned NCHANNELS = 6;
   /*------ Private types ------*/
-
-  /*------ Submodules ------*/
-  std::array<DmaChannel *, NCHANNELS> m_channels;
 
  private:
   /*------ Private variables ------*/
   bool m_clearIfg;
   std::array<sc_core::sc_signal<bool>, NCHANNELS> m_channelPending;
   std::array<sc_core::sc_signal<bool>, NCHANNELS> m_channelAccept;
+  std::array<sc_core::sc_signal<bool>, NCHANNELS> m_channelTrigger;
+  std::array<sc_core::sc_signal<int>, NCHANNELS> m_channelTriggerSelect;
 
   sc_core::sc_event m_updateIrqEvent{"m_updateIrqEvent"};
 
@@ -157,8 +184,8 @@ class Dma : public BusTarget {
   void process();
 
   /**
-   * @brief updateChannelAddresses update addresses & size from register values
-   * for all channels.
+   * @brief updateChannelAddresses update addresses & size from register
+   * values for all channels.
    */
   void updateChannelAddresses();
 
