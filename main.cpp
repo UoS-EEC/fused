@@ -150,9 +150,9 @@ int sc_main(int argc, char *argv[]) {
 
   // Instantiate off-chip serial devices
   DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
-  dummySpiDevice->pwrOn.bind(nReset); // TODO: This should really be to vcc
-  dummySpiDevice->csn.bind(csn0);
-  dummySpiDevice->tSpiSocket.bind(mcu->euscib->iEusciSocket);
+  dummySpiDevice->pwrOn.bind(nReset); 
+  dummySpiDevice->csn.bind(csn0);      // csn0 currently always low
+  dummySpiDevice->tSocket.bind(mcu->euscib->iEusciSocket);
 
   // Power circuitry
   // Static + dynamic -> static

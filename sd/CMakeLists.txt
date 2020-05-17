@@ -11,6 +11,8 @@ add_library(
     SpiDevice.cpp
     DummySpiDevice.hpp
     DummySpiDevice.cpp
+    ../mcu/BusTarget.hpp
+    ../mcu/BusTarget.cpp
     )
 
 target_link_libraries(

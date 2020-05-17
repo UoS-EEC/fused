@@ -9,12 +9,11 @@
 #include <systemc>
 
 SpiDevice::SpiDevice(const sc_core::sc_module_name nm)
-    : sc_core::sc_module(nm) {
+    : BusTarget(nm, 0, 0, sc_core::SC_ZERO_TIME) {
   // Register b_transport method associate with target socket.
-  tSpiSocket.register_b_transport(this, &SpiDevice::b_transport);
-  // Register process as sensitive to m_spiPayloadReceivedEvent
+  // Register process as sensitive to m_payloadReceivedEvent
   SC_METHOD(process);
-  sensitive << m_spiPayloadReceivedEvent;
+  sensitive << m_payloadReceivedEvent;
   // Register reset as sensitive to powerOn signal
   SC_METHOD(reset);
   sensitive << pwrOn;
@@ -35,7 +34,7 @@ void SpiDevice::b_transport(tlm::tlm_generic_payload &trans,
     writeSiReg(trans.get_data_ptr()[0]);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
 
-    m_spiPayloadReceivedEvent.notify();
+    m_payloadReceivedEvent.notify();
   }
 }
 

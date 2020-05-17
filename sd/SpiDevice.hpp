@@ -13,21 +13,19 @@
 #include <tlm>
 #include <vector>
 #include "mcu/SpiTransactionExtension.hpp"
+#include "mcu/BusTarget.hpp"
 
 /**
  * Abstract class for SPI devices.
  */
-class SpiDevice : public sc_core::sc_module {
+class SpiDevice : public BusTarget {
   SC_HAS_PROCESS(SpiDevice);
 
  public:
   /* ------ Ports ------ */
-  // Supply Power
-  sc_core::sc_in<bool> pwrOn{"pwrOn"};
   // Chip select
   sc_core::sc_in<bool> csn{"csn"};
-  // TLM socket for SPI
-  tlm_utils::simple_target_socket<SpiDevice> tSpiSocket{"tSpiSocket"};
+  // TLM socket for SPI uses tSocket from BusTarget
 
   /* ------ Signals ------ */
 
@@ -51,12 +49,6 @@ class SpiDevice : public sc_core::sc_module {
    *              the SPI shift registers.
    */
   virtual void reset(void);
-
-  /**
-   * @brief n_reg Obtain the number of device memory mapped registers.
-   * @return number of memory mapped registers.
-   */
-  virtual uint32_t n_regs() = 0;
 
   /**
    * @brief readSiReg Obtain the contents of slave in shift register.
@@ -87,7 +79,6 @@ class SpiDevice : public sc_core::sc_module {
   uint8_t so_reg;
 
   tlm::tlm_generic_payload m_lastTransaction;
-  uint8_t m_lastPayload;
 
-  sc_core::sc_event m_spiPayloadReceivedEvent{"spiPayloadReceivedEvent"};
+  sc_core::sc_event m_payloadReceivedEvent{"payloadReceivedEvent"};
 };

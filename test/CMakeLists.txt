@@ -91,6 +91,8 @@ add_executable(testSpiDevice
   ../sd/DummySpiDevice.hpp
   ../sd/DummySpiDevice.cpp
   ../mcu/SpiTransactionExtension.hpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/BusTarget.cpp
   ../ps/DynamicEnergyChannel.hpp
 )
 

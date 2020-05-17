@@ -6,21 +6,21 @@
  */
 
 #include "sd/DummySpiDevice.hpp"
+
 #include <systemc>
 
 DummySpiDevice::DummySpiDevice(const sc_core::sc_module_name name)
-    : SpiDevice(name) {
+    : SpiDevice(name){
   // Initialise memory mapped control registers.
   // In this case just make a single dummy.
-  c_reg reg0 = {0x0000, 0x00};
-  c_regs.push_back(reg0);
+  m_regs.addRegister(0,0,RegisterFile::READ_WRITE);
 }
 
 void DummySpiDevice::reset(void) {
   // Clear the memory mapped control registers.
   std::cout << "DummySpiDevice Reset" << std::endl;
-  for (int i = 0; i < n_regs(); i++) {
-    c_regs[i].val = 0;
+  for (uint16_t i = 0; i < m_regs.size(); i++) {
+    m_regs.write(i,0);
   }
   // Reset SPI shift registers.
   SpiDevice::reset();
@@ -30,11 +30,9 @@ void DummySpiDevice::process(void) {
   if (pwrOn.read()) {
     // Read from si_reg and decode. Skip for now.
     uint8_t payload = readSiReg();
-    std::cout << "DummySpiDevice received payload: " << payload << std::endl;
+    std::cout << "DummySpiDevice received: " << (int)payload << " @ "
+              << sc_core::sc_time_stamp() << std::endl;
     // Prepare next reponse in so_reg.
-    writeSoReg(c_regs[0].val | payload);
+    writeSoReg(m_regs.read(0) | payload);
   }
 }
-
-uint32_t DummySpiDevice::n_regs(void) { return c_regs.size(); }
-

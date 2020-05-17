@@ -10,6 +10,7 @@
 #include <systemc>
 #include <tlm>
 #include "mcu/SpiTransactionExtension.hpp"
+#include "mcu/RegisterFile.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
 #include "sd/DummySpiDevice.hpp"
@@ -29,12 +30,12 @@ public:
   sc_signal<bool> pwrGood{"pwrGood"};
   sc_signal<bool> csn{"csn"}; // Active low
   // Sockets
-  tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSocket"};
+  tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
 
   SC_CTOR(dut) { 
     m_dut.pwrOn.bind(pwrGood);
     m_dut.csn.bind(csn);
-    m_dut.tSpiSocket.bind(iSpiSocket); 
+    m_dut.tSocket.bind(iSpiSocket);
   }
 
   DummySpiDevice m_dut{"dut"};
