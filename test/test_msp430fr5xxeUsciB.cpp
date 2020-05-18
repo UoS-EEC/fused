@@ -34,6 +34,7 @@ SC_MODULE(dut) {
   sc_signal<bool> pwrGood{"pwrGood"};
   sc_signal<bool> ira{"ira"};
   sc_signal<bool> irq{"irq"};
+  sc_signal<bool> dmaTrigger{"dmaTrigger"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   tlm_utils::simple_target_socket<dut> tEusciSocket{"tEusciSocket"};
   ClockSourceChannel smclk{"smclk", sc_time(1, SC_US)};
@@ -47,6 +48,7 @@ SC_MODULE(dut) {
     m_dut.smclk.bind(smclk);
     m_dut.irq.bind(irq);
     m_dut.ira.bind(ira);
+    m_dut.dmaTrigger.bind(dmaTrigger);
 
     tEusciSocket.register_b_transport(this, &dut::b_transport);
   }
@@ -114,20 +116,6 @@ SC_MODULE(tester) {
     write16(OFS_UCB0CTLW0, 0x01c0 | UCSWRST, true);
     write16(OFS_UCB0BRW, 0x0000, true);
 
-    // ------ TEST: Tx Operation
-    // Writing to TXBUF clears TXIFG
-    // TXIFG sets when Tx done
-    write16(OFS_UCB0TXBUF, 0x00AB, true);
-    // Payload transport via eusciSocket
-    sc_assert(test.checkPayload(0x00AB));
-    // TXIFG sets when Tx done (buffer empty)
-    // RXIFG sets when Rx done (buffer full)
-    sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));
-    // Target reply in RXBUF
-    sc_assert(read16(OFS_UCB0RXBUF) == 0x00CD);
-    // Reading from RXBUF clears RFIFG
-    sc_assert(read16(OFS_UCB0IFG) == UCTXIFG);
-
     // ------ TEST: SPI Formatted Packet
     // Reset
     write16(OFS_UCB0CTLW0, UCSWRST, false);
@@ -140,7 +128,6 @@ SC_MODULE(tester) {
     write16(OFS_UCB0TXBUF, 0x00AC, true);
     // Checked if received packet correct
     sc_assert(test.checkPayload(0x00AC));
-    // sc_assert(test.checkParams(UCCKPH | UCCKPL | UCMST | UCSSEL0));
     auto ext = test.m_lastTransaction.get_extension<SpiTransactionExtension>();
     sc_assert(ext->phase ==
               SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE);
@@ -178,6 +165,15 @@ SC_MODULE(tester) {
     sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));
     std::cout << "Checking UCBUSY @ " << sc_time_stamp() << std::endl;
     sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00);  // eUSCI not busy
+
+    // ------ TEST: DMA Trigger
+    write16(OFS_UCB0IE, 0x0000);
+    write16(OFS_UCB0TXBUF, 0x00AA);
+    std::cout << "Tx @ " << sc_time_stamp() << std::endl;
+    wait(sc_time(80, SC_US));
+    sc_assert(test.dmaTrigger.read());
+    wait(sc_time(1, SC_US));
+    sc_assert(!test.dmaTrigger.read());
 
     std::cout << std::endl << "TESTING DONE" << std::endl;
     sc_stop();

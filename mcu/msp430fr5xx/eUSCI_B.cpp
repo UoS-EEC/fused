@@ -33,6 +33,7 @@ eUSCI_B::eUSCI_B(sc_module_name name, const uint16_t startAddress,
   SC_METHOD(reset);
   sensitive << pwrOn;
 
+  SC_THREAD(dmaEventHandler);
   SC_THREAD(process);
 }
 
@@ -125,6 +126,24 @@ void eUSCI_B::swreset(void) {
   }
 }
 
+void eUSCI_B::dmaEventHandler(void) {
+  wait(SC_ZERO_TIME);
+  while (1) {
+    wait(m_dmaTriggerEvent);
+
+    sc_core::sc_time trigger_period{sc_core::SC_ZERO_TIME};
+    if (m_regs.read(OFS_UCB0CTLW0) & UCSSEL1) {
+      trigger_period = smclk->getPeriod();
+    } else {
+      trigger_period = aclk->getPeriod();
+    }
+
+    dmaTrigger.write(true);
+    wait(trigger_period);
+    dmaTrigger.write(false);
+  }
+}
+
 void eUSCI_B::process(void) {
   // Prepare payload object
   tlm::tlm_generic_payload trans;
@@ -179,6 +198,29 @@ void eUSCI_B::process(void) {
 
     // Tx Done, Rx Done; Set Interrupt Flags
     m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) | UCTXIFG | UCRXIFG);
+    // Received payload in RXBUF
+    m_regs.write(OFS_UCB0RXBUF, spiExtension.response);
+
+    // DMA
+    // Due to ready to transmit new data
+    bool dma_flag = 0;
+    if (!(m_regs.read(OFS_UCB0IE) & UCTXIE)) {
+      std::cout << "TX dma triggered @ " << sc_core::sc_time_stamp()
+                << std::endl;
+      dma_flag = 1;
+      m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~UCTXIFG);
+    }
+    // Due to receiving new data
+    if (!(m_regs.read(OFS_UCB0IE) & UCRXIE)) {
+      std::cout << "RX dma triggered @ " << sc_core::sc_time_stamp()
+                << std::endl;
+      dma_flag = 1;
+      m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~UCRXIFG);
+    }
+    // Pull dma trigger low
+    if (dma_flag) {
+      m_dmaTriggerEvent.notify();
+    }
 
     // Generate peripheral interrupt vector
     if (m_regs.read(OFS_UCB0IE) & UCTXIE) {  // Prioritize TX
@@ -210,8 +252,6 @@ void eUSCI_B::process(void) {
       }
     }
 
-    // Save reponse
-    m_regs.write(OFS_UCB0RXBUF, spiExtension.response);
     // eUSCI no longer busy
     m_regs.write(OFS_UCB0STATW, m_regs.read(OFS_UCB0STATW) & ~(UCBUSY));
   }

@@ -28,6 +28,7 @@ class eUSCI_B : public BusTarget {
   tlm_utils::simple_initiator_socket<eUSCI_B> iEusciSocket{"iEusciSocket"};
   sc_core::sc_in<bool> ira{"ira"};   // Interrupt reqest accepted signal
   sc_core::sc_out<bool> irq{"irq"};  // Interrupt request output
+  sc_core::sc_out<bool> dmaTrigger{"dmaTrigger"};  // DMA trigger out
 
   // Clock inputs
   sc_core::sc_port<ClockSourceConsumerIf> aclk{"aclk"};
@@ -70,6 +71,7 @@ class eUSCI_B : public BusTarget {
   /* ------ Private variables ------ */
   sc_core::sc_event m_euscibTxEvent{"euscibTxEvent"};
   sc_core::sc_event m_euscibRxEvent{"euscibRxEvent"};
+  sc_core::sc_event m_dmaTriggerEvent{"dmaTriggeredEvent"};
   /* ------ Private methods ------ */
 
   /**
@@ -78,4 +80,6 @@ class eUSCI_B : public BusTarget {
    * of the config/control registers.
    */
   void process();
+
+  void dmaEventHandler(void);
 };
