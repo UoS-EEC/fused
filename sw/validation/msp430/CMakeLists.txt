@@ -8,6 +8,6 @@
 IF(TARGET_ARCH STREQUAL "msp430")
   include_directories(.)
   add_subdirectory(mathtest)
-  add_subdirectory(spitest)
+  add_subdirectory(spi)
 ENDIF()
 

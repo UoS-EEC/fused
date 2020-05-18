@@ -6,7 +6,6 @@
  */
 
 /* ------ Includes ----------------------------------------------------------*/
-#include <msp430fr5994.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <support.h>
@@ -27,8 +26,6 @@ uint8_t RXData = 0x00;
 /* ------ Function Declarations ---------------------------------------------*/
 
 int main(void) {
-  WDTCTL = WDTPW | WDTHOLD;  // Stop watchdog timer
-
   // Initialize Master
   EUSCI_B_SPI_initMasterParam param = {0};
   param.selectClockSource = EUSCI_B_SPI_CLOCKSOURCE_SMCLK;
@@ -40,12 +37,9 @@ int main(void) {
   param.spiMode = EUSCI_B_SPI_3PIN;
   EUSCI_B_SPI_initMaster(EUSCI_B0_BASE, &param);
 
-  // Enable SPI module
   EUSCI_B_SPI_enable(EUSCI_B0_BASE);
 
-  // Enable USCI_B0 RX interrupt
   EUSCI_B_SPI_enableInterrupt(EUSCI_B0_BASE, EUSCI_B_SPI_RECEIVE_INTERRUPT);
-  // Enable global interrupts
   __enable_interrupt();
 
   // USCI_B0 TX buffer ready?
@@ -53,7 +47,6 @@ int main(void) {
                                          EUSCI_B_SPI_TRANSMIT_INTERRUPT))
     ;
 
-  // Transmit Data to slave
   EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, TXData);
 
   for (;;)
@@ -69,14 +62,10 @@ __attribute__((interrupt(USCI_B0_VECTOR))) void USCI_B0_ISR(void) {
                                              EUSCI_B_SPI_TRANSMIT_INTERRUPT))
         ;
 
-      // Read from the RXBUF
       RXData = EUSCI_B_SPI_receiveData(EUSCI_B0_BASE);
       if (TXData != 0) assert(RXData == TXData - 1);
-
-      // Increment data
       TXData++;
 
-      // Send next value
       EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, TXData);
 
       // Delay between transmissions for slave to process information
