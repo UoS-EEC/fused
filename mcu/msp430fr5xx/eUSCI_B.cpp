@@ -167,7 +167,12 @@ void eUSCI_B::process(void) {
 
     auto data = m_regs.readByte(OFS_UCB0TXBUF);
     auto spiParameters = m_regs.read(OFS_UCB0CTLW0);
-    spiExtension.clkPeriod = aclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
+    sc_core::sc_time trigger_period{sc_core::SC_ZERO_TIME};
+    if (m_regs.read(OFS_UCB0CTLW0) & UCSSEL1) {
+      spiExtension.clkPeriod = smclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
+    } else {
+      spiExtension.clkPeriod = aclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
+    }
     spiExtension.nDataBits = (spiParameters & UC7BIT) ? 7 : 8;
     spiExtension.phase =
         (spiParameters & UCCKPH)
