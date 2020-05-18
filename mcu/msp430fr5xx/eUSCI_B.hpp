@@ -8,8 +8,10 @@
 #pragma once
 
 #include <tlm_utils/simple_initiator_socket.h>
+
 #include <systemc>
 #include <tlm>
+
 #include "mcu/BusTarget.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
@@ -24,9 +26,9 @@ class eUSCI_B : public BusTarget {
 
  public:
   tlm_utils::simple_initiator_socket<eUSCI_B> iEusciSocket{"iEusciSocket"};
-  sc_core::sc_in<bool> ira{"ira"};  // Interrupt reqest accepted signal
-  sc_core::sc_out<bool> irq{"irq"}; // Interrupt request output
-  
+  sc_core::sc_in<bool> ira{"ira"};   // Interrupt reqest accepted signal
+  sc_core::sc_out<bool> irq{"irq"};  // Interrupt request output
+
   // Clock inputs
   sc_core::sc_port<ClockSourceConsumerIf> aclk{"aclk"};
   sc_core::sc_port<ClockSourceConsumerIf> smclk{"smclk"};
@@ -59,7 +61,10 @@ class eUSCI_B : public BusTarget {
    */
   virtual void reset(void) override;
 
-
+  /**
+   * @brief reset Resets the interrupt and flags only
+   */
+  virtual void swreset(void);
 
  private:
   /* ------ Private variables ------ */
@@ -73,5 +78,4 @@ class eUSCI_B : public BusTarget {
    * of the config/control registers.
    */
   void process();
-  
 };

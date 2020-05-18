@@ -7,10 +7,12 @@
 #include <spdlog/spdlog.h>
 #include <tlm_utils/simple_initiator_socket.h>
 #include <tlm_utils/simple_target_socket.h>
+
 #include <array>
 #include <string>
 #include <systemc>
 #include <tlm>
+
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
@@ -65,8 +67,6 @@ SC_MODULE(dut) {
 
   bool checkPayload(const uint8_t c) { return m_lastPayload == c; }
 
-  // bool checkParams(uint16_t c) { return rx_spi_package.spi_parameters == c; }
-
   bool checkClock(const sc_time c) {
     return m_lastTransaction.get_extension<SpiTransactionExtension>()
                ->clkPeriod == c;
@@ -89,7 +89,7 @@ SC_MODULE(tester) {
 
     // ------ TEST: Initialization and Reset
     // Power on reset
-    sc_assert(read16(OFS_UCB0CTLW0) == 0x01C1);
+    sc_assert(read16(OFS_UCB0CTLW0) == 0x01c1);
     sc_assert(read16(OFS_UCB0BRW) == 0x0000);
     sc_assert(read16(OFS_UCB0STATW) == 0x0000);
     sc_assert(read16(OFS_UCB0RXBUF) == 0x0000);
@@ -98,17 +98,21 @@ SC_MODULE(tester) {
     sc_assert(read16(OFS_UCB0IFG) == 0x0002);
     sc_assert(read16(OFS_UCB0IV) == 0x0000);
     // Explicitly set UCSWRST bit
+    // This is different from a PUC
+    // Only flags and interrupt control reset
     write16(OFS_UCB0BRW, 0x00AA, false);
     sc_assert(read16(OFS_UCB0BRW) == 0x00AA);
-    write16(OFS_UCB0CTLW0, UCSWRST, false);
-    sc_assert(read16(OFS_UCB0CTLW0) == 0x01C1);
-    sc_assert(read16(OFS_UCB0BRW) == 0x0000);
+    write16(OFS_UCB0CTLW0, 0x00c0 | UCSWRST, true);
+    sc_assert(read16(OFS_UCB0CTLW0) == 0x00c1);
+    sc_assert(read16(OFS_UCB0BRW) == 0x00AA);
     sc_assert(read16(OFS_UCB0STATW) == 0x0000);
     sc_assert(read16(OFS_UCB0RXBUF) == 0x0000);
     sc_assert(read16(OFS_UCB0TXBUF) == 0x0000);
     sc_assert(read16(OFS_UCB0IE) == 0x0000);
     sc_assert(read16(OFS_UCB0IFG) == 0x0002);
     sc_assert(read16(OFS_UCB0IV) == 0x0000);
+    write16(OFS_UCB0CTLW0, 0x01c0 | UCSWRST, true);
+    write16(OFS_UCB0BRW, 0x0000, true);
 
     // ------ TEST: Tx Operation
     // Writing to TXBUF clears TXIFG
@@ -139,8 +143,8 @@ SC_MODULE(tester) {
     // sc_assert(test.checkParams(UCCKPH | UCCKPL | UCMST | UCSSEL0));
     auto ext = test.m_lastTransaction.get_extension<SpiTransactionExtension>();
     sc_assert(ext->phase ==
-              SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE);
-    sc_assert(ext->polarity == SpiTransactionExtension::SpiPolarity::LOW);
+              SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE);
+    sc_assert(ext->polarity == SpiTransactionExtension::SpiPolarity::HIGH);
     sc_assert(test.checkClock(sc_time(10, SC_US)));
 
     wait(sc_time(80, SC_US));
@@ -156,23 +160,24 @@ SC_MODULE(tester) {
     // Enable interrupts
     write16(OFS_UCB0IE, UCTXIE | UCRXIE);
     // Tx with SPI packet
-    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00);  // eUSCI not busy
     write16(OFS_UCB0TXBUF, 0x00AD, true);
+    std::cout << "Tx @ " << sc_time_stamp() << std::endl;
     sc_assert(read16(OFS_UCB0IFG) == 0x0000);
-    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x01); // eUSCI busy
-    wait(test.irq.posedge_event());
-    std::cout << "Responding to irq" << std::endl;
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x01);  // eUSCI busy
+    wait(sc_time(80, SC_US));  // This takes as long as it needs to transmit
+    std::cout << "Checking irq @ " << sc_time_stamp() << std::endl;
+    sc_assert(test.irq.read());
     test.ira.write(1);
-    std::cout << "ira done" << std::endl;
-    wait(test.irq.negedge_event());
+    wait(SC_ZERO_TIME);
     test.ira.write(0);
-    wait(test.irq.posedge_event());
+    wait(sc_time(1, SC_US));  // Time to process the ISR
+    std::cout << "Checking irq again @ " << sc_time_stamp() << std::endl;
+    sc_assert(test.irq.read());
     test.ira.write(1);
-    std::cout << "Responding to irq" << std::endl;
-    std::cout << "ira done" << std::endl;
-    sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));       
+    sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));
     std::cout << "Checking UCBUSY @ " << sc_time_stamp() << std::endl;
-    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00);  // eUSCI not busy
 
     std::cout << std::endl << "TESTING DONE" << std::endl;
     sc_stop();

@@ -47,8 +47,8 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
       case OFS_UCB0CTLW0:
         // Control Register 0
         // Setting UCSWRST resets the eUSCI module.
-        if (m_regs.read(OFS_UCB0CTLW1) & UCSWRST) {
-          this->reset();
+        if (m_regs.read(OFS_UCB0CTLW0) & UCSWRST) {
+          this->swreset();
         }
         // Update tlm_generic_paylod extension.
         break;
@@ -112,7 +112,15 @@ void eUSCI_B::reset(void) {
     for (uint16_t i = 0; i < m_regs.size(); i++) {
       m_regs.write(2 * i, 0);
     }
-    m_regs.write(OFS_UCB0CTLW0, 0X0101);
+    m_regs.write(OFS_UCB0CTLW0, 0x01c1);
+    m_regs.write(OFS_UCB0IFG, 0x0002);
+  }
+}
+
+void eUSCI_B::swreset(void) {
+  if (pwrOn.read()) {  // Posedge of pwrOn
+    // Reset register file
+    m_regs.write(OFS_UCB0IE, 0x0000);
     m_regs.write(OFS_UCB0IFG, 0x0002);
   }
 }
