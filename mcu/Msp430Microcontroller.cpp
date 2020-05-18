@@ -134,6 +134,7 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   euscib->irq.bind(euscib_irq);
   interruptArbiter->irqIn[8].bind(euscib_irq);  // (0xfffe - 0xffee)/2 = 8
   interruptArbiter->iraOut[8].bind(euscib_ira);
+  euscib->dmaTrigger.bind(dma_dummy);
 
   adc->irq.bind(adc_irq);
 

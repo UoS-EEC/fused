@@ -46,6 +46,7 @@ class Msp430Microcontroller : public Microcontroller {
   sc_core::sc_inout<bool> ioPortD[16];  // Digital IO port D, aka 7 and 8
 
   /* ------ Signals ------ */
+  sc_core::sc_signal<bool> dma_dummy{"dma_dummy"};
 
   /*------ Interrupt lines ------*/
   sc_core::sc_signal<bool> cpu_irq{"cpu_irq"};

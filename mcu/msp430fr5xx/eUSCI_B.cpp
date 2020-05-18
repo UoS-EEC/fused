@@ -208,14 +208,12 @@ void eUSCI_B::process(void) {
       std::cout << "TX dma triggered @ " << sc_core::sc_time_stamp()
                 << std::endl;
       dma_flag = 1;
-      m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~UCTXIFG);
     }
     // Due to receiving new data
     if (!(m_regs.read(OFS_UCB0IE) & UCRXIE)) {
       std::cout << "RX dma triggered @ " << sc_core::sc_time_stamp()
                 << std::endl;
       dma_flag = 1;
-      m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) & ~UCRXIFG);
     }
     // Pull dma trigger low
     if (dma_flag) {
