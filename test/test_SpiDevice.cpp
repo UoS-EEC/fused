@@ -9,8 +9,8 @@
 #include <tlm_utils/simple_initiator_socket.h>
 #include <systemc>
 #include <tlm>
-#include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/RegisterFile.hpp"
+#include "mcu/SpiTransactionExtension.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
 #include "sd/DummySpiDevice.hpp"
@@ -25,16 +25,17 @@ using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
-public:
+ public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood"};
-  sc_signal<bool> csn{"csn"}; // Active low
+  sc_signal<bool> chipSelect{"chipSelect"};  //! Active low
+
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
 
-  SC_CTOR(dut) { 
+  SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
-    m_dut.csn.bind(csn);
+    m_dut.chipSelect.bind(chipSelect);
     m_dut.tSocket.bind(iSpiSocket);
   }
 
@@ -42,7 +43,7 @@ public:
 };
 
 SC_MODULE(tester) {
-public:
+ public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -61,18 +62,18 @@ public:
     spiExtension.phase = SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
     spiExtension.polarity = SpiTransactionExtension::SpiPolarity::HIGH;
     spiExtension.bitOrder = SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
-    sc_time delay = spiExtension.transferTime(); 
+    sc_time delay = spiExtension.transferTime();
 
     trans.set_command(tlm::TLM_WRITE_COMMAND);
     trans.set_data_ptr(&data);
     trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
 
     test.pwrGood.write(true);
-    test.csn.write(false);
+    test.chipSelect.write(false);
     wait(SC_ZERO_TIME);
 
     std::cout << "TESTING STARTS" << std::endl;
-  
+
     // ------ TEST: SPI Operation
     // Blocking transport call
     test.iSpiSocket->b_transport(trans, delay);
@@ -83,26 +84,26 @@ public:
     if (trans.is_response_error()) {
       SC_REPORT_FATAL(this->name(), "Response error");
     } else {
-      sc_assert(trans.get_response_status() == 
+      sc_assert(trans.get_response_status() ==
                 tlm::tlm_response_status::TLM_OK_RESPONSE);
     }
 
     // Check for correct payload
     // First returned payload should be reset (all zeros)
-    sc_assert(spiExtension.response == 0x00); 
-    
+    sc_assert(spiExtension.response == 0x00);
+
     // Second SPI transaction
     data = 0x0C;
     trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
     test.iSpiSocket->b_transport(trans, delay);
-    
+
     wait(delay);
 
-    // Check response status    
+    // Check response status
     if (trans.is_response_error()) {
       SC_REPORT_FATAL(this->name(), "Response error");
     } else {
-      sc_assert(trans.get_response_status() == 
+      sc_assert(trans.get_response_status() ==
                 tlm::tlm_response_status::TLM_OK_RESPONSE);
     }
 
@@ -110,7 +111,7 @@ public:
     sc_assert(spiExtension.response == 0x0b);
 
     // Pull N chip select high
-    test.csn.write(true);
+    test.chipSelect.write(true);
     wait(SC_ZERO_TIME);
     // Try sending something
     data = 0x0d;
@@ -120,21 +121,21 @@ public:
     wait(delay);
 
     // Check response status
-    sc_assert(trans.get_response_status() == 
+    sc_assert(trans.get_response_status() ==
               tlm::tlm_response_status::TLM_INCOMPLETE_RESPONSE);
-     
+
     // Pull N chip select low
-    test.csn.write(false);
+    test.chipSelect.write(false);
     wait(SC_ZERO_TIME);
     test.iSpiSocket->b_transport(trans, delay);
 
     wait(delay);
-    
+
     // Check response status
-    sc_assert(trans.get_response_status() == 
+    sc_assert(trans.get_response_status() ==
               tlm::tlm_response_status::TLM_OK_RESPONSE);
     sc_assert(spiExtension.response == 0x0c);
-    
+
     std::cout << std::endl << "TESTING DONE" << std::endl;
     sc_stop();
   }

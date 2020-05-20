@@ -7,16 +7,15 @@
 
 add_library(
     SerialDevices
-    SpiDevice.hpp
     SpiDevice.cpp
-    DummySpiDevice.hpp
+    SpiDevice.hpp
     DummySpiDevice.cpp
-    ../mcu/BusTarget.hpp
-    ../mcu/BusTarget.cpp
+    DummySpiDevice.hpp
     )
 
 target_link_libraries(
-    SerialDevices 
+    SerialDevices
     systemc-ams
     systemc
+    Microcontroller
     )

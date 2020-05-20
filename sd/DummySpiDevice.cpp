@@ -5,34 +5,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <systemc>
 #include "sd/DummySpiDevice.hpp"
 
-#include <systemc>
+using namespace sc_core;
 
-DummySpiDevice::DummySpiDevice(const sc_core::sc_module_name name)
-    : SpiDevice(name){
+DummySpiDevice::DummySpiDevice(const sc_module_name name) : SpiDevice(name) {
   // Initialise memory mapped control registers.
   // In this case just make a single dummy.
-  m_regs.addRegister(0,0,RegisterFile::READ_WRITE);
+  m_regs.addRegister(0);
+
+  SC_METHOD(process);
+  sensitive << m_transactionEvent();
 }
 
 void DummySpiDevice::reset(void) {
-  // Clear the memory mapped control registers.
-  std::cout << "DummySpiDevice Reset" << std::endl;
+  // Clear registers
   for (uint16_t i = 0; i < m_regs.size(); i++) {
-    m_regs.write(i,0);
+    m_regs.write(i, 0);
   }
-  // Reset SPI shift registers.
   SpiDevice::reset();
 }
 
 void DummySpiDevice::process(void) {
   if (pwrOn.read()) {
-    // Read from si_reg and decode. Skip for now.
-    uint8_t payload = readSiReg();
-    std::cout << "DummySpiDevice received: " << (int)payload << " @ "
-              << sc_core::sc_time_stamp() << std::endl;
-    // Prepare next reponse in so_reg.
-    writeSoReg(m_regs.read(0) | payload);
+    auto payload = readSiReg();
+    spdlog::info("{:s}: @{:s} Received 0x{:08x}", this->name(), sc_time_stamp(),
+                 payload);
+    writeSoReg(m_regs.read(0) | payload);  // Copy masked payload to output
   }
 }

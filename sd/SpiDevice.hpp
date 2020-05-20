@@ -12,73 +12,82 @@
 #include <systemc>
 #include <tlm>
 #include <vector>
-#include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/BusTarget.hpp"
+#include "mcu/SpiTransactionExtension.hpp"
 
 /**
- * Abstract class for SPI devices.
+ * Base class for SPI devices.
  */
-class SpiDevice : public BusTarget {
+class SpiDevice : {
   SC_HAS_PROCESS(SpiDevice);
 
  public:
   /* ------ Ports ------ */
-  // Chip select
-  sc_core::sc_in<bool> csn{"csn"};
-  // TLM socket for SPI uses tSocket from BusTarget
+  sc_core::sc_in<bool> chipSelect{"chipSelect"};
 
   /* ------ Signals ------ */
 
+  /* ------ Public types ------ */
+  enum class ChipSelectPolarity { ActiveHigh, ActiveLow };
+
+  /* ------ Public methods ------ */
+
   //! Constructor
-  explicit SpiDevice(sc_core::sc_module_name nm);
+  explicit SpiDevice(
+      sc_core::sc_module_name nm,
+      ChipSelectPolarity polarity = ChipSelectPolarity::ActiveHigh);
 
   /**
-   * @breif b_transport TLM blocking transaction method.
+   * @brief b_transport TLM blocking transaction method.
    * @param trans tlm_generic_payload for SPI packet
    * @param delay
    */
   void b_transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay);
 
-  /**
-   * @brief process Entry point for device specific logic.
-   */
-  virtual void process(void);
+ protected:
+  /* ------ Protected methods ------ */
 
   /**
    * @brief reset Reset the device registers, including
    *              the SPI shift registers.
    */
-  virtual void reset(void);
+  virtual void reset() = 0;
 
   /**
-   * @brief readSiReg Obtain the contents of slave in shift register.
+   * @brief check whether enabled or not according to chipSelect signal and
+   * chipSelectPolarity.
+   */
+  virtual void enabled() const;
+
+  /**
+   * @brief readSlaveIn Obtain the contents of slave in shift register.
    * @return Contents of shift register.
    */
-  uint8_t readSiReg(void);
+  uint32_t readSlaveIn() const;
 
   /**
-   * @brief writeSiReg Write to the slave in shift register.
+   * @brief writeSlaveIn Write to the slave in shift register.
    * @param Value to write.
    */
-  void writeSiReg(uint8_t val);
+  void writeSlaveIn(const uint32_t val);
 
   /**
-   * @brief readSoReg Obtain the contents of slave so shift register.
+   * @brief readSlaveOut Obtain the contents of slave so shift register.
    * @return Contents of shift register.
    */
-  uint8_t readSoReg(void);
+  uint32_t readSlaveOut() const;
 
   /**
-   * @brief writeSoReg Write ot the slave out shift register.
+   * @brief writeSlaveOut Write to the slave out shift register.
    * @param Value to write.
    */
-  void writeSoReg(uint8_t val);
+  void writeSlaveOut(const uint32_t val);
+
+  /* ------ Protected variables ------ */
+  const m_chipSelectPolarity{ChipSelectPolarity::ActiveHigh};
+  sc_core::sc_event m_transactionEvent{"m_transactionEvent"};
 
  private:
-  uint8_t si_reg;
-  uint8_t so_reg;
-
-  tlm::tlm_generic_payload m_lastTransaction;
-
-  sc_core::sc_event m_payloadReceivedEvent{"payloadReceivedEvent"};
+  uint32_t m_SlaveInRegister;
+  uint32_t m_SlaveOutRegister;
 };
