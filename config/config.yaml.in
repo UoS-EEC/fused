@@ -70,8 +70,8 @@ ext.dc : 25.0e-6 # External circuitry static current consumption
 
 #Energy consumption of events (J)
 mcu.CPU idle cycles: 2.0128059437442775e-10
-mcu.fram read hit: 2.1159007820425844e-10
-mcu.fram read miss: 6.346704408546349e-10
-mcu.fram write: 6.823167771173059e-10
+mcu.cache read hit: 2.1159007820425844e-10
+mcu.cache read miss: 6.346704408546349e-10
+mcu.cache write: 6.823167771173059e-10
 mcu.sram rw: 1.981169616404032e-10
 
