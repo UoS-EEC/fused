@@ -37,9 +37,8 @@ SC_MODULE(IoSimulationStopper) {
       cnt++;
       if (cnt >= m_target) {
         spdlog::info(
-            "IoSimulationStopper: Simulation stopping at {:010} ns after IO "
-            "count: {:d}",
-            static_cast<int>(sc_core::sc_time_stamp().to_seconds() * 1e9),
+            "{:s}: Simulation stopping at {:010.0f} ns after IO count: {:d}",
+            this->name(), sc_core::sc_time_stamp().to_seconds() * 1e9,
             m_target);
         wait(sc_core::sc_time(10, sc_core::SC_US));
         sc_core::sc_stop();
