@@ -7,25 +7,22 @@
 
 #include <systemc>
 
-#include "mcu/RegisterFile.hpp"
 #include "sd/SpiDevice.hpp"
 
 class DummySpiDevice : public SpiDevice {
  public:
+  SC_HAS_PROCESS(DummySpiDevice);
+
   //! Constructor
   DummySpiDevice(const sc_core::sc_module_name nm);
 
   /**
-   * @brief reset Clear control registers.
-   *              Also clear shift registers.
+   * @brief reset Clear control registers. Also clear shift registers.
    */
-  void reset(void) override;
+  virtual void reset(void) override;
 
   /**
    * @brief process Handles tasks upon receving SPI payload.
    */
-  void process(void) override;
-
- private:
-  RegisterFile m_regs;
+  void process(void);
 };

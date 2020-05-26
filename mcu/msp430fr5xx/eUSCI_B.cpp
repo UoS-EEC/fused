@@ -5,11 +5,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "mcu/msp430fr5xx/eUSCI_B.hpp"
-
 #include <systemc>
 
 #include "mcu/SpiTransactionExtension.hpp"
+#include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 
@@ -147,8 +146,8 @@ void eUSCI_B::dmaEventHandler(void) {
 void eUSCI_B::process(void) {
   // Prepare payload object
   tlm::tlm_generic_payload trans;
-  SpiTransactionExtension spiExtension;
-  trans.set_extension(&spiExtension);
+  auto *spiExtension = new SpiTransactionExtension();
+  trans.set_extension(spiExtension);
   trans.set_address(0);      // SPI doesn't use address
   trans.set_data_length(1);  // Transfer size up to 1 byte
 
@@ -169,23 +168,23 @@ void eUSCI_B::process(void) {
     auto spiParameters = m_regs.read(OFS_UCB0CTLW0);
     sc_core::sc_time trigger_period{sc_core::SC_ZERO_TIME};
     if (m_regs.read(OFS_UCB0CTLW0) & UCSSEL1) {
-      spiExtension.clkPeriod = smclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
+      spiExtension->clkPeriod = smclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
     } else {
-      spiExtension.clkPeriod = aclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
+      spiExtension->clkPeriod = aclk->getPeriod() * m_regs.read(OFS_UCB0BRW);
     }
-    spiExtension.nDataBits = (spiParameters & UC7BIT) ? 7 : 8;
-    spiExtension.phase =
+    spiExtension->nDataBits = (spiParameters & UC7BIT) ? 7 : 8;
+    spiExtension->phase =
         (spiParameters & UCCKPH)
             ? SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE
             : SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE;
-    spiExtension.polarity = (spiParameters & UCCKPL)
-                                ? SpiTransactionExtension::SpiPolarity::HIGH
-                                : SpiTransactionExtension::SpiPolarity::LOW;
-    spiExtension.bitOrder =
+    spiExtension->polarity = (spiParameters & UCCKPL)
+                                 ? SpiTransactionExtension::SpiPolarity::HIGH
+                                 : SpiTransactionExtension::SpiPolarity::LOW;
+    spiExtension->bitOrder =
         (spiParameters & UCMSB)
             ? SpiTransactionExtension::SpiBitOrder::MSB_FIRST
             : SpiTransactionExtension::SpiBitOrder::LSB_FIRST;
-    sc_time delay = spiExtension.transferTime();
+    sc_time delay = spiExtension->transferTime();
 
     trans.set_command(tlm::TLM_WRITE_COMMAND);
     trans.set_data_ptr(&data);
@@ -204,20 +203,16 @@ void eUSCI_B::process(void) {
     // Tx Done, Rx Done; Set Interrupt Flags
     m_regs.write(OFS_UCB0IFG, m_regs.read(OFS_UCB0IFG) | UCTXIFG | UCRXIFG);
     // Received payload in RXBUF
-    m_regs.write(OFS_UCB0RXBUF, spiExtension.response);
+    m_regs.write(OFS_UCB0RXBUF, spiExtension->response);
 
     // DMA
     // Due to ready to transmit new data
     bool dma_flag = 0;
     if (!(m_regs.read(OFS_UCB0IE) & UCTXIE)) {
-      std::cout << "TX dma triggered @ " << sc_core::sc_time_stamp()
-                << std::endl;
       dma_flag = 1;
     }
     // Due to receiving new data
     if (!(m_regs.read(OFS_UCB0IE) & UCRXIE)) {
-      std::cout << "RX dma triggered @ " << sc_core::sc_time_stamp()
-                << std::endl;
       dma_flag = 1;
     }
     // Pull dma trigger low
@@ -259,4 +254,3 @@ void eUSCI_B::process(void) {
     m_regs.write(OFS_UCB0STATW, m_regs.read(OFS_UCB0STATW) & ~(UCBUSY));
   }
 }
-

@@ -5,9 +5,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "sd/SpiDevice.hpp"
-
 #include <systemc>
+
+#include "sd/SpiDevice.hpp"
 
 using namespace sc_core;
 
@@ -15,11 +15,11 @@ SpiDevice::SpiDevice(const sc_module_name nm, ChipSelectPolarity polarity)
     : m_chipSelectPolarity(polarity) {
   tSocket.register_b_transport(this, &SpiDevice::b_transport);
   SC_METHOD(reset);
-  sensitive << pwrOn;
+  sensitive << nReset;
 }
 
 void SpiDevice::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
-  if (!chipSelect.read() && pwrOn.read()) {  // N select is low
+  if (!chipSelect.read() && nReset.read()) {  // N select is low
     // Read from the received paylaod
     auto *ptr = trans.get_data_ptr();
     auto len = trans.get_data_length();

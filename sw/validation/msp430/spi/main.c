@@ -22,6 +22,7 @@ void assert(bool c);
 /* ------ Variable Declarations ---------------------------------------------*/
 uint8_t TXData = 0x00;
 uint8_t RXData = 0x00;
+unsigned ticks = 0;
 
 /* ------ Function Declarations ---------------------------------------------*/
 
@@ -49,12 +50,17 @@ int main(void) {
 
   EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, TXData);
 
-  for (;;)
+  for (volatile unsigned i = 0; i < 1000; i++)
     ;
+
+  assert(ticks > 0);
+
+  end_experiment();
 }
 
 // USCI_B0 Interrupt Service Routine
 __attribute__((interrupt(USCI_B0_VECTOR))) void USCI_B0_ISR(void) {
+  ticks++;
   switch (__even_in_range(UCB0IV, USCI_SPI_UCTXIFG)) {
     case USCI_SPI_UCRXIFG:
       // USCI_B0 TX buffer ready?
@@ -83,4 +89,3 @@ void assert(bool c) {
       ;  // Stall
   }
 }
-

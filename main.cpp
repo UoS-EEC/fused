@@ -109,7 +109,7 @@ int sc_main(int argc, char *argv[]) {
   sc_signal<double> totMcuConsumption{"totMcuConsumption", 0.0};
   sc_signal<double> vcc{"vcc", 0.0};
   sc_signal<bool> nReset{"nReset"};
-  sc_signal<bool> csn0{"csn0"};
+  sc_signal<bool> chipSelectDummySpi{"chipSelectDummySpi"};
 
   // Instantiate microcontroller
 #ifdef CM0_ARCH
@@ -142,18 +142,16 @@ int sc_main(int argc, char *argv[]) {
     mcu->ioPortC[i].bind(DIOCPins[i]);
     mcu->ioPortD[i].bind(DIODPins[i]);
   }
-
-  // TODO: need to bind a pin to csn0 (chip nSelect for dummySpiDevice)
-
 #endif
+
   mcu->vcc.bind(vcc);
   mcu->nReset.bind(nReset);
   mcu->staticPower.bind(staticConsumptionBoot);
 
   // Instantiate off-chip serial devices
   DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
-  dummySpiDevice->pwrOn.bind(nReset);
-  dummySpiDevice->csn.bind(csn0);  // csn0 currently always low
+  dummySpiDevice->nReset.bind(nReset);
+  dummySpiDevice->chipSelect.bind(chipSelectDummySpi);
   dummySpiDevice->tSocket.bind(mcu->euscib->iEusciSocket);
 
   // Power circuitry

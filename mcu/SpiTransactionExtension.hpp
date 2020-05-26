@@ -7,6 +7,7 @@
 
 #pragma once
 #include <spdlog/spdlog.h>
+
 #include <systemc>
 #include <tlm>
 

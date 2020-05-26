@@ -14,20 +14,20 @@
 #include <tlm>
 #include <vector>
 
-#include "mcu/BusTarget.hpp"
+#include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
+#include "ps/EventLog.hpp"
 
 /**
  * Base class for SPI devices.
  */
 class SpiDevice : public sc_core::sc_module {
- protected:
   SC_HAS_PROCESS(SpiDevice);
 
  public:
   /* ------ Ports ------ */
   sc_core::sc_in<bool> chipSelect{"chipSelect"};
-  sc_core::sc_in<bool> pwrOn{"pwrOn"};
+  sc_core::sc_in<bool> nReset{"nReset"};
   tlm_utils::simple_target_socket<SpiDevice> tSocket{"tSocket"};
 
   /* ------ Signals ------ */
@@ -48,8 +48,6 @@ class SpiDevice : public sc_core::sc_module {
    * @param delay
    */
   void b_transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay);
-
-  virtual void process(){};
 
  protected:
   /* ------ Protected methods ------ */
@@ -94,8 +92,10 @@ class SpiDevice : public sc_core::sc_module {
   /* ------ Protected variables ------ */
   const ChipSelectPolarity m_chipSelectPolarity{ChipSelectPolarity::ActiveHigh};
   sc_core::sc_event m_transactionEvent{"m_transactionEvent"};
+  RegisterFile m_regs;
 
  private:
+  /* ------ Private variables ------ */
   uint32_t m_SlaveInRegister;
   uint32_t m_SlaveOutRegister;
 };
