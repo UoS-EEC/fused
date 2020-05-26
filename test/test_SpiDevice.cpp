@@ -7,8 +7,10 @@
 
 #include <spdlog/spdlog.h>
 #include <tlm_utils/simple_initiator_socket.h>
+
 #include <systemc>
 #include <tlm>
+
 #include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/DynamicEnergyChannel.hpp"

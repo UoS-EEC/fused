@@ -6,11 +6,12 @@
  */
 
 #include <systemc>
+
+#include "mcu/RegisterFile.hpp"
 #include "sd/SpiDevice.hpp"
 
 class DummySpiDevice : public SpiDevice {
-
-public:
+ public:
   //! Constructor
   DummySpiDevice(const sc_core::sc_module_name nm);
 
@@ -18,12 +19,13 @@ public:
    * @brief reset Clear control registers.
    *              Also clear shift registers.
    */
-  void reset(void) override; 
+  void reset(void) override;
 
   /**
    * @brief process Handles tasks upon receving SPI payload.
    */
   void process(void) override;
 
-private:
+ private:
+  RegisterFile m_regs;
 };

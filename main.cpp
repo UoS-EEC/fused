@@ -16,6 +16,7 @@
 //#define TARGET_WORD_SIZE 4
 
 #include <spdlog/spdlog.h>
+
 #include <chrono>
 #include <cstdlib>
 #include <ihex-parser/IntelHexFile.hpp>
@@ -24,6 +25,7 @@
 #include <systemc-ams>
 #include <systemc>
 #include <thread>
+
 #include "mcu/Microcontroller.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
@@ -150,8 +152,8 @@ int sc_main(int argc, char *argv[]) {
 
   // Instantiate off-chip serial devices
   DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
-  dummySpiDevice->pwrOn.bind(nReset); 
-  dummySpiDevice->csn.bind(csn0);      // csn0 currently always low
+  dummySpiDevice->pwrOn.bind(nReset);
+  dummySpiDevice->csn.bind(csn0);  // csn0 currently always low
   dummySpiDevice->tSocket.bind(mcu->euscib->iEusciSocket);
 
   // Power circuitry

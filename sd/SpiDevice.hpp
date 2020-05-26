@@ -9,21 +9,26 @@
 
 #include <stdint.h>
 #include <tlm_utils/simple_target_socket.h>
+
 #include <systemc>
 #include <tlm>
 #include <vector>
+
 #include "mcu/BusTarget.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
 
 /**
  * Base class for SPI devices.
  */
-class SpiDevice : {
+class SpiDevice : public sc_core::sc_module {
+ protected:
   SC_HAS_PROCESS(SpiDevice);
 
  public:
   /* ------ Ports ------ */
   sc_core::sc_in<bool> chipSelect{"chipSelect"};
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};
+  tlm_utils::simple_target_socket<SpiDevice> tSocket{"tSocket"};
 
   /* ------ Signals ------ */
 
@@ -44,6 +49,8 @@ class SpiDevice : {
    */
   void b_transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay);
 
+  virtual void process(){};
+
  protected:
   /* ------ Protected methods ------ */
 
@@ -56,8 +63,9 @@ class SpiDevice : {
   /**
    * @brief check whether enabled or not according to chipSelect signal and
    * chipSelectPolarity.
+   * @return
    */
-  virtual void enabled() const;
+  virtual bool enabled() const;
 
   /**
    * @brief readSlaveIn Obtain the contents of slave in shift register.
@@ -84,7 +92,7 @@ class SpiDevice : {
   void writeSlaveOut(const uint32_t val);
 
   /* ------ Protected variables ------ */
-  const m_chipSelectPolarity{ChipSelectPolarity::ActiveHigh};
+  const ChipSelectPolarity m_chipSelectPolarity{ChipSelectPolarity::ActiveHigh};
   sc_core::sc_event m_transactionEvent{"m_transactionEvent"};
 
  private:

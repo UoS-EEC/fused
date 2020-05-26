@@ -4,9 +4,11 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#include "sd/DummySpiDevice.hpp"
+
+#include <spdlog/spdlog.h>
 
 #include <systemc>
-#include "sd/DummySpiDevice.hpp"
 
 using namespace sc_core;
 
@@ -16,7 +18,7 @@ DummySpiDevice::DummySpiDevice(const sc_module_name name) : SpiDevice(name) {
   m_regs.addRegister(0);
 
   SC_METHOD(process);
-  sensitive << m_transactionEvent();
+  sensitive << m_transactionEvent;
 }
 
 void DummySpiDevice::reset(void) {
@@ -29,9 +31,9 @@ void DummySpiDevice::reset(void) {
 
 void DummySpiDevice::process(void) {
   if (pwrOn.read()) {
-    auto payload = readSiReg();
-    spdlog::info("{:s}: @{:s} Received 0x{:08x}", this->name(), sc_time_stamp(),
-                 payload);
-    writeSoReg(m_regs.read(0) | payload);  // Copy masked payload to output
+    auto payload = readSlaveIn();
+    // spdlog::info("{:s}: @{:s} Received 0x{:08x}", this->name(),
+    // sc_time_stamp(), payload);
+    writeSlaveOut(m_regs.read(0) | payload);  // Copy masked payload to output
   }
 }
