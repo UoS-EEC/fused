@@ -136,6 +136,7 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   interruptArbiter->iraOut[0].bind(pmm_ira);
 
   euscib->irq.bind(euscib_irq);
+  euscib->ira.bind(euscib_ira);
   interruptArbiter->irqIn[8].bind(euscib_irq);
   interruptArbiter->iraOut[8].bind(euscib_ira);
   euscib->dmaTrigger.bind(dma_dummy);
