@@ -30,6 +30,7 @@ add_library(
   NonvolatileMemory.cpp
   RegisterFile.cpp
   RegisterFile.hpp
+  SpiTransactionExtension.hpp
   VolatileMemory.hpp
   Microcontroller.hpp
   )

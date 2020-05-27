@@ -79,6 +79,7 @@ include_directories(.)
 add_subdirectory(mcu)
 add_subdirectory(ps)
 add_subdirectory(utilities)
+add_subdirectory(sd)
 
 configure_file(config/config.yaml.in config.yaml)
 
@@ -88,6 +89,7 @@ target_link_libraries(
   fused
   Microcontroller
   PowerSystem
+  SerialDevices
   systemc-ams
   systemc
   spdlog::spdlog
@@ -111,6 +113,7 @@ IF(ENABLE_TESTS)
     add_test(NAME DigitalIo COMMAND testDigitalIo)
     add_test(NAME Msp430fr5xxClockSystem COMMAND testMsp430fr5xxClockSystem)
     add_test(NAME Msp430fr5xxTimerA COMMAND testMsp430fr5xxTimerA)
+    add_test(NAME Msp430fr5xxeUSCI_B COMMAND testMsp430fr5xxeUSCI_B)
   ELSEIF(TARGET_ARCH STREQUAL "cm0")
     add_test(NAME Cm0SysTick COMMAND testCm0SysTick)
     add_test(NAME Cm0Nvic COMMAND testCm0Nvic)

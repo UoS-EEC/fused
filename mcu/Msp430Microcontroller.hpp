@@ -24,6 +24,7 @@
 #include "mcu/msp430fr5xx/Adc12.hpp"
 #include "mcu/msp430fr5xx/ClockSystem.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
+#include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "mcu/msp430fr5xx/Frctl_a.hpp"
 #include "mcu/msp430fr5xx/InterruptArbiter.hpp"
 #include "mcu/msp430fr5xx/Mpy32.hpp"
@@ -45,6 +46,7 @@ class Msp430Microcontroller : public Microcontroller {
   sc_core::sc_inout<bool> ioPortD[16];  // Digital IO port D, aka 7 and 8
 
   /* ------ Signals ------ */
+  sc_core::sc_signal<bool> dma_dummy{"dma_dummy"};
 
   /*------ Interrupt lines ------*/
   sc_core::sc_signal<bool> cpu_irq{"cpu_irq"};
@@ -68,6 +70,9 @@ class Msp430Microcontroller : public Microcontroller {
   sc_core::sc_signal<bool> port6_irq{"port6_irq"};
   sc_core::sc_signal<bool> port7_irq{"port7_irq"};
   sc_core::sc_signal<bool> port8_irq{"port8_irq"};
+
+  sc_core::sc_signal<bool> euscib_irq{"euscib_irq"};
+  sc_core::sc_signal<bool> euscib_ira{"euscib_ira"};
 
   /* ------ Clocks ------ */
   ClockSourceChannel mclk{"mclk"};
@@ -209,6 +214,7 @@ class Msp430Microcontroller : public Microcontroller {
   DummyPeripheral *portJ;
   NonvolatileMemory *fram;
   Cache *cache;
+  eUSCI_B *euscib;
   Frctl_a *fram_ctl;
   GenericMemory *vectors;
   InterruptArbiter<37> *interruptArbiter;

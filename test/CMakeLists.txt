@@ -67,6 +67,44 @@ target_link_libraries(testMsp430fr5xxTimerA
     Microcontroller
   )
 
+add_executable(testMsp430fr5xxeUsciB
+  test_msp430fr5xxeUsciB.cpp
+  ../mcu/BusTarget.cpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/SpiTransactionExtension.hpp
+  ../mcu/msp430fr5xx/eUSCI_B.hpp
+  ../mcu/msp430fr5xx/eUSCI_B.cpp
+)
+
+target_link_libraries(testMsp430fr5xxeUsciB
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
+
+add_executable(testSpiDevice
+  test_SpiDevice.cpp
+  ../sd/SpiDevice.hpp
+  ../sd/SpiDevice.cpp
+  ../sd/DummySpiDevice.hpp
+  ../sd/DummySpiDevice.cpp
+  ../mcu/SpiTransactionExtension.hpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/BusTarget.cpp
+  ../ps/DynamicEnergyChannel.hpp
+)
+
+target_link_libraries(testSpiDevice
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
+
+
 ELSEIF(${TARGET_ARCH} STREQUAL "cm0")
 
 add_executable(testCm0SysTick
