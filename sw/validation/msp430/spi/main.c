@@ -9,7 +9,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <support.h>
-
 #include "eusci_b_spi.h"
 
 /* ------ Macros ------------------------------------------------------------*/

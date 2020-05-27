@@ -6,7 +6,6 @@
  */
 
 #include <systemc>
-
 #include "sd/SpiDevice.hpp"
 
 using namespace sc_core;

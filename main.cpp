@@ -16,7 +16,6 @@
 //#define TARGET_WORD_SIZE 4
 
 #include <spdlog/spdlog.h>
-
 #include <chrono>
 #include <cstdlib>
 #include <ihex-parser/IntelHexFile.hpp>
@@ -25,7 +24,6 @@
 #include <systemc-ams>
 #include <systemc>
 #include <thread>
-
 #include "mcu/Microcontroller.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"

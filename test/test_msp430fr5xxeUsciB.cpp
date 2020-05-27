@@ -4,15 +4,14 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
 #include <spdlog/spdlog.h>
 #include <tlm_utils/simple_initiator_socket.h>
 #include <tlm_utils/simple_target_socket.h>
-
 #include <array>
 #include <string>
 #include <systemc>
 #include <tlm>
-
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/SpiTransactionExtension.hpp"

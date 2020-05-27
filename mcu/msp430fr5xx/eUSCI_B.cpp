@@ -6,7 +6,6 @@
  */
 
 #include <systemc>
-
 #include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "ps/EventLog.hpp"

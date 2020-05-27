@@ -6,7 +6,6 @@
  */
 
 #include <systemc>
-
 #include "sd/SpiDevice.hpp"
 
 class DummySpiDevice : public SpiDevice {

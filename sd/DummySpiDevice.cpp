@@ -5,9 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 #include <spdlog/spdlog.h>
-
 #include <systemc>
-
 #include "sd/DummySpiDevice.hpp"
 
 using namespace sc_core;

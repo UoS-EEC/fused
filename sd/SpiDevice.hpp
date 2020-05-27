@@ -9,11 +9,9 @@
 
 #include <stdint.h>
 #include <tlm_utils/simple_target_socket.h>
-
 #include <systemc>
 #include <tlm>
 #include <vector>
-
 #include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/EventLog.hpp"
