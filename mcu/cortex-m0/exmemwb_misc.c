@@ -137,6 +137,13 @@ u32 msr() {
   return TIMING_DEFAULT;
 }
 
+// CPS - Enable/disable interrupts via PRIMASK
+u32 cps() {
+  fprintf(stderr,
+          "CPS: Warning, not checking privelege before setting PRIMASK.\n");
+  cpu.primask = decoded.imm;
+}
+
 ///--- Bit twiddling operations -------------------------------------------///
 
 // SXTB - Sign extend a byte to a word

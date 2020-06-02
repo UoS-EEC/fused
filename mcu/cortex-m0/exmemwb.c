@@ -25,8 +25,8 @@ void cpu_set_gpr(u32 gpr, u32 value) {
 void do_cflag(u32 a, u32 b, u32 carry) {
   u32 result;
 
-  result = (a & 0x7FFFFFFF) + (b & 0x7FFFFFFF) + carry; // carry in
-  result = (result >> 31) + (a >> 31) + (b >> 31);      // carry out
+  result = (a & 0x7FFFFFFF) + (b & 0x7FFFFFFF) + carry;  // carry in
+  result = (result >> 31) + (a >> 31) + (b >> 31);       // carry out
   cpu_set_flag_c(result >> 1);
 }
 
@@ -98,6 +98,7 @@ u32 uxth(void);
 u32 rev(void);
 u32 rev16(void);
 u32 revsh(void);
+u32 cps(void);
 
 u32 exmemwb_error() {
   fprintf(stderr, "Error: Unsupported instruction: Unable to execute\n");
@@ -173,6 +174,10 @@ u32 (*executeJumpTable44[16])(void) = {
 
 u32 entry44(void) { return executeJumpTable44[(insn >> 6) & 0xF](); }
 
+u32 (*executeJumpTable45[2])(void) = {push, cps};
+
+u32 entry45(void) { return executeJumpTable45[(insn >> 9) & 0x1](); }
+
 u32 (*executeJumpTable46[16])(void) = {
     exmemwb_error, exmemwb_error, exmemwb_error, exmemwb_error,
     exmemwb_error, exmemwb_error, exmemwb_error, exmemwb_error,
@@ -181,32 +186,30 @@ u32 (*executeJumpTable46[16])(void) = {
 
 u32 entry46(void) { return executeJumpTable46[(insn >> 6) & 0xF](); }
 
-u32 (*executeJumpTable47[2])(void) = {
-    pop,       /* (2F0 - 2F7) */
-    //breakpoint /* (2F8 - 2FB) */
-    //SEV?
-    exmemwb_error
-};
+u32 (*executeJumpTable47[2])(void) = {pop, /* (2F0 - 2F7) */
+                                      // breakpoint /* (2F8 - 2FB) */
+                                      // SEV?
+                                      exmemwb_error};
 
 u32 entry47(void) { return executeJumpTable47[(insn >> 9) & 0x1](); }
 
 u32 entry55(void) {
   if ((insn & 0x0300) != 0x0300) {
     return b_c();
-  } else if ((insn & 0xbe00) == 0xbe00)  {
+  } else if ((insn & 0xbe00) == 0xbe00) {
     // Breakpoint instruction
     fprintf(stderr, "BKPT not implemented.");
   } else {
     fprintf(stderr, "Instruction 0x%04x not implemented.", insn);
   }
-    return exmemwb_error();
+  return exmemwb_error();
 }
 
 u32 entry6061(void) {
   if (decoded.imm == 0x80000000) {
-    if ((insn & 0xf3e0) == 0xf3e0){ // MRS
+    if ((insn & 0xf3e0) == 0xf3e0) {  // MRS
       return mrs();
-    } else if ((insn & 0xf380) == 0xf380){ // MSR
+    } else if ((insn & 0xf380) == 0xf380) {  // MSR
       return msr();
     }
   } else {
@@ -259,7 +262,7 @@ u32 (*executeJumpTable[64])() = {lsls_i,
                                  add_sp,
                                  add_sp,
                                  entry44, /* 44 */
-                                 push,
+                                 entry45, /* 45 */
                                  entry46, /* 46 */
                                  entry47, /* 47 */
                                  stm,
@@ -274,8 +277,8 @@ u32 (*executeJumpTable[64])() = {lsls_i,
                                  b,
                                  exmemwb_error,
                                  exmemwb_error,
-                                 entry6061,/* 60 bl or mrs/msr */
-                                 entry6061,/* 61 bl or undef */
+                                 entry6061, /* 60 bl or mrs/msr */
+                                 entry6061, /* 61 bl or undef */
                                  exmemwb_error,
                                  exmemwb_error};
 

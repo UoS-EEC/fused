@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <stdlib.h>
 #include "decode.h"
 #include "exmemwb.h"
-#include <stdlib.h>
 
 // Holds the result of decoding
 // Passed to exmemwb stage
@@ -22,7 +22,7 @@ void decode_3lo(const u16 pInsn) {
 void decode_2loimm5(const u16 pInsn) {
   decoded.rD = pInsn & 0x7;
 #if DECODE_SAFE
-  decoded.rM = (pInsn >> 3) & 0x7; // Just to be safe
+  decoded.rM = (pInsn >> 3) & 0x7;  // Just to be safe
 #endif
   decoded.rN = (pInsn >> 3) & 0x7;
   decoded.imm = (pInsn >> 6) & 0x1F;
@@ -31,7 +31,7 @@ void decode_2loimm5(const u16 pInsn) {
 void decode_2loimm3(const u16 pInsn) {
   decoded.rD = pInsn & 0x7;
 #if DECODE_SAFE
-  decoded.rM = (pInsn >> 3) & 0x7; // Just to be safe
+  decoded.rM = (pInsn >> 3) & 0x7;  // Just to be safe
 #endif
   decoded.rN = (pInsn >> 3) & 0x7;
   decoded.imm = (pInsn >> 6) & 0x7;
@@ -46,8 +46,8 @@ void decode_2lo(const u16 pInsn) {
 void decode_imm8lo(const u16 pInsn) {
   decoded.rD = (pInsn >> 8) & 0x7;
 #if DECODE_SAFE
-  decoded.rM = decoded.rD; // Just to be safe
-  decoded.rN = decoded.rD; // Just to be safe
+  decoded.rM = decoded.rD;  // Just to be safe
+  decoded.rN = decoded.rD;  // Just to be safe
 #endif
   decoded.imm = pInsn & 0xFF;
 }
@@ -75,8 +75,9 @@ void decode_pop(const u16 pInsn) {
   decoded.reg_list = ((pInsn & 0x100) << 7) | (pInsn & 0xFF);
 }
 
-void decode_push(const u16 pInsn) {
+void decode_cps_push(const u16 pInsn) {
   decoded.reg_list = (pInsn & 0xFF) | ((pInsn & 0x100) << 6);
+  decoded.imm = (pInsn >> 4) & 1;  // for CPS
 }
 
 void decode_bl(const u16 pInsn) {
@@ -84,9 +85,9 @@ void decode_bl(const u16 pInsn) {
   const u32 MSRMASK = 0xf3808000;
   const u32 MRSMASK = 0xf3e08000;
   u16 secondHalf = next_pipeline_instr_cb();
-  u32 wholeInsn = ((u32) pInsn << 16) | secondHalf;
+  u32 wholeInsn = ((u32)pInsn << 16) | secondHalf;
 
-  if ((wholeInsn & BLMASK) == BLMASK) { // Branch & link (BL)
+  if ((wholeInsn & BLMASK) == BLMASK) {  // Branch & link (BL)
     u32 S = (pInsn >> 10) & 0x1;
     u32 J1 = (secondHalf >> 13) & 0x1;
     u32 J2 = (secondHalf >> 11) & 0x1;
@@ -95,14 +96,18 @@ void decode_bl(const u16 pInsn) {
     u32 imm10 = pInsn & 0x3FF;
     u32 imm11 = secondHalf & 0x7FF;
     decoded.imm = (S << 23) | (I1 << 22) | (I2 << 21) | (imm10 << 11) | imm11;
-  } else if ((wholeInsn & MRSMASK) == MRSMASK) { // Move to Register from Special register
+  } else if ((wholeInsn & MRSMASK) ==
+             MRSMASK) {  // Move to Register from Special register
     decoded.rM = wholeInsn & 0x000000ff;
     decoded.rD = (wholeInsn & 0x00000f00) >> 8;
-    decoded.imm = 0x80000000; // Hack to signal MRS/MSR (impossible value for bl)
-  } else if ((wholeInsn & MSRMASK) == MSRMASK) { // Move to Special register from Register
+    decoded.imm =
+        0x80000000;  // Hack to signal MRS/MSR (impossible value for bl)
+  } else if ((wholeInsn & MSRMASK) ==
+             MSRMASK) {  // Move to Special register from Register
     decoded.rD = wholeInsn & 0x000000ff;
     decoded.rM = (wholeInsn & 0x000f0000) >> 16;
-    decoded.imm = 0x80000000; // Hack to signal MRS/MSR (impossible value for bl)
+    decoded.imm =
+        0x80000000;  // Hack to signal MRS/MSR (impossible value for bl)
   } else {
     fprintf(stderr, "Unrecognized instruction %08x, exiting.", wholeInsn);
     sim_exit(1);
@@ -170,7 +175,7 @@ void (*decodeJumpTable[64])(const u16 pInsn) = {
     decode_2loimm5,   decode_2loimm5,   decode_imm8lo,    decode_imm8lo,
     decode_imm8lo,    decode_imm8lo,    decode_imm8lo,    decode_imm8lo,
     decode_imm8lo,    decode_imm8lo,    decode_44, /* 44 */
-    decode_push,      decode_2lo,       decode_47, /* 47 */
+    decode_cps_push,  decode_2lo,       decode_47, /* 47 */
     decode_reglistlo, decode_reglistlo, decode_reglistlo, decode_reglistlo,
     decode_imm8c,     decode_imm8c,     decode_imm8c,     decode_imm8c,
     decode_imm11,     decode_imm11,     decode_error, /* 58 */
