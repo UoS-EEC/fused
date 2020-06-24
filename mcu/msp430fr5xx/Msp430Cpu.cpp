@@ -212,7 +212,6 @@ void Msp430Cpu::writeMem(const uint32_t addr, uint8_t *const data,
   if (busStall.read()) {
     wait(busStall.negedge_event());
   }
-  wait(delay);
 
   delay = SC_ZERO_TIME;
   trans.set_address(addr);
@@ -225,6 +224,7 @@ void Msp430Cpu::writeMem(const uint32_t addr, uint8_t *const data,
     spdlog::error("{} Failed write to address 0x{:08x}.", this->name(), addr);
     sc_stop();
   }
+  wait(delay);
 }
 
 void Msp430Cpu::readMem(const uint32_t addr, uint8_t *const data,
