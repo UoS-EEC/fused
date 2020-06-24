@@ -31,6 +31,24 @@ target_link_libraries(testRegisterFile
     Utilities
   )
 
+add_executable(testBme280
+  test_Bme280.cpp
+  ../sd/Bme280.cpp
+  ../sd/Bme280.hpp
+  ../sd/SpiDevice.cpp
+  ../sd/SpiDevice.hpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/SpiTransactionExtension.hpp
+)
+
+target_link_libraries(testBme280
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
+
 # ------ Target-specific tests ------
 IF(${TARGET_ARCH} STREQUAL "msp430")
 add_executable(testDigitalIo

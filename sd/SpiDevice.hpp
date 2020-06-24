@@ -24,6 +24,7 @@ class SpiDevice : public sc_core::sc_module {
 
  public:
   /* ------ Ports ------ */
+  // sc_core::sc_in<double> vcc{"vcc"};
   sc_core::sc_in<bool> chipSelect{"chipSelect"};
   sc_core::sc_in<bool> nReset{"nReset"};
   tlm_utils::simple_target_socket<SpiDevice> tSocket{"tSocket"};
@@ -88,7 +89,7 @@ class SpiDevice : public sc_core::sc_module {
   void writeSlaveOut(const uint32_t val);
 
   /* ------ Protected variables ------ */
-  const ChipSelectPolarity m_chipSelectPolarity{ChipSelectPolarity::ActiveHigh};
+  const ChipSelectPolarity m_chipSelectPolarity;
   sc_core::sc_event m_transactionEvent{"m_transactionEvent"};
   RegisterFile m_regs;
 

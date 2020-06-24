@@ -18,16 +18,15 @@ SpiDevice::SpiDevice(const sc_module_name nm, ChipSelectPolarity polarity)
 }
 
 void SpiDevice::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
-  if (!chipSelect.read() && nReset.read()) {  // N select is low
-    // Read from the received paylaod
+  if (enabled() && nReset.read()) {
+    // Read from the received payload & set response
     auto *ptr = trans.get_data_ptr();
     auto len = trans.get_data_length();
     auto *spiExtension = trans.get_extension<SpiTransactionExtension>();
     spiExtension->response = readSlaveOut();
     writeSlaveIn(trans.get_data_ptr()[0]);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
-
-    m_transactionEvent.notify();
+    m_transactionEvent.notify(delay);
   }
 }
 

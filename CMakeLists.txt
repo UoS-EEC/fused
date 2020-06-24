@@ -107,6 +107,7 @@ IF(ENABLE_TESTS)
   add_subdirectory(test)
   add_test(NAME ClockSourceChannel COMMAND testClockSourceChannel)
   add_test(NAME RegisterFile COMMAND testRegisterFile)
+  add_test(NAME Bme280 COMMAND testBme280)
   add_test(NAME Cache COMMAND testCache)
 
   IF(TARGET_ARCH STREQUAL "msp430")
