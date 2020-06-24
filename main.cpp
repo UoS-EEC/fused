@@ -216,6 +216,10 @@ int sc_main(int argc, char *argv[]) {
               fmt::format("dma_channel{:02d}_trigger", i));
   }
   sca_trace(vcdfile, mcu->cpuStall, "cpuStall");
+#elif defined(CM0_ARCH)
+  for (int i = 0; i < mcuOutputPort.size(); ++i) {
+    sca_trace(vcdfile, mcuOutputPort[i], fmt::format("P{:02d}", i));
+  }
 #endif
 
   // Creates a csv-like file
