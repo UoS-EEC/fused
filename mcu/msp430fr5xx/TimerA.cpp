@@ -54,7 +54,7 @@ TimerA::TimerA(sc_module_name name, unsigned startAddress, sc_time delay)
   // m_regs.addRegister(OFS_TA1CCR4, 0); // Not implemented in hw
   // m_regs.addRegister(OFS_TA1CCR5, 0); // Not implemented in hw
   // m_regs.addRegister(OFS_TA1CCR6, 0); // Not implemented in hw
-  m_regs.addRegister(OFS_TA1IV, 0, RegisterFile::READ);
+  m_regs.addRegister(OFS_TA1IV, 0, RegisterFile::AccessMode::READ);
   m_regs.addRegister(OFS_TA1EX0, 0);
 
   // Register events
@@ -75,27 +75,7 @@ void TimerA::end_of_elaboration() {
   dont_initialize();
 }
 
-void TimerA::reset(void) {
-  // Reset registers
-  m_regs.write(OFS_TA1CTL, 0);
-  m_regs.write(OFS_TA1CCTL0, 0);
-  m_regs.write(OFS_TA1CCTL1, 0);
-  m_regs.write(OFS_TA1CCTL2, 0);
-  // m_regs.write(OFS_TA1CCTL3, 0); // Not implemented in hw
-  // m_regs.write(OFS_TA1CCTL4, 0); // Not implemented in hw
-  // m_regs.write(OFS_TA1CCTL5, 0); // Not implemented in hw
-  // m_regs.write(OFS_TA1CCTL6, 0); // Not implemented in hw
-  m_regs.write(OFS_TA1R, 0);
-  m_regs.write(OFS_TA1CCR0, 0);
-  m_regs.write(OFS_TA1CCR1, 0);
-  m_regs.write(OFS_TA1CCR2, 0);
-  // m_regs.write(OFS_TA1CCR3, 0); // Not implemented in hw
-  // m_regs.write(OFS_TA1CCR4, 0); // Not implemented in hw
-  // m_regs.write(OFS_TA1CCR5, 0); // Not implemented in hw
-  // m_regs.write(OFS_TA1CCR6, 0); // Not implemented in hw
-  m_regs.write(OFS_TA1IV, 0, true);
-  m_regs.write(OFS_TA1EX0, 0);
-}
+void TimerA::reset(void) { m_regs.reset(); }
 
 void TimerA::process(void) {
   if (pwrOn.read()) {

@@ -23,6 +23,7 @@ target_link_libraries(testCache
 add_executable(testRegisterFile
   test_RegisterFile.cpp
   ../mcu/RegisterFile.cpp
+  ../mcu/RegisterFile.hpp
 )
 
 target_link_libraries(testRegisterFile

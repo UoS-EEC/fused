@@ -26,33 +26,53 @@ class RegisterFile {
  public:
   /* ------ Types ------ */
   //! Register type, can allow reads, writes or both reads and writes.
-  enum access_mode { READ, WRITE, READ_WRITE };
+  enum class AccessMode { READ, WRITE, READ_WRITE };
 
   //! One register
-  struct preg {
-    uint32_t val;                   //! Value held in register
-    const size_t addr;              //! Address of register
-    const uint32_t write_mask;      //! Masks off undef bits
-    const enum access_mode access;  //! Allowed access mode
+  struct Register {
+    const size_t addr;          //! Address of register
+    uint32_t val;               //! Value held in register
+    const uint32_t resetValue;  //! Reset value
+    const uint32_t writeMask;   //! Masks off undef bits
+    const AccessMode access;    //! Allowed access mode
+
+    Register(const size_t address_, const uint32_t resetValue_,
+             const AccessMode access_, const uint32_t writeMask_)
+        : addr(address_),
+          val(resetValue_),
+          resetValue(resetValue_),
+          writeMask(writeMask_),
+          access(access_) {}
+
+    void reset() { val = resetValue; }
   };
 
   /* ------ Public methods ------ */
   /**
-   * @brief RegisterFile Constructor: Initialise empty register file
+   * @brief RegisterFile Constructor
    */
-  RegisterFile() : m_regs() {}
+  RegisterFile() = default;
+
+  /**
+   * @brief reset reset all register values to their reset values.
+   */
+  void reset() {
+    for (auto &r : m_regs) {
+      r.reset();
+    }
+  }
 
   /**
    * @brief addRegister Add register to register file.
    * @param address register address
-   * @param value initial value
+   * @param resetValue reset value
    * @param access access mode
-   * @param write_mask write mask. Used to mask undefined bits when writing.
+   * @param writeMask write mask. Used to mask undefined bits when writing.
    */
-  void addRegister(const size_t address, const uint32_t value = 0,
-                   const access_mode access = READ_WRITE,
+  void addRegister(const size_t address, const uint32_t resetValue = 0,
+                   const AccessMode access = AccessMode::READ_WRITE,
                    const uint32_t writeMask = 0xffffffff) {
-    m_regs.push_back({value, address, writeMask, access});
+    m_regs.emplace_back(Register(address, resetValue, access, writeMask));
   }
 
   /**
@@ -168,6 +188,14 @@ class RegisterFile {
   unsigned int size() const { return m_regs.size(); }
 
   /**
+   * @brief contains Check whether the register file contains a register with
+   * the specified address.
+   * @param address register address
+   * @retval true if a register with the address is found, false otherwise.
+   */
+  bool contains(unsigned address) const;
+
+  /**
    * @brief << debug printout.
    */
   friend std::ostream &operator<<(std::ostream &os, const RegisterFile &rhs);
@@ -178,8 +206,8 @@ class RegisterFile {
    * @param address
    * @return register
    */
-  const preg &find(const size_t address) const;
+  const Register &find(const size_t address) const;
 
   /* ------ Private variables ------ */
-  std::vector<preg> m_regs;  //! Registers
+  std::vector<Register> m_regs;  //! Registers
 };

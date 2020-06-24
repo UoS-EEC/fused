@@ -45,43 +45,37 @@ ClockSystem::ClockSystem(sc_module_name name, unsigned startAddress,
   // Set up register file
   m_regs.addRegister(/*address=*/OFS_CSCTL0,
                      /*value=*/CSCTL0_RST,
-                     /*access_mode=*/RegisterFile::READ_WRITE,
+                     /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/CSCTL0_MASK);
   m_regs.addRegister(/*address=*/OFS_CSCTL1,
                      /*value=*/CSCTL1_RST,
-                     /*access_mode=*/RegisterFile::READ_WRITE,
+                     /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/CSCTL1_MASK);
   m_regs.addRegister(/*address=*/OFS_CSCTL2,
                      /*value=*/CSCTL2_RST,
-                     /*access_mode=*/RegisterFile::READ_WRITE,
+                     /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/CSCTL2_MASK);
   m_regs.addRegister(/*address=*/OFS_CSCTL3,
                      /*value=*/CSCTL3_RST,
-                     /*access_mode=*/RegisterFile::READ_WRITE,
+                     /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/CSCTL3_MASK);
   m_regs.addRegister(/*address=*/OFS_CSCTL4,
                      /*value=*/CSCTL4_RST,
-                     /*access_mode=*/RegisterFile::READ_WRITE,
+                     /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/CSCTL4_MASK);
   m_regs.addRegister(/*address=*/OFS_CSCTL5,
                      /*value=*/CSCTL5_RST,
-                     /*access_mode=*/RegisterFile::READ_WRITE,
+                     /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/CSCTL5_MASK);
   m_regs.addRegister(/*address=*/OFS_CSCTL6,
                      /*value=*/CSCTL6_RST,
-                     /*access_mode=*/RegisterFile::READ_WRITE,
+                     /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/CSCTL6_MASK);
 }
 
 void ClockSystem::reset(void) {
   if (pwrOn.read()) {  // Posedge of pwrOn
-    m_regs.write(OFS_CSCTL0, CSCTL0_RST);
-    m_regs.write(OFS_CSCTL1, CSCTL1_RST);
-    m_regs.write(OFS_CSCTL2, CSCTL2_RST);
-    m_regs.write(OFS_CSCTL3, CSCTL3_RST);
-    m_regs.write(OFS_CSCTL4, CSCTL4_RST);
-    m_regs.write(OFS_CSCTL5, CSCTL5_RST);
-    m_regs.write(OFS_CSCTL6, CSCTL6_RST);
+    m_regs.reset();
     locked = true;
   }
 }

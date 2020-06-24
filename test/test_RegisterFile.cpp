@@ -13,17 +13,22 @@ int main() {
   RegisterFile dut;
   unsigned crntAddr = 0;
 
-  // TEST 1 - Add a default register
+  // TEST - Add a default register
   assert(dut.size() == 0);
   dut.addRegister(crntAddr, 0);
   assert(dut.size() == 1);
+  assert(dut.contains(crntAddr));
 
-  // TEST 2 - Word access
+  // TEST - Word access
   unsigned testval = 0xAAAA5555;
   dut.write(crntAddr, testval);
   assert(dut.read(crntAddr) == testval);
 
-  // TEST 3 - Byte access
+  // TEST - Reset
+  dut.reset();
+  assert(dut.read(crntAddr) == 0);
+
+  // TEST - Byte access
   for (int ofs = 0; ofs < TARGET_WORD_SIZE; ofs++) {
     dut.write(crntAddr, 0xFFFFFFFF);
     dut.writeByte(ofs, 0xAA);
@@ -33,10 +38,10 @@ int main() {
     assert(dut.read(crntAddr) == correct);  // Word read
   }
 
-  // Test 4 - Write mask
+  // Test - Write mask
   crntAddr += TARGET_WORD_SIZE;
   dut.addRegister(/*address=*/crntAddr, /*value=*/0,
-                  /*access_mode=*/RegisterFile::READ_WRITE,
+                  /*access_mode=*/RegisterFile::AccessMode::READ_WRITE,
                   /*writeMask=*/0xFFFF0000);
   assert(dut.size() == 2);
   dut.write(crntAddr, 0x55555555);

@@ -24,7 +24,8 @@ void RegisterFile::setBit(const size_t address, const unsigned bit,
                           const bool force) {
   assert(bit < TARGET_WORD_SIZE * 8);
   auto &r = find(address);
-  assert(r.access == WRITE || r.access == READ_WRITE || force);
+  assert(r.access == AccessMode::WRITE || r.access == AccessMode::READ_WRITE ||
+         force);
   write(address, read(address) | (1u << bit), force);
 }
 
@@ -42,16 +43,17 @@ void RegisterFile::write(const size_t address, const uint32_t value,
                          const bool force) {
   auto rit = std::find_if(
       m_regs.begin(), m_regs.end(),
-      [address](RegisterFile::preg &r) { return r.addr == address; });
+      [address](RegisterFile::Register &r) { return r.addr == address; });
   if (rit == m_regs.end()) {
     spdlog::error("RegisterFile::write Address 0x{:08x} not found.", address);
     exit(1);
   }
   auto &r = *rit;
 
-  assert(r.access == WRITE || r.access == READ_WRITE || force);
+  assert(r.access == AccessMode::WRITE || r.access == AccessMode::READ_WRITE ||
+         force);
   if (!force) {
-    r.val = (r.val & (~r.write_mask)) | (value & r.write_mask);
+    r.val = (r.val & (~r.writeMask)) | (value & r.writeMask);
   } else {
     r.val = value;
   }
@@ -95,7 +97,7 @@ void RegisterFile::write(size_t address, uint8_t *buf, size_t len,
 
 uint32_t RegisterFile::read(const size_t address) const {
   const auto &r = find(address);
-  assert(r.access == READ || r.access == READ_WRITE);
+  assert(r.access == AccessMode::READ || r.access == AccessMode::READ_WRITE);
   return r.val;
 }
 
@@ -139,13 +141,13 @@ uint8_t RegisterFile::readByte(const size_t address) const {
   size_t ofs = address % TARGET_WORD_SIZE;
   auto addrAligned = address - ofs;
   const auto &r = find(addrAligned);
-  assert(r.access == READ || r.access == READ_WRITE);
+  assert(r.access == AccessMode::READ || r.access == AccessMode::READ_WRITE);
   return reinterpret_cast<const uint8_t *>(&r.val)[ofs];
 }
 
 void RegisterFile::increment(const size_t address, const bool force) {
   const auto &r = find(address);
-  assert(r.access == READ_WRITE || force);
+  assert(r.access == AccessMode::READ_WRITE || force);
   write(address, r.val + 1, force);
 }
 
@@ -153,19 +155,27 @@ void RegisterFile::clearBit(const size_t address, const unsigned bit,
                             const bool force) {
   assert(bit < TARGET_WORD_SIZE * 8);
   const auto &r = find(address);
-  assert(r.access == WRITE || r.access == READ_WRITE || force);
+  assert(r.access == AccessMode::WRITE || r.access == AccessMode::READ_WRITE ||
+         force);
   write(address, r.val & (~(1u << bit)), force);
 }
 
-const RegisterFile::preg &RegisterFile::find(const size_t address) const {
+const RegisterFile::Register &RegisterFile::find(const size_t address) const {
   auto rit = std::find_if(
       m_regs.begin(), m_regs.end(),
-      [address](const RegisterFile::preg &r) { return r.addr == address; });
+      [address](const RegisterFile::Register &r) { return r.addr == address; });
   if (rit == m_regs.end()) {
     spdlog::error("RegisterFile::find Address 0x{:08x} not found.", address);
-    exit(1);
+    exit(1);  // to suppress warning
   }
   return *rit;
+}
+
+bool RegisterFile::contains(unsigned address) const {
+  auto rit = std::find_if(
+      m_regs.begin(), m_regs.end(),
+      [address](const RegisterFile::Register &r) { return r.addr == address; });
+  return (rit != m_regs.end());
 }
 
 std::ostream &operator<<(std::ostream &os, const RegisterFile &rhs) {

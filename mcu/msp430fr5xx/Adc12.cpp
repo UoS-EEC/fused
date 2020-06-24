@@ -45,7 +45,16 @@ Adc12::Adc12(const sc_module_name name, const sc_time delay)
 
   // Construct register file
   for (uint16_t i = 0; i < ADC12_B_SIZE; i += 2) {
-    m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
+    if (i == OFS_ADC12CTL2) {
+      m_regs.addRegister(i, 0x20, RegisterFile::AccessMode::READ_WRITE);
+    } else if (i == OFS_ADC12HI) {
+      m_regs.addRegister(i, 0xfff, RegisterFile::AccessMode::READ_WRITE);
+    } else if ((i >= OFS_ADC12MEM0) && (i <= OFS_ADC12MEM31)) {
+      // Write arbitrary value to memory registers (undefined value at reset)
+      m_regs.addRegister(i, 0xaaaa, RegisterFile::AccessMode::READ_WRITE);
+    } else {
+      m_regs.addRegister(i, 0, RegisterFile::AccessMode::READ_WRITE);
+    }
   }
 
   // Register events
@@ -69,17 +78,7 @@ void Adc12::end_of_elaboration() {
 void Adc12::reset(void) {
   if (pwrOn.read()) {  // Posedge of pwrOn
     // Reset the register file
-    for (uint16_t i = 0; i < ADC12_B_SIZE; i += 2) {
-      m_regs.write(i, 0);
-    }
-    m_regs.write(OFS_ADC12CTL2, 0x20);
-    m_regs.write(OFS_ADC12HI, 0x0fff);
-
-    // Write arbitrary value to memory registers (undefined value at reset)
-    for (uint16_t i = OFS_ADC12MEM0; i <= OFS_ADC12MEM31; i += 2) {
-      m_regs.write(i, 0xAAAA);
-    }
-
+    m_regs.reset();
     modeEvent.cancel();              // Cancel pending events
     modeEvent.notify(SC_ZERO_TIME);  // initialize process
   } else {                           // Negedge of pwrOn

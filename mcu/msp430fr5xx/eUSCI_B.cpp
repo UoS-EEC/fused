@@ -25,7 +25,13 @@ eUSCI_B::eUSCI_B(sc_module_name name, const uint16_t startAddress,
   // Initialise register file
   uint16_t endOffset = endAddress - startAddress + 1;
   for (uint16_t i = 0; i < endOffset; i += 2) {
-    m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
+    if (i == OFS_UCB0CTLW0) {
+      m_regs.addRegister(i, 0x01c1, RegisterFile::AccessMode::READ_WRITE);
+    } else if (i == OFS_UCB0IFG) {
+      m_regs.addRegister(i, 0x0002, RegisterFile::AccessMode::READ_WRITE);
+    } else {
+      m_regs.addRegister(i, 0, RegisterFile::AccessMode::READ_WRITE);
+    }
   }
 
   SC_METHOD(reset);
@@ -107,12 +113,7 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 
 void eUSCI_B::reset(void) {
   if (pwrOn.read()) {  // Posedge of pwrOn
-    // Reset register file
-    for (uint16_t i = 0; i < m_regs.size(); i++) {
-      m_regs.write(2 * i, 0);
-    }
-    m_regs.write(OFS_UCB0CTLW0, 0x01c1);
-    m_regs.write(OFS_UCB0IFG, 0x0002);
+    m_regs.reset();
   }
 }
 

@@ -25,7 +25,7 @@ Mpy32::Mpy32(sc_module_name name, const uint16_t startAddress,
   // Initialise register file
   uint16_t endOffset = endAddress - startAddress + 1;
   for (uint16_t i = 0; i < endOffset; i += 2) {
-    m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
+    m_regs.addRegister(i, 0, RegisterFile::AccessMode::READ_WRITE);
   }
 
   SC_METHOD(reset);
@@ -105,13 +105,7 @@ void Mpy32::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   BusTarget::b_transport(trans, delay);
 }
 
-void Mpy32::reset(void) {
-  // Reset register values. All are defined as either 0 or undefined
-  // Reset all to 0 for now
-  for (uint16_t i = 0; i < m_regs.size(); i++) {
-    m_regs.write(2 * i, 0);
-  }
-}
+void Mpy32::reset(void) { m_regs.reset(); }
 
 void Mpy32::process(void) {
   if (pwrOn.read()) {

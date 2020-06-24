@@ -30,7 +30,7 @@ DigitalIo::DigitalIo(sc_module_name name, const uint16_t startAddress,
   // Initialise register file
   uint16_t endOffset = endAddress - startAddress + 1;
   for (uint16_t i = 0; i < endOffset; i += 2) {
-    m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
+    m_regs.addRegister(i, 0, RegisterFile::AccessMode::READ_WRITE);
   }
 
   SC_METHOD(reset);
@@ -44,13 +44,7 @@ DigitalIo::DigitalIo(sc_module_name name, const uint16_t startAddress,
   }
 }
 
-void DigitalIo::reset(void) {
-  // Reset register values. All are defined as either 0 or undefined
-  // Reset all to 0 for now
-  for (uint16_t i = 0; i < m_regs.size(); i++) {
-    m_regs.write(2 * i, 0);
-  }
-}
+void DigitalIo::reset(void) { m_regs.reset(); }
 
 void DigitalIo::process(void) {
   uint16_t dir = m_regs.read(OFS_PADIR);  //  Note: offset is same for all

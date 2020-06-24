@@ -39,10 +39,10 @@ PowerManagementModule::PowerManagementModule(sc_module_name name, sc_time delay,
   m_vMax = Config::get().getDouble("VMAX");
 
   // Note: correct values are written during reset()
-  m_regs.addRegister(OFS_PMMCTL0, 0, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_PMMCTL1, 0x9600, RegisterFile::READ);
-  m_regs.addRegister(OFS_PMMIFG, 0, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_PM5CTL0, 0, RegisterFile::READ_WRITE);
+  m_regs.addRegister(OFS_PMMCTL0, 0x9640, RegisterFile::AccessMode::READ_WRITE);
+  m_regs.addRegister(OFS_PMMCTL1, 0x9600, RegisterFile::AccessMode::READ_WRITE);
+  m_regs.addRegister(OFS_PMMIFG, 0, RegisterFile::AccessMode::READ_WRITE);
+  m_regs.addRegister(OFS_PM5CTL0, 0x0001, RegisterFile::AccessMode::READ_WRITE);
 
   reset();
 
@@ -65,9 +65,7 @@ PowerManagementModule::PowerManagementModule(sc_module_name name, sc_time delay,
 
 void PowerManagementModule::reset(void) {
   // Reset registers to their default values
-  m_regs.write(OFS_PMMCTL0, 0x9640);
-  m_regs.write(OFS_PMMIFG, 0x0000);
-  m_regs.write(OFS_PM5CTL0, 0x0001);
+  m_regs.reset();
   m_locked = true;
   m_isOn = false;
 }

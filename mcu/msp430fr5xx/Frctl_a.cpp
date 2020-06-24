@@ -23,7 +23,13 @@ Frctl_a::Frctl_a(sc_module_name nm, sc_time delay, unsigned startAddress,
     : BusTarget(nm, startAddress, endAddress, delay) {
   // Initialize register file
   for (uint16_t i = 0; i < FRCTL_A_SIZE; i += 2) {
-    m_regs.addRegister(i, 0, RegisterFile::READ_WRITE);
+    if (i == OFS_FRCTL0) {
+      m_regs.addRegister(i, 0x9600, RegisterFile::AccessMode::READ_WRITE);
+    } else if (i == OFS_GCCTL0) {
+      m_regs.addRegister(i, 0x0004, RegisterFile::AccessMode::READ_WRITE);
+    } else {
+      m_regs.addRegister(i, 0, RegisterFile::AccessMode::READ_WRITE);
+    }
   }
 
   SC_METHOD(process);
@@ -41,8 +47,6 @@ void Frctl_a::reset() {
     for (uint16_t i = 0; i < FRCTL_A_SIZE; i += 2) {
       m_regs.write(i, 0);
     }
-    m_regs.write(OFS_FRCTL0, 0x9600);
-    m_regs.write(OFS_GCCTL0, 0x0004);
   }
 }
 

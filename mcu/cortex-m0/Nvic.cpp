@@ -18,16 +18,26 @@ Nvic::Nvic(const sc_module_name name, const sc_time delay)
   uint32_t iprnWriteMask = 0xc0c0c0c0;
   m_regs.addRegister(OFS_NVIC_ISER, 0);
   m_regs.addRegister(OFS_NVIC_ICER, 0);
-  m_regs.addRegister(OFS_NVIC_ISPR, 0, RegisterFile::READ_WRITE, 0x0);
-  m_regs.addRegister(OFS_NVIC_ICPR, 0, RegisterFile::READ_WRITE, 0x0);
-  m_regs.addRegister(OFS_NVIC_IPR0, 0, RegisterFile::READ_WRITE, iprnWriteMask);
-  m_regs.addRegister(OFS_NVIC_IPR1, 0, RegisterFile::READ_WRITE, iprnWriteMask);
-  m_regs.addRegister(OFS_NVIC_IPR2, 0, RegisterFile::READ_WRITE, iprnWriteMask);
-  m_regs.addRegister(OFS_NVIC_IPR3, 0, RegisterFile::READ_WRITE, iprnWriteMask);
-  m_regs.addRegister(OFS_NVIC_IPR4, 0, RegisterFile::READ_WRITE, iprnWriteMask);
-  m_regs.addRegister(OFS_NVIC_IPR5, 0, RegisterFile::READ_WRITE, iprnWriteMask);
-  m_regs.addRegister(OFS_NVIC_IPR6, 0, RegisterFile::READ_WRITE, iprnWriteMask);
-  m_regs.addRegister(OFS_NVIC_IPR7, 0, RegisterFile::READ_WRITE, iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_ISPR, 0, RegisterFile::AccessMode::READ_WRITE,
+                     0x0);
+  m_regs.addRegister(OFS_NVIC_ICPR, 0, RegisterFile::AccessMode::READ_WRITE,
+                     0x0);
+  m_regs.addRegister(OFS_NVIC_IPR0, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_IPR1, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_IPR2, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_IPR3, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_IPR4, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_IPR5, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_IPR6, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
+  m_regs.addRegister(OFS_NVIC_IPR7, 0, RegisterFile::AccessMode::READ_WRITE,
+                     iprnWriteMask);
 }
 
 void Nvic::end_of_elaboration() {
@@ -53,18 +63,7 @@ void Nvic::reset() {
   m_swClearPending = 0;
   m_swSetPending = 0;
 
-  m_regs.write(OFS_NVIC_ISER, 0, true);
-  m_regs.write(OFS_NVIC_ICER, 0, true);
-  m_regs.write(OFS_NVIC_ISPR, 0, true);
-  m_regs.write(OFS_NVIC_ICPR, 0, true);
-  m_regs.write(OFS_NVIC_IPR0, 0, true);
-  m_regs.write(OFS_NVIC_IPR1, 0, true);
-  m_regs.write(OFS_NVIC_IPR2, 0, true);
-  m_regs.write(OFS_NVIC_IPR3, 0, true);
-  m_regs.write(OFS_NVIC_IPR4, 0, true);
-  m_regs.write(OFS_NVIC_IPR5, 0, true);
-  m_regs.write(OFS_NVIC_IPR6, 0, true);
-  m_regs.write(OFS_NVIC_IPR7, 0, true);
+  m_regs.reset();
 }
 
 uint32_t Nvic::writeOneToClear(uint32_t clearbits, uint32_t oldval) {

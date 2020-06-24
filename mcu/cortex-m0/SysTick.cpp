@@ -28,20 +28,20 @@ SysTick::SysTick(const sc_module_name name, const sc_time delay)
   // Set up register file
   m_regs.addRegister(/*Address=*/OFS_SYST_CSR,
                      /*Default value=*/SYST_CSR_CLKSOURCE,
-                     /*accessMode=*/RegisterFile::READ_WRITE,
+                     /*accessMode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/0x3);
   m_regs.addRegister(/*Address=*/OFS_SYST_RVR,
                      /*Default value=*/0x00aaaa,  // UNDEF
-                     /*accessMode=*/RegisterFile::READ_WRITE,
+                     /*accessMode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/0x00ffffff);  // 24 bit
   m_regs.addRegister(/*Address=*/OFS_SYST_CVR,
                      /*Default value=*/0x00aaaa,  // UNDEF
-                     /*accessMode=*/RegisterFile::READ_WRITE,
+                     /*accessMode=*/RegisterFile::AccessMode::READ_WRITE,
                      /*writeMask=*/0x00ffffff);  // Writes should clear value
   m_regs.addRegister(
       /*Address=*/OFS_SYST_CALIB,
       /*Default value=*/0,  //! Overwritten in end_of_elaboration
-      /*accessMode=*/RegisterFile::READ,
+      /*accessMode=*/RegisterFile::AccessMode::READ,
       /*writeMask=*/0x0);  // Writes should clear value
 }
 
@@ -52,9 +52,10 @@ void SysTick::end_of_elaboration() {
 }
 
 void SysTick::reset(void) {
-  m_regs.write(OFS_SYST_CSR, SYST_CSR_COUNTFLAG);
-  m_regs.write(OFS_SYST_RVR, 0x00aaaaaa);
-  m_regs.write(OFS_SYST_CVR, 0x00aaaaaa);
+  m_regs.reset();
+  const unsigned tenms =
+      static_cast<unsigned>(sc_time(10, SC_MS) / clk->getPeriod()) - 1;
+  m_regs.write(OFS_SYST_CALIB, SYST_CALIB_NOREF | tenms, /*force=*/true);
   m_expiredEvent.cancel();
   m_updateIrqEvent.cancel();
   m_setIrq = false;
