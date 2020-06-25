@@ -9,7 +9,9 @@
  * Model of the Bosh BME280 SPI-enabled temperature+humidity+pressure sensor.
  */
 
+#include <array>
 #include <systemc>
+#include <vector>
 #include "sd/SpiDevice.hpp"
 
 class Bme280 : public SpiDevice {
@@ -25,6 +27,11 @@ class Bme280 : public SpiDevice {
    * @brief reset Clear control registers and reset state.
    */
   virtual void reset(void) override;
+
+  /**
+   * @brief set up methods & sensitivity
+   */
+  virtual void end_of_elaboration() override;
 
   /* ------ Constants ------ */
 
@@ -94,20 +101,24 @@ class Bme280 : public SpiDevice {
  private:
   /* ------ Private types ------ */
   enum class SpiState { Address, Data };
+  enum class MeasurementState { PowerOff, Sleep, Normal, Forced };
 
   /* ------ Private variables ------ */
   SpiState m_spiState{SpiState::Address};
+  MeasurementState m_measurementState{MeasurementState::Sleep};
   unsigned m_activeAddress{0xffff};
+  bool m_isWriteAccess{false};  // Indicate if current spi access is write/read
+  sc_core::sc_event m_modeUpdateEvent{"modeUpdateEvent"};
 
   /* ------ Private methods ------ */
 
   /**
    * @brief SPI interface process. Handles register accesses.
    */
-  void spiInterface(void);
+  void spiInterface();
 
   /**
-   * @brief main measurement state machine.
+   * @brief main measurement state machine / loop.
    */
-  void fsm(void);
+  void measurementLoop();
 };

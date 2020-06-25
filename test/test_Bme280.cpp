@@ -68,7 +68,53 @@ SC_MODULE(tester) {
     sc_assert(spiRead(Bme280::ADDR_HUM_MSB, 1)[0] == 0x80);
     sc_assert(spiRead(Bme280::ADDR_HUM_LSB, 1)[0] == 0x00);
 
+    spdlog::info("TEST: Start basic measurement");
+
+    // 1 measurement of each sensor, in forced mode
+    spiWrite(Bme280::ADDR_CTRL_HUM, 1);
+    spiWrite(Bme280::ADDR_CTRL_MEAS, (1u << 5) | (1u << 2) | 2u);
+    wait(1.01, SC_MS);
+    sc_assert(spiRead(Bme280::ADDR_STATUS, 1)[0] == (1u << 3));
+    wait(2 + 2.5 + 2.5 + 0.5, SC_MS);
+    sc_assert(spiRead(Bme280::ADDR_STATUS, 1)[0] == 0);
+
     sc_stop();
+  }
+
+  void spiWrite(uint8_t addr, uint8_t cmd) {
+    // Prepare payload object
+    tlm::tlm_generic_payload trans;
+
+    // Clear read bit to signal write command
+    addr &= ~(1u << 7);
+
+    auto *spiExtension = new SpiTransactionExtension();
+
+    spiExtension->clkPeriod = sc_core::sc_time(10, sc_core::SC_US);
+    spiExtension->nDataBits = 8;
+    spiExtension->phase = SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
+    spiExtension->polarity = SpiTransactionExtension::SpiPolarity::HIGH;
+    spiExtension->bitOrder = SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
+
+    trans.set_extension(spiExtension);
+    trans.set_address(0);      // SPI doesn't use address
+    trans.set_data_length(1);  // Transfer size is 1 byte
+    trans.set_command(tlm::TLM_WRITE_COMMAND);
+    sc_time delay = spiExtension->transferTime();
+
+    // Start transfer
+    test.chipSelect.write(false);
+    wait(SC_ZERO_TIME);
+    trans.set_data_ptr(&addr);
+    test.iSpiSocket->b_transport(trans, delay);  // Transfer address
+    wait(delay);
+    trans.set_data_ptr(&cmd);
+    test.iSpiSocket->b_transport(trans, delay);  // Transfer command
+    wait(delay);
+    test.chipSelect.write(true);
+    wait(SC_ZERO_TIME);
+
+    // delete spiExtension;
   }
 
   std::vector<uint8_t> spiRead(const uint8_t addr, const size_t len) {
@@ -94,14 +140,17 @@ SC_MODULE(tester) {
     // Start transfer
     std::vector<uint8_t> response(len);
     test.chipSelect.write(false);
+    wait(SC_ZERO_TIME);
     test.iSpiSocket->b_transport(trans, delay);  // Transfer address
     wait(delay);
     for (int i = 0; i < len; ++i) {
       test.iSpiSocket->b_transport(trans, delay);  // Transfer data
       response[i] = spiExtension->response;
+      spdlog::info("spiRead: received data 0x{:02x}", response[i]);
       wait(delay);
     }
     test.chipSelect.write(true);
+    wait(SC_ZERO_TIME);
 
     // delete spiExtension;
     return response;
