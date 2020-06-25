@@ -98,6 +98,15 @@ class Bme280 : public SpiDevice {
   static const unsigned ADDR_CALIB_40 = 0xef;
   static const unsigned ADDR_CALIB_41 = 0xf0;
 
+  // Scaling factors to convert from physical parameters to LSB's
+  // adc_val = physical_unit_sample * x_SCALING;
+  const double HUM_SCALE{0.008};     // [%RH/lsb]
+  const double HUM_OFFSET{0.0};      // [%RH]
+  const double PRESS_SCALE{0.0018};  // [hPa/lsb]
+  const double PRESS_OFFSET{300.0};  // [hPa]
+  const double TEMP_SCALE{0.01};     // [C/lsb]
+  const double TEMP_OFFSET{-40.0};   // [C]
+
  private:
   /* ------ Private types ------ */
   enum class SpiState { Address, Data };
@@ -109,6 +118,20 @@ class Bme280 : public SpiDevice {
   unsigned m_activeAddress{0xffff};
   bool m_isWriteAccess{false};  // Indicate if current spi access is write/read
   sc_core::sc_event m_modeUpdateEvent{"modeUpdateEvent"};
+
+  // Trace file data
+  struct InputTraceEntry {
+    double temperature;  // [C]
+    double humidity;     //  Percent Relative Humidity [%RH]
+    double pressure;     // [hPa]
+
+    InputTraceEntry(const double temperature_, const double humidity_,
+                    const double pressure_)
+        : temperature(temperature_), humidity(humidity_), pressure(pressure_) {}
+  };
+
+  std::vector<InputTraceEntry> m_inputTrace;
+  sc_core::sc_time m_inputTraceTimestep;
 
   /* ------ Private methods ------ */
 

@@ -6,7 +6,12 @@
  */
 #include <spdlog/spdlog.h>
 #include <systemc>
+#include <tuple>
+#include <vector>
+#include "libs/strtk.hpp"
 #include "sd/Bme280.hpp"
+#include "utilities/Config.hpp"
+#include "utilities/Utilities.hpp"
 
 using namespace sc_core;
 
@@ -71,6 +76,34 @@ Bme280::Bme280(const sc_module_name name)
   m_regs.addRegister(ADDR_CALIB_39, 0, RegisterFile::AccessMode::READ);
   m_regs.addRegister(ADDR_CALIB_40, 0, RegisterFile::AccessMode::READ);
   m_regs.addRegister(ADDR_CALIB_41, 0, RegisterFile::AccessMode::READ);
+
+  // Load boot current trace
+  if (Config::get().contains("Bme280TraceFile")) {
+    auto fn = Config::get().getString("Bme280TraceFile");
+    Utility::assertFileExists(fn);
+    std::ifstream file(fn);
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    std::string content = buffer.str();
+
+    strtk::token_grid grid(content, content.size(), ",");
+    for (std::size_t i = 0; i < grid.row_count(); ++i) {
+      m_inputTrace.push_back(InputTraceEntry(
+          /*Temperature*/ grid.row(i).get<double>(1),
+          /*Humidity*/ grid.row(i).get<double>(2),
+          /*Pressure*/ grid.row(i).get<double>(3)));
+    }
+    m_inputTraceTimestep = sc_time(
+        1000 * (grid.row(1).get<double>(0) - grid.row(0).get<double>(0)),
+        SC_MS);
+  } else {  // No boot trace specified, set constant
+    m_inputTrace.push_back(InputTraceEntry(
+        /*Temperature*/ 20.0,
+        /*Humidity*/ 30.0,
+        /*Pressure*/ 330.0));
+    m_inputTraceTimestep = sc_time(1000.0, SC_MS);
+  }
+}
 
 void Bme280::end_of_elaboration() {
   SC_METHOD(spiInterface);
@@ -181,6 +214,14 @@ void Bme280::measurementLoop() {
       unsigned result = 0;
       wait(sc_time(1, SC_MS));  // Constant part of t_measure (datasheet)
 
+      // Get current sample (loops through input trace)
+      InputTraceEntry input =
+          m_inputTrace[static_cast<unsigned>(sc_time_stamp() /
+                                             m_inputTraceTimestep) %
+                       m_inputTrace.size()
+
+      ];
+
       // Lambda for calculating oversampling factor
       auto nSamples = [](unsigned samplingFactor) -> unsigned {
         if (samplingFactor == 0) {
@@ -212,16 +253,18 @@ void Bme280::measurementLoop() {
         result = 0x8000;
       } else {
         for (int i = 0; i < nSamples(osrs_t); ++i) {
-          spdlog::info("{:s}: @{} Temperature sample = {}", this->name(),
-                       sc_time_stamp().to_string());
-          result += 300;            // Should be read from csv
           wait(sc_time(2, SC_MS));  // Sampling time
+          result += static_cast<unsigned>((input.temperature - TEMP_OFFSET) /
+                                          TEMP_SCALE);
         }
         result /= nSamples(osrs_t);  // Average of oversampling
         auto oldval = m_regs.read(ADDR_TEMP_XLSB) |
                       (m_regs.read(ADDR_TEMP_LSB) << 4) |
                       (m_regs.read(ADDR_TEMP_MSB) << 12);
         result = iir(oldval, result);
+        spdlog::info("{:s}: @{} Temperature measurement 0x{:04x} ({:.3f} C)",
+                     this->name(), sc_time_stamp().to_string(), result,
+                     (result * TEMP_SCALE) + TEMP_OFFSET);
       }
       m_regs.write(ADDR_TEMP_XLSB, result & 0x0f, true);
       m_regs.write(ADDR_TEMP_LSB, (result & 0x0ff0) >> 4, true);
@@ -234,10 +277,9 @@ void Bme280::measurementLoop() {
       } else {
         result = 0;
         for (int i = 0; i < nSamples(osrs_p); ++i) {
-          spdlog::info("{:s}: @{} Pressure sample", this->name(),
-                       sc_time_stamp().to_string());
-          result += 300;            // Should be read from csv
           wait(sc_time(2, SC_MS));  // Sampling time
+          result += static_cast<unsigned>((input.pressure - PRESS_OFFSET) /
+                                          PRESS_SCALE);
         }
         wait(sc_time(0.5, SC_MS));   // Constant part of pressure sampling time
         result /= nSamples(osrs_p);  // Average of oversampling
@@ -245,6 +287,9 @@ void Bme280::measurementLoop() {
                       (m_regs.read(ADDR_PRESS_LSB) << 4) |
                       (m_regs.read(ADDR_PRESS_MSB) << 12);
         result = iir(oldval, result);
+        spdlog::info("{:s}: @{} Pressure measurement 0x{:04x} ({:.3f} hPa)",
+                     this->name(), sc_time_stamp().to_string(), result,
+                     (result * PRESS_SCALE) + PRESS_OFFSET);
       }
       m_regs.write(ADDR_PRESS_XLSB, result & 0x0f, true);
       m_regs.write(ADDR_PRESS_LSB, (result & 0x0ff0) >> 4, true);
@@ -255,13 +300,17 @@ void Bme280::measurementLoop() {
       if (osrs_h == 0) {
         result = 0x8000;
       } else {
+        result = 0;
         for (int i = 0; i < nSamples(osrs_h); ++i) {
-          spdlog::info("{:s}: @{} Humidity sample", this->name(),
-                       sc_time_stamp().to_string());
-          unsigned newval = 300;    // Should read from csv
           wait(sc_time(2, SC_MS));  // Sampling time
-          // no iir for humidity
+          result +=
+              static_cast<unsigned>((input.humidity - HUM_OFFSET) / HUM_SCALE);
         }
+        result /= nSamples(osrs_h);
+        spdlog::info("{:s}: @{} Humidity measurement 0x{:04x} ({:.3f} %RH)",
+                     this->name(), sc_time_stamp().to_string(), result,
+                     (result * HUM_SCALE) + HUM_OFFSET);
+        // no iir for humidity
         wait(sc_time(0.5, SC_MS));  // Constant part of humidity sampling time
       }
       // Store result

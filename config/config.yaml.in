@@ -18,6 +18,8 @@ VccMultiplierPath: @CMAKE_CURRENT_SOURCE_DIR@/config/vsweep-current.csv
 GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
 ProgramHexFile: /tmp/output.hex # Path to a program hex file
 
+Bme280TraceFile: /tmp/bme280data.csv
+
 # ------ Simulation control ------
 SimTimeLimit: 30.0 # Simulation time limit (seconds)
 IoSimulationStopperTarget: 3 # Simulation stops after X posedge of pin connected to simstopper
