@@ -69,14 +69,45 @@ SC_MODULE(tester) {
     sc_assert(spiRead(Bme280::ADDR_HUM_LSB, 1)[0] == 0x00);
 
     spdlog::info("TEST: Start basic measurement");
-
-    // 1 measurement of each sensor, in forced mode
+    // One measurement of each sensor, in forced mode
     spiWrite(Bme280::ADDR_CTRL_HUM, 1);
     spiWrite(Bme280::ADDR_CTRL_MEAS, (1u << 5) | (1u << 2) | 2u);
     wait(1.01, SC_MS);
     sc_assert(spiRead(Bme280::ADDR_STATUS, 1)[0] == (1u << 3));
     wait(2 + 2.5 + 2.5 + 0.5, SC_MS);
     sc_assert(spiRead(Bme280::ADDR_STATUS, 1)[0] == 0);
+
+    spdlog::info("TEST: Start continuous (normal-mode) measurement");
+    // 10 ms standby time, iir coefficient = 4
+    spiWrite(Bme280::ADDR_CONFIG, (0b110u << 5) | (0b010 << 2));
+    // Normal-mode, 2 of each measurement
+    spiWrite(Bme280::ADDR_CTRL_HUM, 2);
+    spiWrite(Bme280::ADDR_CTRL_MEAS, (2u << 5) | (2u << 2) | 3u);
+    wait(1.01, SC_MS);
+    sc_assert(spiRead(Bme280::ADDR_STATUS, 1)[0] == (1u << 3));
+    wait(100.0, SC_MS);
+    // Set to sleep mode
+    spiWrite(Bme280::ADDR_CTRL_MEAS, (2u << 5) | (2u << 2) | 0u);
+    wait(250.0, SC_MS);
+    sc_assert(spiRead(Bme280::ADDR_STATUS, 1)[0] == 0);
+
+    spdlog::info("TEST: Burst-read");
+    auto measurements = spiRead(Bme280::ADDR_PRESS_MSB, 8);
+
+    unsigned pressure = (static_cast<unsigned>(measurements[0]) << 12) |
+                        (static_cast<unsigned>(measurements[1]) << 4) |
+                        static_cast<unsigned>(measurements[2]);
+    unsigned temperature = (static_cast<unsigned>(measurements[3]) << 12) |
+                           (static_cast<unsigned>(measurements[4]) << 4) |
+                           static_cast<unsigned>(measurements[5]);
+    unsigned humidity = (static_cast<unsigned>(measurements[6]) << 8) |
+                        static_cast<unsigned>(measurements[7]);
+    spdlog::info("Pressure = 0x{:08x} ({:.3f} hPa)", pressure,
+                 (pressure * Bme280::PRESS_SCALE) + Bme280::PRESS_OFFSET);
+    spdlog::info("Temperature = 0x{:08x} ({:.3f} C)", temperature,
+                 (temperature * Bme280::TEMP_SCALE) + Bme280::TEMP_OFFSET);
+    spdlog::info("Humidity = 0x{:08x} ({:.3f} %RH)", humidity,
+                 (humidity * Bme280::HUM_SCALE) + Bme280::HUM_OFFSET);
 
     sc_stop();
   }
@@ -146,7 +177,6 @@ SC_MODULE(tester) {
     for (int i = 0; i < len; ++i) {
       test.iSpiSocket->b_transport(trans, delay);  // Transfer data
       response[i] = spiExtension->response;
-      spdlog::info("spiRead: received data 0x{:02x}", response[i]);
       wait(delay);
     }
     test.chipSelect.write(true);

@@ -122,9 +122,6 @@ void Bme280::spiInterface(void) {
   // First word after chip select is address, remaining are data
   const unsigned READ_BIT = (1u << 7);
   const auto payload = readSlaveIn();
-  spdlog::info("{:s}: @{:s} Received 0x{:08x}", this->name(),
-               sc_time_stamp().to_string(), payload);
-
   if (enabled()) {  // Chip select active
     switch (m_spiState) {
       case SpiState::Address:
@@ -169,8 +166,6 @@ void Bme280::spiInterface(void) {
     // Prepare response
     if ((!m_isWriteAccess) && m_regs.contains(m_activeAddress)) {
       // Valid read-access
-      spdlog::info("{:s}: setting response to regs[0x{:02x}] = 0x{:2x}",
-                   this->name(), m_activeAddress, m_regs.read(m_activeAddress));
       writeSlaveOut(m_regs.read(m_activeAddress));
       ++m_activeAddress;  // Auto-increment address
     } else {              // Write access, or invalid address
@@ -181,31 +176,44 @@ void Bme280::spiInterface(void) {
   }
 }
 
+Bme280::MeasurementState Bme280::nextMeasurementState() const {
+  auto mode = m_regs.read(ADDR_CTRL_MEAS) & 0b11u;
+  MeasurementState result = m_measurementState;
+  switch (m_measurementState) {
+    case MeasurementState::PowerOff:
+      // Check VDD and VDDIO
+      break;
+    case MeasurementState::Sleep:
+      if (mode == 1 || mode == 2) {
+        result = MeasurementState::Forced;
+      } else if (mode == 3) {
+        result = MeasurementState::Normal;
+      }
+      break;
+    case MeasurementState::Normal:
+      if (mode == 0) {
+        result = MeasurementState::Sleep;
+      } else if (mode == 1 || mode == 2) {
+        result = MeasurementState::Forced;
+      }
+      break;
+    case MeasurementState::Forced:
+      result = MeasurementState::Sleep;
+      break;
+  }
+  return result;
+}
+
 void Bme280::measurementLoop() {
   wait(m_modeUpdateEvent);
 
   while (1) {
     // State machine model
-    auto mode = m_regs.read(ADDR_CTRL_MEAS) & 0b11u;
-    switch (m_measurementState) {
-      case MeasurementState::PowerOff:
-        // Check VDD and VDDIO
-        break;
-      case MeasurementState::Sleep:
-        if (mode == 1 || mode == 2) {
-          m_measurementState = MeasurementState::Forced;
-        } else if (mode == 3) {
-          m_measurementState = MeasurementState::Normal;
-        }
-        break;
-      case MeasurementState::Normal:
-        if ((mode == 0) || (mode == 0)) {
-          m_measurementState == MeasurementState::Sleep;
-        }
-        break;
-      case MeasurementState::Forced:
-        m_measurementState == MeasurementState::Sleep;
-        break;
+    m_measurementState = nextMeasurementState();
+
+    // Clear mode bits after forced mode
+    if (m_measurementState == MeasurementState::Forced) {
+      m_regs.clearBitMask(ADDR_CTRL_MEAS, 0b11u, /*forced=*/true);
     }
 
     // Take a series of measurements
@@ -252,6 +260,8 @@ void Bme280::measurementLoop() {
       if (osrs_t == 0) {
         result = 0x8000;
       } else {
+        EventLog::getInstance().reportState(this->name(),
+                                            "measure_temperature");
         for (int i = 0; i < nSamples(osrs_t); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result += static_cast<unsigned>((input.temperature - TEMP_OFFSET) /
@@ -276,12 +286,14 @@ void Bme280::measurementLoop() {
         result = 0x8000;
       } else {
         result = 0;
+        EventLog::getInstance().reportState(this->name(), "measure_pressure");
         for (int i = 0; i < nSamples(osrs_p); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result += static_cast<unsigned>((input.pressure - PRESS_OFFSET) /
                                           PRESS_SCALE);
         }
-        wait(sc_time(0.5, SC_MS));   // Constant part of pressure sampling time
+        wait(sc_time(0.5,
+                     SC_MS));        // Constant part of pressure sampling time
         result /= nSamples(osrs_p);  // Average of oversampling
         auto oldval = m_regs.read(ADDR_PRESS_XLSB) |
                       (m_regs.read(ADDR_PRESS_LSB) << 4) |
@@ -301,6 +313,7 @@ void Bme280::measurementLoop() {
         result = 0x8000;
       } else {
         result = 0;
+        EventLog::getInstance().reportState(this->name(), "measure_humidity");
         for (int i = 0; i < nSamples(osrs_h); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result +=
@@ -311,19 +324,29 @@ void Bme280::measurementLoop() {
                      this->name(), sc_time_stamp().to_string(), result,
                      (result * HUM_SCALE) + HUM_OFFSET);
         // no iir for humidity
-        wait(sc_time(0.5, SC_MS));  // Constant part of humidity sampling time
+        wait(sc_time(0.5,
+                     SC_MS));  // Constant part of humidity sampling time
       }
+
       // Store result
       m_regs.write(ADDR_HUM_LSB, result & 0xff, true);
       m_regs.write(ADDR_HUM_MSB, (result & 0xff00) >> 8, true);
       m_regs.clearBit(ADDR_STATUS, 3, true);
 
-      // Standby time
       if (m_measurementState == MeasurementState::Normal) {
+        // Standby wait time
+        EventLog::getInstance().reportState(this->name(), "standby");
         const int STANDBY_DELAY_US[] = {500,    62500,   125000, 250000,
                                         500000, 1000000, 10000,  20000};
-        wait(sc_time(STANDBY_DELAY_US[(m_regs.read(ADDR_CONFIG) & 0xe0) >> 5],
-                     SC_US));
+        auto delay = sc_time(
+            STANDBY_DELAY_US[(m_regs.read(ADDR_CONFIG) & 0xe0) >> 5], SC_US);
+        spdlog::info("{:s}: @{:s} waiting in standby for {:s}", this->name(),
+                     sc_time_stamp().to_string(), delay.to_string());
+        wait(delay);
+      } else if (m_measurementState == MeasurementState::Sleep) {
+        EventLog::getInstance().reportState(this->name(), "sleep");
+      } else if (m_measurementState == MeasurementState::PowerOff) {
+        EventLog::getInstance().reportState(this->name(), "off");
       }
     } else {  // Inactive
       wait(m_modeUpdateEvent);

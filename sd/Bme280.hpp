@@ -33,7 +33,7 @@ class Bme280 : public SpiDevice {
    */
   virtual void end_of_elaboration() override;
 
-  /* ------ Constants ------ */
+  /* ------ Public constants ------ */
 
   // Register addresses
   // Data registers
@@ -100,12 +100,12 @@ class Bme280 : public SpiDevice {
 
   // Scaling factors to convert from physical parameters to LSB's
   // adc_val = physical_unit_sample * x_SCALING;
-  const double HUM_SCALE{0.008};     // [%RH/lsb]
-  const double HUM_OFFSET{0.0};      // [%RH]
-  const double PRESS_SCALE{0.0018};  // [hPa/lsb]
-  const double PRESS_OFFSET{300.0};  // [hPa]
-  const double TEMP_SCALE{0.01};     // [C/lsb]
-  const double TEMP_OFFSET{-40.0};   // [C]
+  static constexpr double HUM_SCALE{0.008};     // [%RH/lsb]
+  static constexpr double HUM_OFFSET{0.0};      // [%RH]
+  static constexpr double PRESS_SCALE{0.0018};  // [hPa/lsb]
+  static constexpr double PRESS_OFFSET{300.0};  // [hPa]
+  static constexpr double TEMP_SCALE{0.01};     // [C/lsb]
+  static constexpr double TEMP_OFFSET{-40.0};   // [C]
 
  private:
   /* ------ Private types ------ */
@@ -144,4 +144,12 @@ class Bme280 : public SpiDevice {
    * @brief main measurement state machine / loop.
    */
   void measurementLoop();
+
+  /**
+   * @brief nextMeasurementState method to determine the next state of the
+   * measurement loop state machine, based on current state and configuration
+   * register(s).
+   * @retval next state for the measurement state machine.
+   */
+  MeasurementState nextMeasurementState() const;
 };

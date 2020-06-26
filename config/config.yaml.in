@@ -65,15 +65,23 @@ mcu.cache.CacheNLines: 2
 mcu.cache.CacheNSets: 2
 
 # ------ Power consumption coefficients ------
+#
 # Power consumption of states (in this case current (A))
 mcu.CPU on: 0.0
 mcu.Adc on: 295.75e-6 #130.0e-6
 ext.dc : 25.0e-6 # External circuitry static current consumption
 
-#Energy consumption of events (J)
+# Energy consumption of events (J)
 mcu.CPU idle cycles: 2.0128059437442775e-10
 mcu.cache read hit: 2.1159007820425844e-10
 mcu.cache read miss: 6.346704408546349e-10
 mcu.cache write: 6.823167771173059e-10
 mcu.sram rw: 1.981169616404032e-10
 
+# BME280 temperature/humidity/pressure sensor power consumption (state-based)
+bme280.off:  0.0
+bme280.sleep: 0.1e-6
+bme280.standby: 0.2e-6
+bme280.measure_humidity: 340.0e-6
+bme280.measure_pressure:  714.0e-6
+bme280.measure_temperature: 350.0e-6
