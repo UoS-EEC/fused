@@ -129,6 +129,12 @@ u32 msr() {
         cpu.control = (cpu.control & (~2u)) | (nval & (~2u));  // SPSEL
       }
       break;
+    case 3:
+      fprintf(stderr, "DSB: implemented as NOP.\n");
+      break;
+    case 4:
+      fprintf(stderr, "ISB: implemented as NOP.\n");
+      break;
     default:
       fprintf(stderr, "MSR: Unrecognized instruction.\n");
       break;

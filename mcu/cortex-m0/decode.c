@@ -81,13 +81,21 @@ void decode_cps_push(const u16 pInsn) {
 }
 
 void decode_bl(const u16 pInsn) {
-  const u32 BLMASK = 0xf000d000;
-  const u32 MSRMASK = 0xf3808000;
-  const u32 MRSMASK = 0xf3e08000;
+  const u32 BLOP = 0xf000d000;
+  const u32 BLMASK = 0xf800d000u;
+  const u32 MSROP = 0xf3808800u;
+  const u32 MSRMASK = ~(0x000f00ffu);
+  const u32 MRSOP = 0xf3ef8000u;
+  const u32 MRSMASK = ~(0x00000fffu);
+  const u32 DSBOP = 0xf3bf8f40;
+  const u32 DSBMASK = ~(0x0000000fu);
+  const u32 ISBOP = 0xf3bf8f60;
+  const u32 ISBMASK = ~(0x0000000fu);
   u16 secondHalf = next_pipeline_instr_cb();
   u32 wholeInsn = ((u32)pInsn << 16) | secondHalf;
 
-  if ((wholeInsn & BLMASK) == BLMASK) {  // Branch & link (BL)
+  if ((wholeInsn & BLMASK) == BLOP) {
+    // Branch & link (BL)
     u32 S = (pInsn >> 10) & 0x1;
     u32 J1 = (secondHalf >> 13) & 0x1;
     u32 J2 = (secondHalf >> 11) & 0x1;
@@ -96,18 +104,28 @@ void decode_bl(const u16 pInsn) {
     u32 imm10 = pInsn & 0x3FF;
     u32 imm11 = secondHalf & 0x7FF;
     decoded.imm = (S << 23) | (I1 << 22) | (I2 << 21) | (imm10 << 11) | imm11;
-  } else if ((wholeInsn & MRSMASK) ==
-             MRSMASK) {  // Move to Register from Special register
+  } else if ((wholeInsn & MRSMASK) == MRSOP) {
+    // Move to Register from Special register
     decoded.rM = wholeInsn & 0x000000ff;
     decoded.rD = (wholeInsn & 0x00000f00) >> 8;
     decoded.imm =
-        0x80000000;  // Hack to signal MRS/MSR (impossible value for bl)
-  } else if ((wholeInsn & MSRMASK) ==
-             MSRMASK) {  // Move to Special register from Register
+        0x80000000;  // Hack to signal MRS/MSR/DSB/ISB (impossible value for bl)
+  } else if ((wholeInsn & MSRMASK) == MSROP) {
+    // Move to Special register from Register
     decoded.rD = wholeInsn & 0x000000ff;
     decoded.rM = (wholeInsn & 0x000f0000) >> 16;
     decoded.imm =
-        0x80000000;  // Hack to signal MRS/MSR (impossible value for bl)
+        0x80000000;  // Hack to signal MRS/MSR/ISB/DSB (impossible value for bl)
+  } else if ((wholeInsn & DSBMASK) == DSBOP) {
+    // Data synchronization barrier
+    decoded.rD = 3 << 3u;  // Hack to signal DSB
+    decoded.imm =
+        0x80000000;  // Hack to signal MRS/MSR/ISB/DSB (impossible value for bl)
+  } else if ((wholeInsn & ISBMASK) == ISBOP) {
+    // Instruction synchronization barrier
+    decoded.rD = 4 << 3u;  // Hack to signal ISB
+    decoded.imm =
+        0x80000000;  // Hack to signal MRS/MSR/ISB/DSB (impossible value for bl)
   } else {
     fprintf(stderr, "Unrecognized instruction %08x, exiting.", wholeInsn);
     sim_exit(1);
