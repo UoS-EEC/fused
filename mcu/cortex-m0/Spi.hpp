@@ -8,10 +8,8 @@
 #pragma once
 
 #include <tlm_utils/simple_initiator_socket.h>
-
 #include <systemc>
 #include <tlm>
-
 #include "mcu/BusTarget.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
@@ -107,18 +105,19 @@ class Spi : public BusTarget {
   static const unsigned CRCERR_SHIFT = 4;
   static const unsigned TXE_MASK = 1u << 1;
   static const unsigned TXE_SHIFT = 1;
-  static const unsigned RXE_MASK = 1u << 0;
-  static const unsigned RXE_SHIFT = 0;
+  static const unsigned RXNE_MASK = 1u << 0;
+  static const unsigned RXNE_SHIFT = 0;
 
   /*------ Methods ------*/
   /**
    * @brief Spi Constructor: initialise registers
    * @param name
-   * @param control register start address
-   * @param control register end address
+   * @param start address
+   * @param end address
    * @param delay Bus access delay
    */
-  Spi::Spi(sc_module_name name, const uint16_t endAddress, const sc_time delay);
+  Spi(sc_core::sc_module_name name, const unsigned startAddress,
+      const unsigned endAddress, const sc_core::sc_time delay);
 
   /**
    * @brief b_transport Blocking reads and writes to the config/control
@@ -184,8 +183,8 @@ class Spi : public BusTarget {
       }
 
       const unsigned mask = (nbytes == 1) ? 0x000000ff : 0x0000ffff;
-      data &= ~(mask << (nValidbytes * 8));       // Clear target byte(s)
-      data |= (val & mask) << (nValidbytes * 8);  // Set target byte(s)
+      data &= ~(mask << (nValidBytes * 8));       // Clear target byte(s)
+      data |= (val & mask) << (nValidBytes * 8);  // Set target byte(s)
       nValidBytes += nbytes;
       return 0;  // OK
     }
@@ -206,8 +205,8 @@ class Spi : public BusTarget {
   sc_core::sc_event m_enableEvent{"enableEvent"};
   bool m_enable{false};
 
-  Fifo m_txFifo{0, 0, 0};
-  Fifo m_rxFifo{0, 0, 0};
+  Fifo m_txFifo;
+  Fifo m_rxFifo;
 
   /* ------ Private methods ------ */
 
@@ -222,5 +221,5 @@ class Spi : public BusTarget {
    * @brief checkImplemented Checks config registers and errors/warns if
    * unimplemented features are enabled.
    */
-  void Spi::checkImplemented();
+  void checkImplemented();
 };

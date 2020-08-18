@@ -7,10 +7,12 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <systemc>
+#include "include/fused.h"
 #include "mcu/SpiTransactionExtension.hpp"
-#include "mcu/msp430fr5xx/Spi.hpp"
+#include "mcu/cortex-m0/Spi.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
+#include "utilities/Utilities.hpp"
 
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
@@ -18,7 +20,8 @@ extern "C" {
 
 using namespace sc_core;
 
-Spi::Spi(sc_module_name name, const uint16_t endAddress, const sc_time delay)
+Spi::Spi(sc_module_name name, const unsigned startAddress,
+         const unsigned endAddress, const sc_time delay)
     : BusTarget(name, startAddress, endAddress, delay) {
   // Register events
 
@@ -53,7 +56,7 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     switch (addr) {
       case OFS_SPI_CR1:  // Control Register 1
-        m_enable = val & Spi::SPE;
+        m_enable = val & Spi::SPE_MASK;
         m_enableEvent.notify(delay);
         checkImplemented();
         break;
@@ -72,7 +75,6 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
       default:
       case OFS_SPI_DR:   // Data register -- pop rx fifo
         if (len == 2) {  // 2 bytes
-          const auto tmp = ;
           Utility::unpackBytes(trans.get_data_ptr(),
                                Utility::htots(m_rxFifo.get(16)), 2);
         } else {  // 1 byte
@@ -99,7 +101,7 @@ void Spi::process(void) {
   tlm::tlm_generic_payload trans;
   trans.set_command(tlm::TLM_WRITE_COMMAND);
   std::array<uint8_t, 2> dataOut;
-  trans.set_data_ptr(dataOut.data);
+  trans.set_data_ptr(&dataOut[0]);
   auto *spiExtension = new SpiTransactionExtension();
   trans.set_extension(spiExtension);
   trans.set_address(0);  // SPI doesn't use address
@@ -150,11 +152,10 @@ void Spi::process(void) {
         (cr1 & CPHA_MASK)
             ? SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE
             : SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE;
-
     spiExtension->nDataBits = nbits;
 
-    Utility::unpackBytes(dataOut, m_txFifo.get(nbits), nbytes);
     trans.set_data_length(nbytes);
+    Utility::unpackBytes(&dataOut[0], m_txFifo.get(nbits), nbytes);
     trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
     sc_time delay = spiExtension->transferTime();
     spiSocket->b_transport(trans, delay);
@@ -164,7 +165,7 @@ void Spi::process(void) {
     wait(delay);
 
     // Receive
-    m_rxFifo.put(nbits, Utility::packBytes(spiExtension->response, nbytes));
+    m_rxFifo.put(nbits, spiExtension->response);
 
     // Update status register
     // RXNE: when the threshold defined by FRXTH is reached
@@ -174,7 +175,7 @@ void Spi::process(void) {
     const unsigned RXNE = m_rxFifo.nValidBytes >= FRXTH_nbytes;
     const unsigned TXE = m_txFifo.nValidBytes <= 2;
     m_regs.write(OFS_SPI_SR, (m_txFifo.level() << FTLVL_SHIFT) |
-                                 (m_rxFifo << FRLVL_SHIFT) |
+                                 (m_rxFifo.level() << FRLVL_SHIFT) |
                                  (TXE << TXE_SHIFT) | (RXNE << RXNE_SHIFT));
 
     // Set Interrupt request
@@ -190,26 +191,29 @@ void Spi::checkImplemented() {
     SC_REPORT_FATAL(
         this->name(),
         fmt::format(
-            "BIDIMODE set, but bidirectional data mode not implemented."));
+            "BIDIMODE set, but bidirectional data mode not implemented.")
+            .c_str());
   }
 
   if (cr1 & Spi::CRCEN_MASK) {
     SC_REPORT_FATAL(
         this->name(),
-        fmt::format(
-            "CRCEN set, but hardware CRC calculation not implemented."));
+        fmt::format("CRCEN set, but hardware CRC calculation not implemented.")
+            .c_str());
   }
 
   if (cr1 & Spi::CRCNEXT_MASK) {
     SC_REPORT_FATAL(
         this->name(),
         fmt::format(
-            "CRCNEXT set, but hardware CRC calculation not implemented."));
+            "CRCNEXT set, but hardware CRC calculation not implemented.")
+            .c_str());
   }
 
   if (cr1 & Spi::RXONLY_MASK) {
     SC_REPORT_FATAL(
         this->name(),
-        fmt::format("RXONLY set, but receive-only mode not implemented."));
+        fmt::format("RXONLY set, but receive-only mode not implemented.")
+            .c_str());
   }
 }

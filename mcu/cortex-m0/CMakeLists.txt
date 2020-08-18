@@ -25,6 +25,8 @@ add_library(
   sim_support.h
   SysTick.cpp
   SysTick.hpp
+  Spi.cpp
+  Spi.hpp
   )
 
 target_include_directories(cm0-cpu PRIVATE ${CMAKE_CURRENT_LIST_DIRECTORY})
