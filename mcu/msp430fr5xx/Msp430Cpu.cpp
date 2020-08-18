@@ -466,16 +466,6 @@ Msp430Cpu::operand_t Msp430Cpu::getSourceOperand(uint16_t opcode) {
   uint8_t srcRegNum;
   if ((opcode & 0xf000) == 0x1000) {  // Single operand instruction
     srcRegNum = opcode & 0x000f;
-
-    // Additional wait cycles if PC is destination
-    uint8_t destRegNum = opcode & 0x000f;
-    if (destRegNum == PC_REGNUM) {
-      if (as != 3) {
-        waitCycles(2);
-      } else {  // Source immediate (special case for absolute branch)
-        waitCycles(1);
-      }
-    }
   } else {  // Double operand instruction
     srcRegNum = (opcode & 0x0f00) >> 8;
   }
@@ -666,6 +656,10 @@ void Msp430Cpu::executeSingleOpInstruction(uint16_t opcode) {
       } else {
         // 4/5/6 cycles if operand is in memory
         waitCycles(1);
+        // absolute mode requires one more cycle
+        if ((opcode & 0x000f) == SR_REGNUM) {
+          waitCycles(1);
+        }
       }
       break;
 
