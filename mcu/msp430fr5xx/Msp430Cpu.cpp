@@ -650,6 +650,7 @@ void Msp430Cpu::executeSingleOpInstruction(uint16_t opcode) {
 
       // Jump
       setPc(operand.val);
+
       if (!operand.inMem) {
         // 4 cycles if operand is a register
         waitCycles(2);
@@ -707,6 +708,17 @@ void Msp430Cpu::executeDoubleOpInstruction(uint16_t opcode) {
   operand_t dstOp = getDestinationOperand(opcode);
   bool byteNotWord = srcOp.byteNotWord;
   uint32_t result;
+
+  // Special case when PC is destination
+  if (dstOp.addr == PC_REGNUM) {
+    uint8_t as = (opcode & 0x0030) >> 4;
+    uint8_t srcRegNum = (opcode & 0x0f00) >> 8;
+    if ((as == 3) && (srcRegNum == PC_REGNUM)) {
+      waitCycles(1);
+    } else {
+      waitCycles(2);
+    }
+  }
 
   switch (instrIdx) {
     case 4:  // MOV : dst = src
