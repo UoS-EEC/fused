@@ -22,13 +22,13 @@ Spi::Spi(sc_module_name name, const unsigned startAddress,
   // Register events
 
   // Initialise register file
-  m_regs.addRegister(OFS_SPI_CR1, 0, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_SPI_CR2, 0x0700, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_SPI_SR, 0x0002, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_SPI_DR, 0, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_SPI_CRCPR, 0x0007, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_SPI_RXCRCR, 0, RegisterFile::READ_WRITE);
-  m_regs.addRegister(OFS_SPI_TXCRCR, 0, RegisterFile::READ_WRITE);
+  m_regs.addRegister(OFS_SPI_CR1, 0);
+  m_regs.addRegister(OFS_SPI_CR2, 0x0700);
+  m_regs.addRegister(OFS_SPI_SR, 0x0002);
+  m_regs.addRegister(OFS_SPI_DR, 0);
+  m_regs.addRegister(OFS_SPI_CRCPR, 0x0007);
+  m_regs.addRegister(OFS_SPI_RXCRCR, 0);
+  m_regs.addRegister(OFS_SPI_TXCRCR, 0);
 
   SC_METHOD(reset);
   sensitive << pwrOn;
@@ -52,8 +52,10 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     switch (addr) {
       case OFS_SPI_CR1:  // Control Register 1
+        if (!m_enable && (val & Spi::SPE_MASK)) {
+          m_enableEvent.notify(delay);
+        }
         m_enable = val & Spi::SPE_MASK;
-        m_enableEvent.notify(delay);
         checkImplemented();
         break;
       case OFS_SPI_CR2:  // Control Register 2
@@ -68,7 +70,6 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     }
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     switch (addr) {
-      default:
       case OFS_SPI_DR:   // Data register -- pop rx fifo
         if (len == 2) {  // 2 bytes
           Utility::unpackBytes(trans.get_data_ptr(),
@@ -76,6 +77,8 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
         } else {  // 1 byte
           trans.get_data_ptr()[0] = m_rxFifo.get(8);
         }
+        break;
+      default:
         break;
     }
   }
@@ -101,10 +104,6 @@ void Spi::process(void) {
   wait(SC_ZERO_TIME);  // Wait for start of simulation
 
   while (1) {
-    while (pwrOn.read() == false) {
-      wait(pwrOn.posedge_event());
-    }
-
     unsigned cr2 = m_regs.read(OFS_SPI_CR2);
     int nbits = ((cr2 & Spi::DS_MASK) >> Spi::DS_SHIFT) + 1;
     if (nbits < 4) {

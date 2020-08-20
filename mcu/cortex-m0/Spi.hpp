@@ -134,11 +134,6 @@ class Spi : public BusTarget {
    */
   virtual void reset(void) override;
 
-  /**
-   * @brief reset Resets the interrupt and flags only
-   */
-  virtual void swreset(void);
-
  private:
   /* ------ Private types ------- */
   struct Fifo {       // 32-bit FIFO

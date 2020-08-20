@@ -30,6 +30,8 @@ SC_MODULE(dut) {
   sc_signal<bool> pwrGood{"pwrGood"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   tlm_utils::simple_target_socket<dut> spiSocket{"spiSocket"};
+  sc_signal<int> returning_exception{"returning_exception", -1};
+  sc_signal<bool> irq{"irq"};
   ClockSourceChannel spiclk{"spiclk", sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
@@ -37,6 +39,8 @@ SC_MODULE(dut) {
     m_dut.tSocket.bind(iSocket);
     m_dut.spiSocket.bind(spiSocket);
     m_dut.clk.bind(spiclk);
+    m_dut.irq.bind(irq);
+    m_dut.returning_exception.bind(returning_exception);
     spiSocket.register_b_transport(this, &dut::b_transport);
   }
 
@@ -79,9 +83,9 @@ SC_MODULE(tester) {
     // ------ TEST: Initialization and Reset
     // Power on reset
     sc_assert(read16(OFS_SPI_CR1) == 0);
+    spdlog::info("CR2={:d}", read16(OFS_SPI_CR2));
     sc_assert(read16(OFS_SPI_CR2) == 0x0700);
     sc_assert(read16(OFS_SPI_SR) == 0x0002);
-    sc_assert(read16(OFS_SPI_DR) == 0);
     sc_assert(read16(OFS_SPI_CRCPR) == 0x0007);
     sc_assert(read16(OFS_SPI_RXCRCR) == 0);
     sc_assert(read16(OFS_SPI_TXCRCR) == 0);
