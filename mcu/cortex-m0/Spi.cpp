@@ -14,10 +14,6 @@
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
-extern "C" {
-#include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
-}
-
 using namespace sc_core;
 
 Spi::Spi(sc_module_name name, const unsigned startAddress,
@@ -88,11 +84,7 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 void Spi::reset(void) {
   if (pwrOn.read()) {  // Posedge of pwrOn
     // Reset register file
-    for (uint16_t i = 0; i < m_regs.size(); i++) {
-      m_regs.write(2 * i, 0);
-    }
-    m_regs.write(OFS_UCB0CTLW0, 0x01c1);
-    m_regs.write(OFS_UCB0IFG, 0x0002);
+    m_regs.reset();
   }
 }
 

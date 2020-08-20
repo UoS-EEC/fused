@@ -175,6 +175,25 @@ target_link_libraries(testCm0Nvic
     PowerSystem
     Utilities
   )
+
+
+add_executable(testCm0Spi
+  test_cm0Spi.cpp
+  ../mcu/BusTarget.cpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/SpiTransactionExtension.hpp
+  ../mcu/cortex-m0/Spi.hpp
+  ../mcu/cortex-m0/Spi.cpp
+)
+
+target_link_libraries(testCm0Spi
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
+
 ELSE()
   message(FATAL_ERROR "Invalid TARGET_ARCH ${TARGET_ARCH}")
 ENDIF()

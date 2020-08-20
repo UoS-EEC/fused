@@ -119,6 +119,7 @@ IF(ENABLE_TESTS)
   ELSEIF(TARGET_ARCH STREQUAL "cm0")
     add_test(NAME Cm0SysTick COMMAND testCm0SysTick)
     add_test(NAME Cm0Nvic COMMAND testCm0Nvic)
+    add_test(NAME Cm0Spi COMMAND testCm0Spi)
   ENDIF()
 ENDIF()
 
