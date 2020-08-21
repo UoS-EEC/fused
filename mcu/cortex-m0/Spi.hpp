@@ -8,6 +8,8 @@
 #pragma once
 
 #include <tlm_utils/simple_initiator_socket.h>
+#include <iostream>
+#include <string>
 #include <systemc>
 #include <tlm>
 #include "mcu/BusTarget.hpp"
@@ -125,8 +127,8 @@ class Spi : public BusTarget {
    * @param trans
    * @param delay
    */
-  virtual void b_transport(tlm::tlm_generic_payload &trans,
-                           sc_core::sc_time &delay) override;
+  virtual void b_transport(tlm::tlm_generic_payload& trans,
+                           sc_core::sc_time& delay) override;
 
   /**
    * @brief reset Resets the Spi control registers to their default
@@ -134,13 +136,16 @@ class Spi : public BusTarget {
    */
   virtual void reset(void) override;
 
+  friend std::ostream& operator<<(std::ostream& os, const Spi& rhs);
+
  private:
   /* ------ Private types ------- */
   struct Fifo {       // 32-bit FIFO
     int nValidBytes;  // Number of valid bytes (up to 4)
     unsigned data;
+    const std::string name;
 
-    Fifo() : nValidBytes(0), data(0) {}
+    Fifo(std::string name_) : nValidBytes(0), data(0), name(name_) {}
 
     unsigned get(const int nbits) {
       sc_assert((nbits >= 4) && (nbits <= 16));  // hw spec
@@ -193,6 +198,15 @@ class Spi : public BusTarget {
         return 3;
       }
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const Fifo& rhs) {
+      // clang-format off
+      os << "<Fifo> " << rhs.name
+        << fmt::format(" nValidBytes={:d}, data=0x{:08x}",
+            rhs.nValidBytes, rhs.data);
+      return os;
+      // clang-format on
+    }
   };
 
   /* ------ Private variables ------ */
@@ -200,8 +214,8 @@ class Spi : public BusTarget {
   sc_core::sc_event m_enableEvent{"enableEvent"};
   bool m_enable{false};
 
-  Fifo m_txFifo;
-  Fifo m_rxFifo;
+  Fifo m_txFifo{"txFifo"};
+  Fifo m_rxFifo{"rxFifo"};
 
   /* ------ Private methods ------ */
 
@@ -217,4 +231,10 @@ class Spi : public BusTarget {
    * unimplemented features are enabled.
    */
   void checkImplemented();
+
+  /**
+   * @brief updateStatusRegister update status register flags.
+   * @param isBusy indicate if SPI unit is busy (currently transmitting).
+   */
+  void updateStatusRegister(const bool isBusy);
 };

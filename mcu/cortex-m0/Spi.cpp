@@ -6,6 +6,7 @@
  */
 
 #include <spdlog/fmt/fmt.h>
+#include <iostream>
 #include <systemc>
 #include "include/fused.h"
 #include "mcu/SpiTransactionExtension.hpp"
@@ -36,7 +37,7 @@ Spi::Spi(sc_module_name name, const unsigned startAddress,
   SC_THREAD(process);
 }
 
-void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
+void Spi::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
   // Access register file
   BusTarget::b_transport(trans, delay);
   const auto addr = trans.get_address();
@@ -63,6 +64,7 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
         break;
       case OFS_SPI_DR:  // Data register -- push tx fifo
         m_txFifo.put(8 * len, val);
+        updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_CR1) & BSY_MASK);
         m_txEvent.notify(delay);
         break;
       default:
@@ -74,6 +76,7 @@ void Spi::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
         if (len == 2) {  // 2 bytes
           Utility::unpackBytes(trans.get_data_ptr(),
                                Utility::htots(m_rxFifo.get(16)), 2);
+          updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_CR1) & BSY_MASK);
         } else {  // 1 byte
           trans.get_data_ptr()[0] = m_rxFifo.get(8);
         }
@@ -97,13 +100,14 @@ void Spi::process(void) {
   trans.set_command(tlm::TLM_WRITE_COMMAND);
   std::array<uint8_t, 2> dataOut;
   trans.set_data_ptr(&dataOut[0]);
-  auto *spiExtension = new SpiTransactionExtension();
+  auto* spiExtension = new SpiTransactionExtension();
   trans.set_extension(spiExtension);
   trans.set_address(0);  // SPI doesn't use address
 
   wait(SC_ZERO_TIME);  // Wait for start of simulation
 
   while (1) {
+    // Wait  until an SPI transaction should commence
     unsigned cr2 = m_regs.read(OFS_SPI_CR2);
     int nbits = ((cr2 & Spi::DS_MASK) >> Spi::DS_SHIFT) + 1;
     if (nbits < 4) {
@@ -125,11 +129,9 @@ void Spi::process(void) {
           pwrOn.read() && m_enable && (m_txFifo.nValidBytes >= nbytes);
     }
 
-    // Update status register
-    m_regs.setBit(OFS_SPI_SR, BSY_SHIFT);  // Set busy flag
-
     // Prepare  & send payload
-    const unsigned cr1 = m_regs.read(OFS_SPI_CR1);
+    updateStatusRegister(/*isBusy=*/true);
+    unsigned cr1 = m_regs.read(OFS_SPI_CR1);
     spiExtension->bitOrder =
         (cr1 & Spi::LSBFIRST_MASK)
             ? SpiTransactionExtension::SpiBitOrder::LSB_FIRST
@@ -137,12 +139,12 @@ void Spi::process(void) {
     auto baudRateDivider = 2u << ((cr1 & Spi::BR_MASK) >> Spi::BR_SHIFT);
     spiExtension->clkPeriod = clk->getPeriod() * baudRateDivider;
     spiExtension->polarity = (cr1 & CPOL_MASK)
-                                 ? SpiTransactionExtension::SpiPolarity::LOW
-                                 : SpiTransactionExtension::SpiPolarity::HIGH;
+                                 ? SpiTransactionExtension::SpiPolarity::HIGH
+                                 : SpiTransactionExtension::SpiPolarity::LOW;
     spiExtension->phase =
         (cr1 & CPHA_MASK)
-            ? SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE
-            : SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE;
+            ? SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE
+            : SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
     spiExtension->nDataBits = nbits;
 
     trans.set_data_length(nbytes);
@@ -155,24 +157,27 @@ void Spi::process(void) {
     }
     wait(delay);
 
-    // Receive
+    // Receive response
     m_rxFifo.put(nbits, spiExtension->response);
 
-    // Update status register
-    // RXNE: when the threshold defined by FRXTH is reached
-    // TXE: when TXFIFO level is <= half capacity
-    const int FRXTH_nbytes =
-        ((cr2 & Spi::FRXTH_MASK) >> Spi::FRXTH_SHIFT) ? 1 : 2;
-    const unsigned RXNE = m_rxFifo.nValidBytes >= FRXTH_nbytes;
-    const unsigned TXE = m_txFifo.nValidBytes <= 2;
-    m_regs.write(OFS_SPI_SR, (m_txFifo.level() << FTLVL_SHIFT) |
-                                 (m_rxFifo.level() << FRLVL_SHIFT) |
-                                 (TXE << TXE_SHIFT) | (RXNE << RXNE_SHIFT));
-
-    // Set Interrupt request
+    // Set status register and interrupt request
+    updateStatusRegister(/*isBusy=*/false);
     const bool RXNEIE = cr2 & Spi::RXNEIE_MASK;
     const bool TXEIE = cr2 & Spi::TXEIE_MASK;
   }
+}
+
+void Spi::updateStatusRegister(const bool isBusy) {
+  // RXNE: when the threshold defined by FRXTH is reached
+  // TXE: when TXFIFO level is <= half capacity
+  auto cr2 = m_regs.read(OFS_SPI_CR2);
+  int FRXTH_nbytes = ((cr2 & Spi::FRXTH_MASK) >> Spi::FRXTH_SHIFT) ? 1 : 2;
+  unsigned RXNE = m_rxFifo.nValidBytes >= FRXTH_nbytes;
+  unsigned TXE = m_txFifo.nValidBytes > 2;
+  m_regs.write(OFS_SPI_SR, (m_txFifo.level() << FTLVL_SHIFT) |
+                               (m_rxFifo.level() << FRLVL_SHIFT) |
+                               (TXE << TXE_SHIFT) | (RXNE << RXNE_SHIFT) |
+                               (isBusy << Spi::BSY_SHIFT));
 }
 
 void Spi::checkImplemented() {
@@ -207,4 +212,24 @@ void Spi::checkImplemented() {
         fmt::format("RXONLY set, but receive-only mode not implemented.")
             .c_str());
   }
+}
+
+std::ostream& operator<<(std::ostream& os, const Spi& rhs) {
+  // clang-format off
+  os << "Spi: " << rhs.name()
+    << "\n\tclock period " << rhs.clk->getPeriod()
+    << "\n\tenabled: " << rhs.m_enable
+    << "\n\tirq: " << rhs.irq.read()
+    << "\n\t" << rhs.m_txFifo
+    << "\n\t" << rhs.m_rxFifo
+    << fmt::format("\n\tCR1\t 0x{:04x}", rhs.m_regs.read(OFS_SPI_CR1))
+    << fmt::format("\n\tCR2\t 0x{:04x}", rhs.m_regs.read(OFS_SPI_CR2))
+    << fmt::format("\n\tSR\t 0x{:04x}", rhs.m_regs.read(OFS_SPI_SR))
+    << fmt::format("\n\tDR\t 0xXXXX")
+    << fmt::format("\n\tCRCPR\t 0x{:04x}", rhs.m_regs.read(OFS_SPI_CRCPR))
+    << fmt::format("\n\tRXCRCR\t 0x{:04x}", rhs.m_regs.read(OFS_SPI_RXCRCR))
+    << fmt::format("\n\tTXCRCR\t 0x{:04x}", rhs.m_regs.read(OFS_SPI_TXCRCR))
+    << "\n";
+  return os;
+  // clang-format on
 }

@@ -106,7 +106,7 @@ struct SpiTransactionExtension
        << (rhs.bitOrder == SpiBitOrder::LSB_FIRST ? "LSB_FIRST" : "MSB_FIRST")
        << "\n";
     os << "\tresponse: " << fmt::format("0x{:08x}", rhs.response) << "\n";
-    os << "\tTransfer time: " << rhs.transferTime().to_seconds() << "\n";
+    os << "\tTransfer time: " << rhs.transferTime().to_string() << "\n";
     return os;
   }
 };
