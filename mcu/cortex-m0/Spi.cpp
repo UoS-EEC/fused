@@ -236,9 +236,13 @@ void Spi::checkImplemented() {
 }
 
 void Spi::irqControl() {
-  if (m_setIrq == true) {
+  if (m_setIrq && (!irq.read())) {
+    spdlog::info("{:s}: @{:s} interrupt request", this->name(),
+                 sc_time_stamp().to_string());
     irq.write(true);
   } else if (returning_exception.read() == SPI1_EXCEPT_ID) {
+    spdlog::info("{:s}: @{:s} interrupt request cleared.", this->name(),
+                 sc_time_stamp().to_string());
     irq.write(false);
   }
   m_setIrq = false;
