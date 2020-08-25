@@ -49,6 +49,8 @@ extern "C" {
 /* ------ SPI ------ */
 #define SPI1_BASE 0x40013000
 #define SPI2_BASE 0x40003800
+#define SPI1_EXCEPT_ID 25
+#define SPI2_EXCEPT_ID 26
 #define SPI1 *((volatile unsigned int *)SPI1_BASE)
 #define SPI2 *((volatile unsigned int *)SPI2_BASE)
 #define OFS_SPI_CR1 0x00

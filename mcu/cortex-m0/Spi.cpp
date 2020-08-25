@@ -34,6 +34,10 @@ Spi::Spi(sc_module_name name, const unsigned startAddress,
   SC_METHOD(reset);
   sensitive << pwrOn;
 
+  SC_METHOD(irqControl);
+  sensitive << returning_exception << m_updateIrqEvent;
+  dont_initialize();
+
   SC_THREAD(process);
 }
 
@@ -64,7 +68,8 @@ void Spi::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
         break;
       case OFS_SPI_DR:  // Data register -- push tx fifo
         m_txFifo.put(8 * len, val);
-        updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_CR1) & BSY_MASK);
+        updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_SR) &
+                             Spi::BSY_MASK);
         m_txEvent.notify(delay);
         break;
       default:
@@ -76,7 +81,8 @@ void Spi::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
         if (len == 2) {  // 2 bytes
           Utility::unpackBytes(trans.get_data_ptr(),
                                Utility::htots(m_rxFifo.get(16)), 2);
-          updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_CR1) & BSY_MASK);
+          updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_SR) &
+                               Spi::BSY_MASK);
         } else {  // 1 byte
           trans.get_data_ptr()[0] = m_rxFifo.get(8);
         }
@@ -88,10 +94,17 @@ void Spi::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
 }
 
 void Spi::reset(void) {
-  if (pwrOn.read()) {  // Posedge of pwrOn
-    // Reset register file
-    m_regs.reset();
-  }
+  // Reset volatile state
+  m_regs.reset();
+  m_enable = false;
+  m_setIrq = false;
+  m_txFifo.reset();
+  m_txFifo.reset();
+
+  // Cancel pending events
+  m_updateIrqEvent.cancel();
+  m_txEvent.cancel();
+  m_enableEvent.cancel();
 }
 
 void Spi::process(void) {
@@ -107,31 +120,26 @@ void Spi::process(void) {
   wait(SC_ZERO_TIME);  // Wait for start of simulation
 
   while (1) {
-    // Wait  until an SPI transaction should commence
-    unsigned cr2 = m_regs.read(OFS_SPI_CR2);
-    int nbits = ((cr2 & Spi::DS_MASK) >> Spi::DS_SHIFT) + 1;
-    if (nbits < 4) {
-      nbits = 8;
-    }
-    int nbytes = (nbits + 7) / 8;
-    bool readyToSend =
-        pwrOn.read() && m_enable && (m_txFifo.nValidBytes >= nbytes);
-
-    while (!readyToSend) {
-      wait(m_txEvent | m_enableEvent | pwrOn.posedge_event());
-      cr2 = m_regs.read(OFS_SPI_CR2);
-      nbits = ((cr2 & Spi::DS_MASK) >> Spi::DS_SHIFT) + 1;
+    /// Utility to check for transmit condition
+    auto readyToTransmit = [=]() -> bool {
+      unsigned cr2 = m_regs.read(OFS_SPI_CR2);
+      int nbits = ((cr2 & Spi::DS_MASK) >> Spi::DS_SHIFT) + 1;
       if (nbits < 4) {
         nbits = 8;
       }
-      nbytes = (nbits + 7) / 8;
-      readyToSend =
-          pwrOn.read() && m_enable && (m_txFifo.nValidBytes >= nbytes);
+      int nbytes = (nbits + 7) / 8;
+      return pwrOn.read() && m_enable && (m_txFifo.nValidBytes >= nbytes);
+    };
+
+    // Wait  until an SPI transaction should commence
+    while (!readyToTransmit()) {
+      wait(m_txEvent | m_enableEvent | pwrOn.posedge_event());
     }
 
     // Prepare  & send payload
     updateStatusRegister(/*isBusy=*/true);
     unsigned cr1 = m_regs.read(OFS_SPI_CR1);
+    unsigned cr2 = m_regs.read(OFS_SPI_CR2);
     spiExtension->bitOrder =
         (cr1 & Spi::LSBFIRST_MASK)
             ? SpiTransactionExtension::SpiBitOrder::LSB_FIRST
@@ -145,6 +153,11 @@ void Spi::process(void) {
         (cr1 & CPHA_MASK)
             ? SpiTransactionExtension::SpiPhase::CAPTURE_SECOND_EDGE
             : SpiTransactionExtension::SpiPhase::CAPTURE_FIRST_EDGE;
+    int nbits = ((cr2 & Spi::DS_MASK) >> Spi::DS_SHIFT) + 1;
+    if (nbits < 4) {
+      nbits = 8;
+    }
+    int nbytes = (nbits + 7) / 8;
     spiExtension->nDataBits = nbits;
 
     trans.set_data_length(nbytes);
@@ -160,10 +173,17 @@ void Spi::process(void) {
     // Receive response
     m_rxFifo.put(nbits, spiExtension->response);
 
-    // Set status register and interrupt request
+    // Update status register and interrupt request
     updateStatusRegister(/*isBusy=*/false);
-    const bool RXNEIE = cr2 & Spi::RXNEIE_MASK;
-    const bool TXEIE = cr2 & Spi::TXEIE_MASK;
+    auto sr = m_regs.read(OFS_SPI_SR);
+    bool RXIRQ = (cr2 & Spi::RXNEIE_MASK) && (sr & Spi::RXNE_MASK);
+    bool TXIRQ = (cr2 & Spi::TXEIE_MASK) && (sr & Spi::TXE_MASK);
+
+    if (RXIRQ | TXIRQ) {
+      // Tick Interrupt enabled
+      m_setIrq = true;
+      m_updateIrqEvent.notify(SC_ZERO_TIME);
+    }
   }
 }
 
@@ -173,11 +193,12 @@ void Spi::updateStatusRegister(const bool isBusy) {
   auto cr2 = m_regs.read(OFS_SPI_CR2);
   int FRXTH_nbytes = ((cr2 & Spi::FRXTH_MASK) >> Spi::FRXTH_SHIFT) ? 1 : 2;
   unsigned RXNE = m_rxFifo.nValidBytes >= FRXTH_nbytes;
-  unsigned TXE = m_txFifo.nValidBytes > 2;
-  m_regs.write(OFS_SPI_SR, (m_txFifo.level() << FTLVL_SHIFT) |
-                               (m_rxFifo.level() << FRLVL_SHIFT) |
-                               (TXE << TXE_SHIFT) | (RXNE << RXNE_SHIFT) |
-                               (isBusy << Spi::BSY_SHIFT));
+  unsigned TXE = m_txFifo.nValidBytes <= 2;
+  unsigned newSr = (m_txFifo.level() << FTLVL_SHIFT) |
+                   (m_rxFifo.level() << FRLVL_SHIFT) | (TXE << TXE_SHIFT) |
+                   (RXNE << RXNE_SHIFT) |
+                   (static_cast<unsigned>(isBusy) << Spi::BSY_SHIFT);
+  m_regs.write(OFS_SPI_SR, newSr);
 }
 
 void Spi::checkImplemented() {
@@ -212,6 +233,15 @@ void Spi::checkImplemented() {
         fmt::format("RXONLY set, but receive-only mode not implemented.")
             .c_str());
   }
+}
+
+void Spi::irqControl() {
+  if (m_setIrq == true) {
+    irq.write(true);
+  } else if (returning_exception.read() == SPI1_EXCEPT_ID) {
+    irq.write(false);
+  }
+  m_setIrq = false;
 }
 
 std::ostream& operator<<(std::ostream& os, const Spi& rhs) {

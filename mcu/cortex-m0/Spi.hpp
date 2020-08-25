@@ -147,6 +147,11 @@ class Spi : public BusTarget {
 
     Fifo(std::string name_) : nValidBytes(0), data(0), name(name_) {}
 
+    void reset() {
+      nValidBytes = 0;
+      data = 0;
+    }
+
     unsigned get(const int nbits) {
       sc_assert((nbits >= 4) && (nbits <= 16));  // hw spec
       const int nbytes = ((nbits - 1) / 8) + 1;
@@ -212,7 +217,9 @@ class Spi : public BusTarget {
   /* ------ Private variables ------ */
   sc_core::sc_event m_txEvent{"txEvent"};
   sc_core::sc_event m_enableEvent{"enableEvent"};
+  sc_core::sc_event m_updateIrqEvent{"updateIrqEvent"};
   bool m_enable{false};
+  bool m_setIrq{false};  // Used to asynch control irq flag
 
   Fifo m_txFifo{"txFifo"};
   Fifo m_rxFifo{"rxFifo"};
@@ -237,4 +244,9 @@ class Spi : public BusTarget {
    * @param isBusy indicate if SPI unit is busy (currently transmitting).
    */
   void updateStatusRegister(const bool isBusy);
+
+  /**
+   * @brief irqControl SC_METHOD to control the interrupt request line.
+   */
+  void irqControl();
 };
