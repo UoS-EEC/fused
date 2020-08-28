@@ -30,8 +30,8 @@ class Spi : public BusTarget {
   tlm_utils::simple_initiator_socket<Spi> spiSocket{"spiSocket"};
   sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};
   sc_core::sc_out<bool> irq{"irq"};  //! Interrupt request output
-  sc_core::sc_in<int> returning_exception{
-      "returning_exception"};  //! Signals returning exceptions
+  sc_core::sc_in<int> active_exception{
+      "active_exception"};  //! Signals exception taken by cpu
 
   /* ------ Register bits ------ */
   // CR1 bits

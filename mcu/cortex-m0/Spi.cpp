@@ -35,7 +35,7 @@ Spi::Spi(sc_module_name name, const unsigned startAddress,
   sensitive << pwrOn;
 
   SC_METHOD(irqControl);
-  sensitive << returning_exception << m_updateIrqEvent;
+  sensitive << active_exception << m_updateIrqEvent;
   dont_initialize();
 
   SC_THREAD(process);
@@ -48,15 +48,19 @@ void Spi::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
   const auto val = m_regs.read(addr);
   const auto len = trans.get_data_length();
 
-  if (len > 2) {
-    SC_REPORT_FATAL(this->name(),
-                    "The SPI module only accepts 8-bit and 16-but accesses.");
+  if ((len > 2) && ((addr & (~3u)) == OFS_SPI_DR)) {
+    SC_REPORT_FATAL(
+        this->name(),
+        fmt::format("{:}:b_transport DR only accepts 8-bit and 16-bit "
+                    "accesses, but an {:d}-bit access was attempted.",
+                    this->name(), 8 * len)
+            .c_str());
   }
 
   // Handle serial communication tasks
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
-    switch (addr) {
-      case OFS_SPI_CR1:  // Control Register 1
+    switch (addr & (~3u)) {  // switch on word-aligned address
+      case OFS_SPI_CR1:      // Control Register 1
         if (!m_enable && (val & Spi::SPE_MASK)) {
           m_enableEvent.notify(delay);
         }
@@ -76,16 +80,16 @@ void Spi::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
         break;
     }
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
-    switch (addr) {
-      case OFS_SPI_DR:   // Data register -- pop rx fifo
-        if (len == 2) {  // 2 bytes
+    switch (addr & (~3u)) {  // switch on word-aligned address
+      case OFS_SPI_DR:       // Data register -- pop rx fifo
+        if (len == 2) {      // 2 bytes
           Utility::unpackBytes(trans.get_data_ptr(),
                                Utility::htots(m_rxFifo.get(16)), 2);
-          updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_SR) &
-                               Spi::BSY_MASK);
         } else {  // 1 byte
           trans.get_data_ptr()[0] = m_rxFifo.get(8);
         }
+        updateStatusRegister(/*isBusy=*/m_regs.read(OFS_SPI_SR) &
+                             Spi::BSY_MASK);
         break;
       default:
         break;
@@ -239,8 +243,9 @@ void Spi::irqControl() {
   if (m_setIrq && (!irq.read())) {
     spdlog::info("{:s}: @{:s} interrupt request", this->name(),
                  sc_time_stamp().to_string());
+    std::cout << *this << std::endl;
     irq.write(true);
-  } else if (returning_exception.read() == SPI1_EXCEPT_ID) {
+  } else if ((active_exception.read() - 16) == SPI1_EXCEPT_ID) {
     spdlog::info("{:s}: @{:s} interrupt request cleared.", this->name(),
                  sc_time_stamp().to_string());
     irq.write(false);

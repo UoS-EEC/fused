@@ -27,6 +27,11 @@ void SpiDevice::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     writeSlaveIn(trans.get_data_ptr()[0]);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
     m_transactionEvent.notify(delay);
+  } else {
+    spdlog::warn(
+        "{:}:b_transport Transaction while device not active (enabled()={}, "
+        "nReset={})",
+        this->name(), enabled(), nReset.read());
   }
 }
 

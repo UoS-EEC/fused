@@ -27,9 +27,11 @@ using namespace sc_core;
 
 Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
     : Microcontroller(nm), m_cpu("CPU", m_cycleTime), bus("bus") {
-  for (unsigned i = 0; i < nvic_irq.size(); i++) {
-    nvic_irq[i].write(false);
-  }
+  /*
+for (unsigned i = 0; i < nvic_irq.size(); i++) {
+nvic_irq[i].write(false);
+}
+*/
   /* ------ Memories ------ */
   invm = new NonvolatileMemory("invm", ROM_START, ROM_START + ROM_SIZE - 1,
                                m_cycleTime);
@@ -45,15 +47,17 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   nvic = new Nvic("nvic", m_cycleTime);
   mon = new SimpleMonitor("mon", m_cycleTime);
   outputPort = new OutputPort("outputPort", m_cycleTime);
+  spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10, m_cycleTime);
 
-  slaves.push_back(sram);
-  slaves.push_back(mon);
-  slaves.push_back(sysTick);
-  slaves.push_back(nvic);
-  slaves.push_back(scb);
-  slaves.push_back(outputPort);
-  slaves.push_back(invm);
   slaves.push_back(dnvm);
+  slaves.push_back(invm);
+  slaves.push_back(mon);
+  slaves.push_back(nvic);
+  slaves.push_back(outputPort);
+  slaves.push_back(scb);
+  slaves.push_back(spi);
+  slaves.push_back(sram);
+  slaves.push_back(sysTick);
 
   /* ------------------------ */
 
@@ -70,6 +74,7 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   // Clocks
   sysTick->clk.bind(masterClock);
   nvic->clk.bind(masterClock);
+  spi->clk.bind(peripheralClock);
 
   // Interrupts
   m_cpu.activeException.bind(cpu_active_exception);
@@ -79,6 +84,10 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
 
   sysTick->irq.bind(systick_irq);
   sysTick->returning_exception.bind(cpu_returning_exception);
+
+  spi->irq.bind(nvic_irq[SPI1_EXCEPT_ID - 16]);
+  spi->active_exception.bind(cpu_active_exception);
+
   nvic->pending.bind(nvic_pending);
   nvic->returning.bind(cpu_returning_exception);
   nvic->active.bind(cpu_active_exception);

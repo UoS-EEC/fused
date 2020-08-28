@@ -107,7 +107,7 @@ int sc_main(int argc, char *argv[]) {
   sc_signal<double> totMcuConsumption{"totMcuConsumption", 0.0};
   sc_signal<double> vcc{"vcc", 0.0};
   sc_signal<bool> nReset{"nReset"};
-  sc_signal<bool> chipSelectDummySpi{"chipSelectDummySpi"};
+  sc_signal<bool> chipSelectDummySpi{"chipSelectDummySpi", false};
 
   // Instantiate microcontroller
 #ifdef CM0_ARCH
@@ -125,6 +125,12 @@ int sc_main(int argc, char *argv[]) {
   for (unsigned i = 0; i < mcu->externalIrq.size(); i++) {
     mcu->externalIrq[i].bind(externalIrq[i]);
   }
+
+  // Instantiate off-chip serial devices
+  DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
+  dummySpiDevice->nReset.bind(nReset);
+  dummySpiDevice->chipSelect.bind(chipSelectDummySpi);
+  dummySpiDevice->tSocket.bind(mcu->spi->spiSocket);
 #elif defined(MSP430_ARCH)
   Msp430Microcontroller *mcu = new Msp430Microcontroller("mcu");
   mcu->pmm->pwrGood.bind(nReset);
@@ -220,6 +226,14 @@ int sc_main(int argc, char *argv[]) {
   for (int i = 0; i < mcuOutputPort.size(); ++i) {
     sca_trace(vcdfile, mcuOutputPort[i], fmt::format("P{:02d}", i));
   }
+  for (int i = 0; i < mcu->nvic->irq.size(); ++i) {
+    sca_trace(vcdfile, mcu->nvic->irq[i], fmt::format("NVIC.irqIn[{:02d}]", i));
+  }
+  sca_trace(vcdfile, mcu->nvic_pending, "NVIC.pendingIrq");
+  sca_trace(vcdfile, mcu->cpu_active_exception, "CPU.ActiveException");
+  sca_trace(vcdfile, mcu->cpu_returning_exception, "CPU.ReturningException");
+  sca_trace(vcdfile, mcu->spi->irq, "SPI.irq");
+  sca_trace(vcdfile, mcu->systick_irq, "SysTick.irq");
 #endif
 
   // Creates a csv-like file

@@ -39,7 +39,7 @@ class SpiDevice : public sc_core::sc_module {
   //! Constructor
   explicit SpiDevice(
       sc_core::sc_module_name nm,
-      ChipSelectPolarity polarity = ChipSelectPolarity::ActiveHigh);
+      ChipSelectPolarity polarity = ChipSelectPolarity::ActiveLow);
 
   /**
    * @brief b_transport TLM blocking transaction method.

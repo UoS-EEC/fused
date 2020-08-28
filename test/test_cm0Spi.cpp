@@ -30,7 +30,7 @@ SC_MODULE(dut) {
   sc_signal<bool> pwrGood{"pwrGood"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   tlm_utils::simple_target_socket<dut> spiSocket{"spiSocket"};
-  sc_signal<int> returning_exception{"returning_exception", -1};
+  sc_signal<int> active_exception{"active_exception", -1};
   sc_signal<bool> irq{"irq"};
   ClockSourceChannel spiclk{"spiclk", sc_time(1, SC_US)};
 
@@ -40,7 +40,7 @@ SC_MODULE(dut) {
     m_dut.spiSocket.bind(spiSocket);
     m_dut.clk.bind(spiclk);
     m_dut.irq.bind(irq);
-    m_dut.returning_exception.bind(returning_exception);
+    m_dut.active_exception.bind(active_exception);
     spiSocket.register_b_transport(this, &dut::b_transport);
   }
 
@@ -188,10 +188,10 @@ SC_MODULE(tester) {
     sc_assert(test.irq.read() == 1);
 
     // Clear interrupt request
-    test.returning_exception.write(SPI1_EXCEPT_ID);
+    test.active_exception.write(SPI1_EXCEPT_ID + 16);
     wait(sc_time(1, SC_US));
     sc_assert(test.irq.read() == 0);
-    test.returning_exception.write(-1);
+    test.active_exception.write(-1);
 
     spdlog::info("SUCCESS");
 
@@ -259,10 +259,10 @@ SC_MODULE(tester) {
     sc_assert(test.irq.read() == 1);
 
     // Clear interrupt request
-    test.returning_exception.write(SPI1_EXCEPT_ID);
+    test.active_exception.write(SPI1_EXCEPT_ID + 16);
     wait(sc_time(1, SC_US));
     sc_assert(test.irq.read() == 0);
-    test.returning_exception.write(-1);
+    test.active_exception.write(-1);
 
     spdlog::info("SUCCESS");
 

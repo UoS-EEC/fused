@@ -26,6 +26,7 @@
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "mcu/cortex-m0/OutputPort.hpp"
+#include "mcu/cortex-m0/Spi.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
 
 class Cm0Microcontroller : public Microcontroller {
@@ -181,6 +182,7 @@ class Cm0Microcontroller : public Microcontroller {
   SysTick *sysTick;         //! SysTick Timer
   Nvic *nvic;               //! NVIC interrupt controller
   OutputPort *outputPort;   //! Basic output "IO" port
+  Spi *spi;                 //! SPI peripheral
 
   /* ------- CPU & bus ------ */
   CortexM0Cpu m_cpu;
