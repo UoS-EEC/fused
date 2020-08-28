@@ -110,21 +110,34 @@ void (*gprWriteHooks[16])(void) = {
 // load 16-bit instruction
 char simLoadInsn(u32 address, u16 *value) {
   uint8_t tmp[2];
-  read_cb(address, tmp, 2);
+  read_cb(address & (~1u), tmp, 2);  // Mask thumb-bit & read
   *value = pack16(tmp);
   return 0;
 }
 
-// Load 32-bit data
-char simLoadData(u32 address, u32 *value) {
+char simLoadWord(u32 address, u32 *value) {
   uint8_t tmp[4];
   read_cb(address, tmp, 4);
   *value = pack32(tmp);
   return 0;
 }
 
-char simStoreData(u32 address, u32 value) {
-  if ((address & 0x3) != 0) // Thumb-mode requires LSB = 1
+char simLoadHalfWord(u32 address, u32 *value) {
+  uint8_t tmp[2];
+  read_cb(address, tmp, 2);
+  *value = pack16(tmp);
+  return 0;
+}
+
+char simLoadByte(u32 address, u32 *value) {
+  uint8_t tmp[1];
+  read_cb(address, tmp, 1);
+  *value = tmp[0];
+  return 0;
+}
+
+char simStoreWord(u32 address, u32 value) {
+  if ((address & 0x3) != 0)  // Thumb-mode requires LSB = 1
   {
     fprintf(stderr, "Unalinged data memory write: 0x%8.8X\n", address);
     sim_exit(1);
@@ -134,6 +147,24 @@ char simStoreData(u32 address, u32 value) {
   uint8_t data[4];
   unpack32(data, value);
   write_cb(address, data, 4);
+  return 0;
+}
+
+char simStoreHalfWord(u32 address, u16 value) {
+  if ((address & 0x1) != 0) {
+    fprintf(stderr, "Unalinged half word write: 0x%8.8X\n", address);
+    sim_exit(1);
+  }
+
+  // Unpack data
+  uint8_t data[2];
+  unpack16(data, value);
+  write_cb(address, data, 2);
+  return 0;
+}
+
+char simStoreByte(u32 address, u8 value) {
+  write_cb(address, &value, 1);
   return 0;
 }
 

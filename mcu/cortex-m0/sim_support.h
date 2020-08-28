@@ -45,8 +45,12 @@ extern void sim_exit(int);  // All sim ends lead through here
 char simLoadInsn(u32 address,
                  u16 *value);  // All memory accesses once simulation starts
                                // should be through these interfaces
-char simLoadData(u32 address, u32 *value);
-char simStoreData(u32 address, u32 value);
+char simLoadWord(u32 address, u32 *value);
+char simLoadHalfWord(u32 address, u32 *value);
+char simLoadByte(u32 address, u32 *value);
+char simStoreWord(u32 address, u32 value);
+char simStoreHalfWord(u32 address, u16 value);
+char simStoreByte(u32 address, u8 value);
 
 // Hooks to run code every time a GPR is accessed
 #define HOOK_GPR_ACCESSES 0

@@ -98,7 +98,7 @@ void do_cflag(u32 a, u32 b, u32 carry);
 #define cpu_mode_handler() cpu.mode = (0x0)
 #define cpu_mode_thread() cpu.mode = (0x1)
 #define cpu_get_ipsr() (cpu.ipsr)
-#define cpu_set_ipsr(x) cpu.ipsr = (x & 0x1F)
+#define cpu_set_ipsr(x) cpu.ipsr = (x & 0x3F)
 #define CPU_STACK_MAIN 0
 #define CPU_STACK_PROCESS 1
 #define cpu_stack_is_main() ((cpu.control & 0x2) == 0x0)

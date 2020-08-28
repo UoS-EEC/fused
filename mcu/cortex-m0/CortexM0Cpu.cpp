@@ -67,8 +67,7 @@ void CortexM0Cpu::process() {
       uint16_t insn;
 
       if ((cpu_get_pc() & 0x1) == 0) {
-        spdlog::error("PC moved out of thumb mode: 0x{:08x}",
-                      (cpu_get_pc() - 0x4));
+        spdlog::error("PC moved out of thumb mode: 0x{:08x}", cpu_get_pc());
         SC_REPORT_FATAL(this->name(), "PC moved out of thumb mode");
       }
 
@@ -312,6 +311,7 @@ void CortexM0Cpu::exceptionReturn(const uint32_t EXC_RETURN) {
   cpu_set_apsr(cpu_get_apsr() & 0xF0000000);  // Clear invalid bits
   cpu_set_ipsr(0);                            // Ignore epsr
   takenBranch = 1;
+  activeException.write(0);
 
   // Check correct state
   for (int i = 0; i < m_regsAtExceptEnter.size(); i++) {
@@ -326,12 +326,12 @@ void CortexM0Cpu::exceptionReturn(const uint32_t EXC_RETURN) {
 
 void CortexM0Cpu::read_cb(const uint32_t addr, uint8_t *const data,
                           const size_t bytelen) {
-  m_ctx->readMem(addr & (~1u), data, bytelen);
+  m_ctx->readMem(addr, data, bytelen);
 }
 
 void CortexM0Cpu::write_cb(const uint32_t addr, uint8_t *const data,
                            const size_t bytelen) {
-  m_ctx->writeMem(addr & (~1u), data, bytelen);
+  m_ctx->writeMem(addr, data, bytelen);
 }
 
 void CortexM0Cpu::consume_cycles_cb(const size_t n) {
