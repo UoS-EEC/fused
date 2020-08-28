@@ -26,10 +26,9 @@ extern "C" {
 
 using namespace sc_core;
 
-Msp430Cpu::Msp430Cpu(sc_module_name name, sc_time cycleTime, bool logOperation,
-                     bool logInstructions)
-    : m_cycleTime(cycleTime),
-      sc_module(name),
+Msp430Cpu::Msp430Cpu(const sc_module_name name, const bool logOperation,
+                     const bool logInstructions)
+    : sc_module(name),
       m_doLogOperation(logOperation),
       m_doLogInstructions(logInstructions),
       m_elog(EventLog::getInstance()) {
@@ -102,7 +101,7 @@ void Msp430Cpu::process() {
           EventLog::getInstance().reportState(this->name(), "sleep");
           m_sleeping = true;
         }
-        wait(m_cycleTime);
+        wait(mclk->getPeriod());
       } else {
         // Normal mode -- execute instructions
         if (m_sleeping) {
@@ -184,7 +183,7 @@ void Msp430Cpu::processInterrupt() {
     // IRQ flag (source) resets if the selected peripheral's IRA is
     // connected
     ira.write(true);
-    wait(2 * m_cycleTime);
+    wait(2 * mclk->getPeriod());
     ira.write(false);
 
     // Clear all bits of SR except SCG0

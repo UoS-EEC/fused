@@ -10,18 +10,20 @@
 #include <iostream>
 #include <systemc>
 #include <tlm>
+#include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
 #include "ps/EventLog.hpp"
 
 class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
  public:
   /* ------ Ports ------ */
+  sc_core::sc_port<ClockSourceConsumerIf> systemClk{"systemClk"};  //! Bus clock
   tlm::tlm_target_socket<> tSocket;    //! TLM socket
   sc_core::sc_in<bool> pwrOn{"pwrOn"}; /*! Indicate if power to this
                                   target is on */
   /* ------ Public methods ------ */
   BusTarget(const sc_core::sc_module_name name, const unsigned startAddress,
-            const unsigned endAddress, const sc_core::sc_time delay);
+            const unsigned endAddress);
 
   /**
    * @brief b_transport transaction.
@@ -95,7 +97,6 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
  protected:
   const unsigned int m_startAddress;
   const unsigned int m_endAddress;
-  sc_core::sc_time m_delay;
   RegisterFile m_regs;
   EventLog::eventId m_readEventId;
   EventLog::eventId m_writeEventId;

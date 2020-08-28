@@ -172,7 +172,6 @@ class Cm0Microcontroller : public Microcontroller {
 
  public:
   /* ------ Constants ------ */
-  const sc_core::sc_time m_cycleTime{125, sc_core::SC_NS};
 
   /* ------ Peripherals ------ */
   DummyPeripheral *scb;     //! System Control Block is not implemented

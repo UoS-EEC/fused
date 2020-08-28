@@ -66,7 +66,7 @@ class Cache : public BusTarget, public tlm::tlm_bw_transport_if<> {
    * @brief Cache constructor
    */
   Cache(const sc_core::sc_module_name name, const unsigned startAddress,
-        const unsigned endAddress, const sc_core::sc_time delay);
+        const unsigned endAddress);
 
   /**
    * @brief b_transport Blocking reads and writes. Overridden to include
@@ -79,7 +79,6 @@ class Cache : public BusTarget, public tlm::tlm_bw_transport_if<> {
   /**
    * @brief transport_dbg forward directly to memory
    * @param trans
-   * @param delay
    */
   unsigned int transport_dbg(tlm::tlm_generic_payload &trans) override;
 

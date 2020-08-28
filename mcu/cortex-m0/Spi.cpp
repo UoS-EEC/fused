@@ -18,8 +18,8 @@
 using namespace sc_core;
 
 Spi::Spi(sc_module_name name, const unsigned startAddress,
-         const unsigned endAddress, const sc_time delay)
-    : BusTarget(name, startAddress, endAddress, delay) {
+         const unsigned endAddress)
+    : BusTarget(name, startAddress, endAddress) {
   // Register events
 
   // Initialise register file

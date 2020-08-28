@@ -32,6 +32,7 @@ SC_MODULE(dut) {
   ClockSourceChannel aclk_sig{"aclk_sig"};
   ClockSourceChannel vloclk_sig{"vloclk_sig"};
   ClockSourceChannel modclk_sig{"modclk_sig"};
+  ClockSourceChannel sysClk{"sysClk", sc_time(1, SC_NS)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
@@ -41,9 +42,10 @@ SC_MODULE(dut) {
     m_dut.aclk.bind(aclk_sig);
     m_dut.vloclk.bind(vloclk_sig);
     m_dut.modclk.bind(modclk_sig);
+    m_dut.systemClk.bind(sysClk);
   }
 
-  ClockSystem m_dut{"dut", 0, sc_time(1, SC_NS)};
+  ClockSystem m_dut{"dut", 0};
 };
 
 SC_MODULE(tester) {

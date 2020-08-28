@@ -32,26 +32,27 @@ SC_MODULE(dut) {
   sc_signal<bool> irq{"irq"};
   sc_signal<bool> ira{"ira"};
   sc_signal<bool> stallCpu{"stallCpu"};
+  ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
   std::array<sc_signal<bool>, 30> trigger;
-  GenericMemory mem{"mem", 0, 0xFFFF, sc_time(1, SC_US)};  //! 65k memory
+  GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
-  ClockSourceChannel clk{"clk", sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(nreset);
     mem.pwrOn.bind(nreset);
+    mem.systemClk.bind(mclk);
     m_dut.tSocket.bind(iSocket);
     mem.tSocket.bind(m_dut.iSocket);
-    m_dut.clk.bind(clk);
     m_dut.irq.bind(irq);
     m_dut.ira.bind(ira);
+    m_dut.systemClk.bind(mclk);
     m_dut.stallCpu.bind(stallCpu);
     for (auto i = 0; i < trigger.size(); i++) {
       m_dut.trigger[i].bind(trigger[i]);
     }
   }
 
-  Dma m_dut{"dut", sc_time(1, SC_NS)};
+  Dma m_dut{"dut"};
 };
 
 SC_MODULE(tester) {
@@ -86,11 +87,11 @@ SC_MODULE(tester) {
     for (auto i = 0; i < 32; i++) {
       // std::cout << *test.m_dut.m_channels[0] << std::endl;
       test.trigger[0].write(true);
-      wait(1 * test.clk.getPeriod());
+      wait(1 * test.mclk.getPeriod());
       sc_assert(test.m_dut.m_channels[0]->enable);
       sc_assert(test.stallCpu.read());
       test.trigger[0].write(false);
-      wait(4 * test.clk.getPeriod());
+      wait(4 * test.mclk.getPeriod());
     }
     // std::cout << *test.m_dut.m_channels[0] << std::endl;
 
@@ -103,7 +104,7 @@ SC_MODULE(tester) {
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
     sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
-    wait(test.clk.getPeriod());
+    wait(test.mclk.getPeriod());
     sc_assert(read16(OFS_DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());
@@ -126,17 +127,17 @@ SC_MODULE(tester) {
                              DMADSTBYTE__WORD | DMASRCBYTE__WORD |
                              DMALEVEL__EDGE | DMAEN_1 | DMAIE);
     // Trigger
-    wait(test.clk.getPeriod());
+    wait(test.mclk.getPeriod());
     test.trigger[0].write(true);
-    wait(test.clk.getPeriod());
+    wait(test.mclk.getPeriod());
     test.trigger[0].write(false);
     for (auto i = 0; i < 32; i++) {
       // std::cout << *test.m_dut.m_channels[0] << std::endl;
       sc_assert(test.m_dut.m_channels[0]->enable);
       sc_assert(test.stallCpu.read());
-      wait(2 * test.clk.getPeriod());
+      wait(2 * test.mclk.getPeriod());
     }
-    wait(test.clk.getPeriod());
+    wait(test.mclk.getPeriod());
     // std::cout << *test.m_dut.m_channels[0] << std::endl;
     sc_assert(!test.m_dut.m_channels[0]->enable);
     sc_assert(!test.stallCpu.read());
@@ -145,7 +146,7 @@ SC_MODULE(tester) {
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
     sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
-    wait(test.clk.getPeriod());
+    wait(test.mclk.getPeriod());
     sc_assert(read16(OFS_DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());
@@ -177,7 +178,7 @@ SC_MODULE(tester) {
       write16(OFS_DMA0CTL, ctrl | DMAREQ);
       sc_assert(test.m_dut.m_channels[0]->enable);
       sc_assert(test.stallCpu.read());
-      wait(3 * test.clk.getPeriod());
+      wait(3 * test.mclk.getPeriod());
     }
     std::cout << *test.m_dut.m_channels[0] << std::endl;
 
@@ -190,7 +191,7 @@ SC_MODULE(tester) {
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
     sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
-    wait(test.clk.getPeriod());
+    wait(test.mclk.getPeriod());
     sc_assert(read16(OFS_DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());

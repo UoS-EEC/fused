@@ -26,8 +26,7 @@ class NonvolatileMemory : public GenericMemory {
    * @brief NonvolatileMemory constructor
    */
   explicit NonvolatileMemory(sc_core::sc_module_name name,
-                             unsigned startAddress, unsigned endAddress,
-                             sc_core::sc_time delay);
+                             unsigned startAddress, unsigned endAddress);
 
   /**
    * @brief b_transport Blocking reads and writes. Overridden to set delay

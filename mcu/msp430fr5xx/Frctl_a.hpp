@@ -25,13 +25,13 @@ class Frctl_a : public BusTarget {
   /**
    * Default constructor, reads address from msp430frxxx.h
    */
-  Frctl_a(sc_core::sc_module_name nm, sc_core::sc_time delay);
+  Frctl_a(sc_core::sc_module_name nm);
 
   /**
    * Full constructor
    */
-  Frctl_a(sc_core::sc_module_name nm, sc_core::sc_time delay,
-          unsigned startAddress, unsigned endAddress);
+  Frctl_a(sc_core::sc_module_name nm, unsigned startAddress,
+          unsigned endAddress);
 
   virtual void reset() override;
 

@@ -22,8 +22,8 @@ class VolatileMemory : public GenericMemory {
 
   /* ------ Public methods ------ */
   VolatileMemory(sc_core::sc_module_name name, unsigned startAddress,
-                 unsigned endAddress, sc_core::sc_time delay)
-      : GenericMemory(name, startAddress, endAddress, delay) {
+                 unsigned endAddress)
+      : GenericMemory(name, startAddress, endAddress) {
     // Call reset method on poweron
     SC_METHOD(reset);
     sensitive << pwrOn;

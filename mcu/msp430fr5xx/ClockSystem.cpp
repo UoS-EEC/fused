@@ -32,9 +32,8 @@ const float ClockSystem::DCO_FREQ_TABLE[] = {
     1.0, 5.33, 7.0, 8.0, 16.0, 21.0, 24.0, 24.0  // Range select == 1
 };
 
-ClockSystem::ClockSystem(sc_module_name name, unsigned startAddress,
-                         sc_time delay)
-    : BusTarget(name, startAddress, startAddress + OFS_CSCTL6 + 1, delay) {
+ClockSystem::ClockSystem(sc_module_name name, unsigned startAddress)
+    : BusTarget(name, startAddress, startAddress + OFS_CSCTL6 + 1) {
   SC_METHOD(reset);
   sensitive << pwrOn;
   dont_initialize();

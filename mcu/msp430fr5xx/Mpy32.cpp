@@ -18,8 +18,8 @@ extern "C" {
 using namespace sc_core;
 
 Mpy32::Mpy32(sc_module_name name, const uint16_t startAddress,
-             const uint16_t endAddress, const sc_time delay)
-    : BusTarget(name, startAddress, endAddress, delay) {
+             const uint16_t endAddress)
+    : BusTarget(name, startAddress, endAddress) {
   // Register events
 
   // Initialise register file
@@ -85,8 +85,7 @@ void Mpy32::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
       m_regs.write(OFS_MPY32CTL0, ctrl & ~(MPYOP2_32));
       // n = ctrl & MPYOP1_32 ? 7: 4;
       n = 0;
-      m_mpyCompleteEvent.notify(
-          delay + n * m_delay);  // mode of multiplication determines delay
+      m_mpyCompleteEvent.notify(delay + n * systemClk->getPeriod());
       break;
     case OFS_OP2L:  // "32-bit OP2 Low Word; Expects High Write; MPY32
                     // Starts\n";
@@ -95,8 +94,7 @@ void Mpy32::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     case OFS_OP2H:  // "32-bit OP2 High Word; Update Multiplication Results\n";
                     // n = ctrl & MPYOP1_32 ? 11: 7;
       n = 0;
-      m_mpyCompleteEvent.notify(
-          delay + n * m_delay);  // mode of multiplication determines delay
+      m_mpyCompleteEvent.notify(delay + n * systemClk->getPeriod());
       break;
     default:  // the other register writes do not cause additional state change;
               // TODO: catch not-implemented e.g. fractional

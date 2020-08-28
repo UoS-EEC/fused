@@ -34,8 +34,8 @@ SC_MODULE(dut) {
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
+    m_dut.systemClk.bind(clk);
     m_dut.tSocket.bind(iSocket);
-    m_dut.clk.bind(clk);
     for (unsigned i = 0; i < irq.size(); i++) {
       m_dut.irq[i].bind(irq[i]);
       irq[i].write(false);
@@ -45,7 +45,7 @@ SC_MODULE(dut) {
     m_dut.active.bind(active);
   }
 
-  Nvic m_dut{"dut", sc_time(1, SC_NS)};
+  Nvic m_dut{"dut"};
 };
 
 SC_MODULE(tester) {
@@ -108,13 +108,13 @@ SC_MODULE(tester) {
     // ------ TEST: Software-set IRQ
     test.m_dut.reset();
     write32(OFS_NVIC_ISER, (1u << 4), false);  // Correct enable bit
-    wait(sc_time(1, SC_US));
+    wait(sc_time(2, SC_US));
     sc_assert(test.m_dut.pending.read() == -1);
     write32(OFS_NVIC_ISPR, ~(1u << 4), false);  // Wrong bits
     wait(sc_time(1, SC_US));
     sc_assert(test.m_dut.pending.read() == -1);
     write32(OFS_NVIC_ISPR, (1u << 4), false);  // Correct bit
-    wait(sc_time(1, SC_US));
+    wait(sc_time(2, SC_US));
     sc_assert(test.m_dut.pending.read() == 4 + NVIC_EXCEPT_ID_BASE);
 
     // ------ TEST: Software-clear pending IRQ
@@ -159,13 +159,13 @@ SC_MODULE(tester) {
     wait(sc_time(1, SC_US));
     sc_assert(test.m_dut.pending.read() == 8 + NVIC_EXCEPT_ID_BASE);
     write32(OFS_NVIC_ICPR, (1u << 8), false);
-    wait(sc_time(1, SC_US));
+    wait(sc_time(2, SC_US));
     sc_assert(test.m_dut.pending.read() == 4 + NVIC_EXCEPT_ID_BASE);
     write32(OFS_NVIC_ICPR, (1u << 4), false);
-    wait(sc_time(1, SC_US));
+    wait(sc_time(2, SC_US));
     sc_assert(test.m_dut.pending.read() == 0 + NVIC_EXCEPT_ID_BASE);
     write32(OFS_NVIC_ICPR, (1u << 0), false);
-    wait(sc_time(1, SC_US));
+    wait(sc_time(2, SC_US));
     sc_assert(test.m_dut.pending.read() == -1);
 
     // ------ TEST: Accept an interrupt

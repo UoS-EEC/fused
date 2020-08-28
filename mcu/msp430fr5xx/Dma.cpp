@@ -16,8 +16,8 @@ extern "C" {
 using namespace sc_core;
 using namespace tlm;
 
-Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
-    : BusTarget(name, DMA_BASE, DMA_BASE + 0x6f, delay) {
+Dma::Dma(const sc_module_name name)
+    : BusTarget(name, DMA_BASE, DMA_BASE + 0x6f) {
   // Construct & bind submodules
   for (int i = 0; i < NCHANNELS; i++) {
     m_triggerMuxes[i] =
@@ -30,7 +30,7 @@ Dma::Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay)
     m_triggerMuxes[i]->nreset.bind(pwrOn);
 
     m_channels[i] = new DmaChannel(fmt::format("ch{:d}", i).c_str());
-    m_channels[i]->clk.bind(clk);
+    m_channels[i]->systemClk.bind(systemClk);
     m_channels[i]->pending.bind(m_channelPending[i]);
     m_channels[i]->accept.bind(m_channelAccept[i]);
     m_channels[i]->trigger.bind(m_channelTrigger[i]);
@@ -122,8 +122,7 @@ void Dma::reset() {
   }
 }
 
-void Dma::b_transport(tlm::tlm_generic_payload &trans,
-                      sc_core::sc_time &delay) {
+void Dma::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   BusTarget::b_transport(trans, delay);
   auto addr = trans.get_address();
   auto val = m_regs.read(addr);
@@ -218,7 +217,7 @@ void Dma::process() {
     if (channelIdx >= 0) {
       // DMA spends "1 or 2 clock cycles to synchronize to mclk"
       stallCpu.write(true);
-      wait(clk->getPeriod());
+      wait(systemClk->getPeriod());
 
       // Accept, perform transfer, update state & registers
       const auto &ch = *m_channels[channelIdx];
@@ -449,7 +448,7 @@ void DmaChannel::process() {
           wait(accept.posedge_event());
           updateAddresses();
           if ((size > 0) && (size < m_tSize) && (size % 4 == 0)) {
-            wait(2 * clk->getPeriod());
+            wait(2 * systemClk->getPeriod());
           }
           if (!enable) {
             break;
@@ -517,7 +516,7 @@ void DmaChannel::process() {
             wait(accept.posedge_event());
             updateAddresses();
             if ((size > 0) && (size < m_tSize) && (size % 4 == 0)) {
-              wait(2 * clk->getPeriod());
+              wait(2 * systemClk->getPeriod());
             }
             if (!enable) {
               break;

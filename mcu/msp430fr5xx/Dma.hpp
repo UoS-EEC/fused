@@ -51,7 +51,8 @@ SC_MODULE(TriggerMux) {
 SC_MODULE(DmaChannel) {
  public:
   /*------ Ports ------*/
-  sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! clock input
+  sc_core::sc_port<ClockSourceConsumerIf> systemClk{
+      "systemClk"};               //! clock input
   sc_core::sc_out<bool> pending;  //! Flag if a transfer is pending
   sc_core::sc_in<bool> accept;    //! Flag if transfer was accepted
   sc_core::sc_in<bool> trigger;   //! Transfer trigger
@@ -131,7 +132,6 @@ class Dma : public BusTarget {
 
  public:
   /*------ Ports ------*/
-  sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! clock input
   sc_core::sc_in<bool> ira{"ira"};               //! Interrupt request accepted
   std::array<sc_core::sc_in<bool>, 30> trigger;  //! External triggers
   sc_core::sc_out<bool> irq{"irq"};              //! Interrupt request output
@@ -150,7 +150,7 @@ class Dma : public BusTarget {
    * @brief Dma constructor
    * @param name
    */
-  Dma(const sc_core::sc_module_name name, const sc_core::sc_time delay);
+  Dma(const sc_core::sc_module_name name);
 
   /**
    * @brief reset Reset registers and member values to their power-on values.

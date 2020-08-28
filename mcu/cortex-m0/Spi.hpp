@@ -119,7 +119,7 @@ class Spi : public BusTarget {
    * @param delay Bus access delay
    */
   Spi(sc_core::sc_module_name name, const unsigned startAddress,
-      const unsigned endAddress, const sc_core::sc_time delay);
+      const unsigned endAddress);
 
   /**
    * @brief b_transport Blocking reads and writes to the config/control

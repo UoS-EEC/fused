@@ -24,8 +24,8 @@ using namespace sc_core;
 const int TimerA::ACLK_SEL = 0;
 const int TimerA::SMCLK_SEL = 1;
 
-TimerA::TimerA(sc_module_name name, unsigned startAddress, sc_time delay)
-    : BusTarget(name, startAddress, startAddress + OFS_TA1IV + 1, delay) {
+TimerA::TimerA(sc_module_name name, unsigned startAddress)
+    : BusTarget(name, startAddress, startAddress + OFS_TA1IV + 1) {
   // Bind submodules
   // {aclk / smlclk} -> mux -> div -> timerClock
   clkMux.inClk[ACLK_SEL].bind(aclk);

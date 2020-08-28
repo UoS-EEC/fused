@@ -31,10 +31,8 @@ class ClockSystem : public BusTarget {
    * @brief ClockSystem Constructor: initialise registers and clocks
    * @param name
    * @param startAddress Peripheral start address
-   * @param delay Bus access delay
    */
-  ClockSystem(sc_core::sc_module_name name, unsigned startAddress,
-              sc_core::sc_time delay);
+  ClockSystem(sc_core::sc_module_name name, unsigned startAddress);
 
   /**
    * @brief reset Reset register values to their power-on values on the

@@ -11,6 +11,7 @@
 #include <systemc>
 #include <tlm>
 #include <unordered_set>
+#include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
 
 extern "C" {
@@ -25,8 +26,9 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
 
  public:
   /* ------ Ports ------ */
-  tlm::tlm_initiator_socket<> iSocket;  //! TLM initiator socket
-  sc_core::sc_in<bool> pwrOn{"pwrOn"};  //! "power-good" signal
+  sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! CPU clock
+  tlm::tlm_initiator_socket<> iSocket;                 //! TLM initiator socket
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};                 //! "power-good" signal
 
   // -- Interrupts
   // SysTick
@@ -45,7 +47,7 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   /**
    * @brief CortexM0Cpu constructor
    */
-  CortexM0Cpu(sc_core::sc_module_name nm, sc_core::sc_time cycleTime);
+  CortexM0Cpu(const sc_core::sc_module_name nm);
 
   /**
    * @brief end_of_elaboration set up threads and methods.
@@ -233,7 +235,6 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   }
 
   /* ------ Public variables ------*/
-  const sc_core::sc_time m_cycleTime;  //! CPU clock period
  private:
   /* ------ Constants ------ */
   static const unsigned N_GPR = 16;      // How many general purpose registers

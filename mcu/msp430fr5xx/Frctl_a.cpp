@@ -15,12 +15,11 @@ extern "C" {
 
 using namespace sc_core;
 
-Frctl_a::Frctl_a(sc_module_name nm, sc_time delay)
-    : Frctl_a(nm, delay, FRCTL_A_BASE, FRCTL_A_BASE + OFS_GCCTL1_H) {}
+Frctl_a::Frctl_a(sc_module_name nm)
+    : Frctl_a(nm, FRCTL_A_BASE, FRCTL_A_BASE + OFS_GCCTL1_H) {}
 
-Frctl_a::Frctl_a(sc_module_name nm, sc_time delay, unsigned startAddress,
-                 unsigned endAddress)
-    : BusTarget(nm, startAddress, endAddress, delay) {
+Frctl_a::Frctl_a(sc_module_name nm, unsigned startAddress, unsigned endAddress)
+    : BusTarget(nm, startAddress, endAddress) {
   // Initialize register file
   for (uint16_t i = 0; i < FRCTL_A_SIZE; i += 2) {
     if (i == OFS_FRCTL0) {

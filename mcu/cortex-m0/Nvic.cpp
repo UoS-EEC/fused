@@ -12,8 +12,7 @@
 
 using namespace sc_core;
 
-Nvic::Nvic(const sc_module_name name, const sc_time delay)
-    : BusTarget(name, NVIC_BASE, NVIC_END, delay) {
+Nvic::Nvic(const sc_module_name name) : BusTarget(name, NVIC_BASE, NVIC_END) {
   // Initialize registers
   uint32_t iprnWriteMask = 0xc0c0c0c0;
   m_regs.addRegister(OFS_NVIC_ISER, 0);
@@ -41,9 +40,7 @@ Nvic::Nvic(const sc_module_name name, const sc_time delay)
 }
 
 void Nvic::end_of_elaboration() {
-  // Processing
   SC_METHOD(process);
-  // sensitive << clk;
   sensitive << m_writeEvent << active.value_changed_event()
             << returning.value_changed_event();
   for (unsigned i = 0; i < irq.size(); i++) {
@@ -209,7 +206,7 @@ void Nvic::process() {
 std::ostream& operator<<(std::ostream& os, const Nvic& rhs) {
   // clang-format off
   os << "Nvic: " << rhs.name()
-    << "\nclock period " << rhs.clk->getPeriod()
+    << "\nclock period " << rhs.systemClk->getPeriod()
     << "\nirq: 0b";
 
   for (int i = rhs.irq.size() - 1; i > 0; --i) {

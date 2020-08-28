@@ -18,8 +18,8 @@ extern "C" {
 using namespace sc_core;
 
 eUSCI_B::eUSCI_B(sc_module_name name, const uint16_t startAddress,
-                 const uint16_t endAddress, const sc_time delay)
-    : BusTarget(name, startAddress, endAddress, delay) {
+                 const uint16_t endAddress)
+    : BusTarget(name, startAddress, endAddress) {
   // Register events
 
   // Initialise register file
