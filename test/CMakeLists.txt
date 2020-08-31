@@ -153,6 +153,27 @@ target_link_libraries(testMsp430fr5xxDma
     Msp430Microcontroller
   )
 
+# ------ MSP430 CPU ------
+add_executable(testMsp430fr5xxCpu
+  test_msp430fr5xxCpu.cpp
+  ../mcu/msp430fr5xx/Msp430Cpu.cpp
+  ../mcu/msp430fr5xx/Msp430Cpu.hpp
+  ../mcu/BusTarget.cpp
+  ../mcu/BusTarget.hpp
+  ../mcu/GenericMemory.cpp
+  ../mcu/GenericMemory.hpp
+  ../mcu/RegisterFile.cpp
+  ../mcu/RegisterFile.hpp
+  )
+
+target_link_libraries(testMsp430fr5xxCpu
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Utilities
+  )
+
 # ------ CM0 SysTick ------
 add_executable(testCm0SysTick
   test_cm0SysTick.cpp

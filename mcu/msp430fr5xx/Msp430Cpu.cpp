@@ -7,6 +7,7 @@
 
 #include <spdlog/spdlog.h>
 #include <stdint.h>
+
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -15,6 +16,7 @@
 #include <systemc>
 #include <thread>
 #include <tlm>
+
 #include "mcu/msp430fr5xx/Msp430Cpu.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
@@ -312,6 +314,8 @@ void Msp430Cpu::unstall(void) { m_run = true; }
 bool Msp430Cpu::isStalled(void) { return !m_run; }
 
 uint16_t Msp430Cpu::fetch() {
+  // !!!
+  spdlog::info("PC is {}", getPc());
   assert(getPc() % 2 == 0);
   uint16_t retval = read16(getPc());
   setPc(getPc() + 2);
