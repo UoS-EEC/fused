@@ -118,9 +118,6 @@ SC_MODULE(tester) {
 
     // TEST -- MOV rs, &abs
 
-    // !! Test fails -- model executes in 2 cycles, whereas it should take 3!
-
-    /*
     spdlog::info("TEST: MOV r12, &0x000a");
     test.reset();
     test.m_dut.dbg_writeReg(12, 0xabcd);  // Set source value
@@ -144,10 +141,7 @@ SC_MODULE(tester) {
     wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
     wait(3 * test.m_dut.mclk->getPeriod());  // Execute BR
     wait(SC_ZERO_TIME);
-    std::cout << test.m_dut;
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0x000a);
-    std::cout << test.m_dut;
-    */
 
     // Register indirect -> others (e.g. mov @r1, r2)
     // ----------------------------------------------
@@ -209,20 +203,27 @@ SC_MODULE(tester) {
      * Format II (Single-operand)
      *************************************************************************/
     // TEST -- CALL rn
-    /*
     spdlog::info("TEST: CALL r8");
     test.reset();
+    test.m_dut.dbg_writeReg(SP_REGNUM, 0xaa);  // Initialise SP
     test.m_dut.dbg_writeReg(8, 0xa);           // Call address
-    writeMemory16(0, 0x1288);                  // CALL r12
+    writeMemory16(0, 0x1288);                  // CALL r8
     writeMemory16(0xa, 0x4303);                // NOP
-    std::cout << test.m_dut;
 
     wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
-    wait(4 * test.m_dut.mclk->getPeriod());  // Execute CALL
+    // wait(4 * test.m_dut.mclk->getPeriod());  // Execute CALL
+    std::cout << test.m_dut;
+    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
+    std::cout << test.m_dut;
+    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
+    std::cout << test.m_dut;
+    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
+    std::cout << test.m_dut;
+    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
+    std::cout << test.m_dut;
     wait(SC_ZERO_TIME);
     std::cout << test.m_dut;
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0xa);
-    */
 
     /**************************************************************************
      * Format III (Jump)
