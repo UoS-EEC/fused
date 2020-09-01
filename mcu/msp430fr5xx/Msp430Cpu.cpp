@@ -314,8 +314,6 @@ void Msp430Cpu::unstall(void) { m_run = true; }
 bool Msp430Cpu::isStalled(void) { return !m_run; }
 
 uint16_t Msp430Cpu::fetch() {
-  // !!!
-  spdlog::info("PC is {}", getPc());
   assert(getPc() % 2 == 0);
   uint16_t retval = read16(getPc());
   setPc(getPc() + 2);
@@ -572,8 +570,8 @@ void Msp430Cpu::executeConditionalJump(uint16_t opcode) {
   }
   if (doJump) {
     setPc(getPc() + jumpOffset);
-    waitCycles(1);
   }
+  waitCycles(1);
 }
 
 void Msp430Cpu::executeSingleOpInstruction(uint16_t opcode) {
