@@ -55,53 +55,66 @@ SC_MODULE(tester) {
  public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
+  /*
+   * Run instructions one by one & check results and timing. A NOP should be
+   * inserted between each instruction.
+   */
   void runtests() {
-    test.m_dut.dbg_writeReg(SR_REGNUM, 0);
-    test.m_dut.dbg_writeReg(PC_REGNUM, 0);
-    test.m_dut.unstall();
+    test.m_dut.reset();
+    // test.m_dut.unstall();
     test.nreset.write(true);
     wait(SC_ZERO_TIME);
+    test.m_dut.dbg_writeReg(SR_REGNUM, 0x00);  // Clear CPUOFF flag
 
-    // Place instructions in mem for CPU to execute
-    // MOV R4 R5
-    // Type: Format I
-    // Addressing Mode: Register Register
-    // op: 0100 MOV
-    // src: 0100 R4
-    // ad: 0
-    // b/w: 0
-    // as: 00
-    // dst: 0101 R5
-    // cycles: 1
-    // length: 1
-    writeMemory16(0, 0b0100010000000101);
-    // MOV R4 &ADDR
-    // Type: Format I
-    // Addressing Mode: Register Absolute
-    // op: 0100 MOV
-    // src: 0100 R4
-    // ad: 1
-    // b/w: 0
-    // as: 00
-    // dst: 0010 SR_REGNUM
-    // cycles: 4 - 1
-    // length: 2
-    writeMemory16(1, 0b0100010010000010);
-    writeMemory16(2, 0b0000000000000000);  // for absolute addressing
+    // TEST -- AND #imm, rn
+    spdlog::info("TEST: AND #255, r12");
+    test.m_dut.dbg_writeReg(12, 0xAAAA);
+    std::cout << test.m_dut;
+    writeMemory16(0, 0xf03c);  // AND #imm, r12
+    writeMemory16(2, 0x00ff);  // imm=255
+    writeMemory16(4, 0x4303);  // NOP
 
-    // TEST -- MOV R4 R5
-    spdlog::info("Testing MOV R4 R5");
-    wait(1 * test.m_dut.m_cycleTime);
+    test.m_dut.unstall();
+    wait(2 * test.m_dut.m_cycleTime);
     wait(SC_ZERO_TIME);
-    sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 2);
-    spdlog::info("PASSED");
-    // TEST -- MOV R4 &ADDR
-    spdlog::info("Testing MOV R4 &ADDR");
-    wait(3 * test.m_dut.m_cycleTime);
+    std::cout << test.m_dut;
+    sc_assert(test.m_dut.dbg_readReg(12) == 0xaa);
+    sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 4);
+
+    // TEST -- MOV.B rs, rd
+    spdlog::info("TEST: MOV.b r12, r13");
+    test.m_dut.reset();
+    test.m_dut.dbg_writeReg(SR_REGNUM, 0x00);  // Clear CPUOFF flag
+    test.m_dut.dbg_writeReg(12, 0xabcd);       // Set source value
+    writeMemory16(2, 0x4c4d);                  // MOV.B #ofs(r1), r12
+    writeMemory16(4, 0x4303);                  // NOP
+    std::cout << test.m_dut;
+
+    wait(1 * test.m_dut.m_cycleTime);  // Execute NOP
+    wait(1 * test.m_dut.m_cycleTime);  // Execute MOV
     wait(SC_ZERO_TIME);
+    std::cout << test.m_dut;
+    sc_assert(test.m_dut.dbg_readReg(13) == 0xcd);
+    sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 4);
+
+    // TEST -- MOV.B ofs(rs), rd
+    spdlog::info("TEST: MOV.B 10(r1), r12");
+    test.m_dut.reset();
+    test.m_dut.dbg_writeReg(SR_REGNUM, 0x00);  // Clear CPUOFF flag
+    writeMemory16(2, 0x415c);                  // MOV.B #ofs(r1), r12
+    writeMemory16(4, 0x000a);                  // #ofs = 10
+    writeMemory16(6, 0x4303);                  // NOP
+    writeMemory16(0xa, 0xabcd);                // val to load = 0xabcd
+    std::cout << test.m_dut;
+
+    wait(1 * test.m_dut.m_cycleTime);  // Execute NOP
+    wait(3 * test.m_dut.m_cycleTime);  // Execute MOV.B
+    wait(SC_ZERO_TIME);
+    std::cout << test.m_dut;
+    sc_assert(test.m_dut.dbg_readReg(12) == 0x00cd);
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 6);
-    spdlog::info("PASSED");
 
+    spdlog::info("Msp430Cpu tests PASSED");
     sc_stop();
   }
 
