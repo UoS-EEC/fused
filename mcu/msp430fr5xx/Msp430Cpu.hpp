@@ -126,6 +126,11 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
    */
   uint32_t n_regs() const { return N_GPR; }
 
+  /**
+   * @brief operator<< state printout
+   */
+  friend std::ostream &operator<<(std::ostream &os, const Msp430Cpu &rhs);
+
   /*------ Dummy methods --------------------------------------------------*/
 
   // Dummy method:

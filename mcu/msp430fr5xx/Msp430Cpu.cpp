@@ -824,3 +824,30 @@ void Msp430Cpu::waitForCommand() {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
+
+std::ostream &operator<<(std::ostream &os, const Msp430Cpu &rhs) {
+  std::array<const std::string, 16> registernames = {
+      {"r0 (pc)", "r1 (sp)", "r2 (sr)", "r3 (cg)", "r4", "r5", "r6", "r7", "r8",
+       "r9", "r10", "r11", "r12", "r13", "r14", "r15"}};
+  // clang-format off
+  os << "<Msp430Cpu> " << rhs.name()
+    << "\nm_run (active) " << rhs.m_run
+    << "\nm_sleeping " << rhs.m_sleeping
+    << "\nclock period " << rhs.m_cycleTime
+    << "\nirq " << rhs.irq.read()
+    << "\nira " << rhs.ira.read()
+    << "\nirqIdx " << rhs.irqIdx.read()
+    << "\nbusStall " << rhs.busStall.read()
+    << "\ncpu registers:";
+  for (int i = 0; i < rhs.m_cpuRegs.size(); ++i) {
+    os << fmt::format("\n\t{:s}: 0x{:04x}", registernames[i], rhs.m_cpuRegs[i]);
+  }
+
+  os << "\nBreakpoints:";
+  for (const auto &b : rhs.m_breakpoints) {
+    os << fmt::format("\n\t0x{:04x}", b);
+  }
+  os << "\n";
+  // clang-format on
+  return os;
+}
