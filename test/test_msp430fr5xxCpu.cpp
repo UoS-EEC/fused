@@ -244,6 +244,21 @@ SC_MODULE(tester) {
     sc_assert(test.m_dut.dbg_readReg(SP_REGNUM) == 0xa8);
     sc_assert(readMemory16(0xa8) == 0xaabb);
 
+    // TEST -- CALL #immediate
+    spdlog::info("TEST: CALL #N");
+    test.reset();
+    test.m_dut.dbg_writeReg(SP_REGNUM, 0xaa);  // Initialise SP
+    writeMemory16(0, 0x12b0);                  // CALL #imm
+    writeMemory16(2, 0x0010);                  // #imm=0x0010
+    writeMemory16(0x10, 0x4303);               // NOP
+
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(4 * test.m_dut.mclk->getPeriod());  // Execute CALL
+    wait(SC_ZERO_TIME);
+    sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0x10);
+    sc_assert(test.m_dut.dbg_readReg(SP_REGNUM) == 0xa8);
+    sc_assert(readMemory16(0xa8) == 0x04);
+
     /**************************************************************************
      * Format III (Jump)
      *************************************************************************/
