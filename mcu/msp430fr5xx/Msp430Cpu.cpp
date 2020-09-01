@@ -77,7 +77,6 @@ void Msp430Cpu::reset(void) {
 }
 
 void Msp430Cpu::process() {
-  EventLog::getInstance().reportState(this->name(), "off");
   wait(SC_ZERO_TIME);  // Wait for start of simulation
 
   while (true) {  // Run emulator
@@ -139,6 +138,7 @@ void Msp430Cpu::process() {
     }
 
     if (m_run && (!pwrOn.read())) {
+      EventLog::getInstance().reportState(this->name(), "off");
       wait(pwrOn.posedge_event());  // Wait for power
       m_sleeping = false;
       reset();  // Reset
