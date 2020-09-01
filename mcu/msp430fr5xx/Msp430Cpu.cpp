@@ -831,7 +831,7 @@ std::ostream &operator<<(std::ostream &os, const Msp430Cpu &rhs) {
   os << "<Msp430Cpu> " << rhs.name()
     << "\nm_run (active) " << rhs.m_run
     << "\nm_sleeping " << rhs.m_sleeping
-    << "\nclock period " << rhs.m_cycleTime
+    << "\nclock period " << rhs.mclk->getPeriod()
     << "\nirq " << rhs.irq.read()
     << "\nira " << rhs.ira.read()
     << "\nirqIdx " << rhs.irqIdx.read()

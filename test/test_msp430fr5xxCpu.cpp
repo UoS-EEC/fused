@@ -13,6 +13,7 @@
 #include <tlm>
 
 #include "mcu/ClockSourceChannel.hpp"
+#include "mcu/ClockSourceIf.hpp"
 #include "mcu/GenericMemory.hpp"
 #include "mcu/msp430fr5xx/Msp430Cpu.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
@@ -35,11 +36,14 @@ SC_MODULE(dut) {
   sc_signal<bool> stallCpu{"stallCpu"};
   sc_signal<unsigned> irqIdx{"irqIdx"};
   sc_signal<bool> iraConnected{"iraConnected"};
-  GenericMemory mem{"mem", 0, 0xFFFF, sc_time(125, SC_NS)};  //! 65k memory
+  GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
+  ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
 
   SC_CTOR(dut) {
     mem.pwrOn.bind(nreset);
     mem.tSocket.bind(m_dut.iSocket);
+    mem.systemClk.bind(mclk);
+    m_dut.mclk.bind(mclk);
     m_dut.pwrOn.bind(nreset);
     m_dut.irq.bind(irq);
     m_dut.ira.bind(ira);
@@ -50,7 +54,7 @@ SC_MODULE(dut) {
 
   void reset() {
     nreset.write(false);
-    wait(5 * m_dut.m_cycleTime);
+    wait(5 * mclk.getPeriod());
     nreset.write(true);
     wait(SC_ZERO_TIME);
     m_dut.dbg_writeReg(SR_REGNUM, 0x00);  // Clear CPUOFF flag
@@ -63,7 +67,7 @@ SC_MODULE(dut) {
   static const unsigned CG_REGNUM = 3;
   static const unsigned N_GPR = 16;  // How many general purpose registers
 
-  Msp430Cpu m_dut{"dut", sc_time(125, SC_NS)};
+  Msp430Cpu m_dut{"dut"};
 };
 
 SC_MODULE(tester) {
@@ -91,8 +95,8 @@ SC_MODULE(tester) {
     writeMemory16(0, 0x4c4d);             // MOV.B r12, r13
     writeMemory16(2, 0x4303);             // NOP
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(1 * test.m_dut.m_cycleTime);  // Execute MOV
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(1 * test.m_dut.mclk->getPeriod());  // Execute MOV
     wait(SC_ZERO_TIME);
     sc_assert(test.m_dut.dbg_readReg(13) == 0xcd);
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 2);
@@ -106,8 +110,8 @@ SC_MODULE(tester) {
     writeMemory16(2, 0x0004);             // #ofs = 4
     writeMemory16(4, 0x4303);             // NOP
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(3 * test.m_dut.m_cycleTime);  // Execute MOV
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(3 * test.m_dut.mclk->getPeriod());  // Execute MOV
     wait(SC_ZERO_TIME);
     sc_assert(readMemory16(10) == 0xabcd);  // Check destination value
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 4);
@@ -124,8 +128,8 @@ SC_MODULE(tester) {
     writeMemory16(2, 0x000a);             // &abs = 0x000a
     writeMemory16(4, 0x4303);             // NOP
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(3 * test.m_dut.m_cycleTime);  // Execute MOV
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(3 * test.m_dut.mclk->getPeriod());  // Execute MOV
     wait(SC_ZERO_TIME);
     sc_assert(readMemory16(0x000a) == 0xabcd);  // Check destination value
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 4);
@@ -137,8 +141,8 @@ SC_MODULE(tester) {
     writeMemory16(2, 0x000a);   // #imm=0x000a
     writeMemory16(10, 0x4303);  // NOP
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(3 * test.m_dut.m_cycleTime);  // Execute BR
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(3 * test.m_dut.mclk->getPeriod());  // Execute BR
     wait(SC_ZERO_TIME);
     std::cout << test.m_dut;
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0x000a);
@@ -159,8 +163,8 @@ SC_MODULE(tester) {
     writeMemory16(6, 0xabcd);         // source value
     writeMemory16(10, 0xdcba);        // destination value
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(4 * test.m_dut.m_cycleTime);  // Execute MOV.B
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(4 * test.m_dut.mclk->getPeriod());  // Execute MOV.B
     wait(SC_ZERO_TIME);
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 4);
     spdlog::info("XOR result: 0x{:04x}", readMemory16(10));
@@ -178,8 +182,8 @@ SC_MODULE(tester) {
     writeMemory16(4, 0x4303);       // NOP
     writeMemory16(0xa, 0xabcd);     // source value
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(3 * test.m_dut.m_cycleTime);  // Execute MOV.B
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(3 * test.m_dut.mclk->getPeriod());  // Execute MOV.B
     wait(SC_ZERO_TIME);
     sc_assert(test.m_dut.dbg_readReg(12) == 0x00cd);
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 4);
@@ -195,8 +199,8 @@ SC_MODULE(tester) {
     writeMemory16(2, 0x00ff);  // imm=255
     writeMemory16(4, 0x4303);  // NOP
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(2 * test.m_dut.m_cycleTime);  // Execute AND
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(2 * test.m_dut.mclk->getPeriod());  // Execute AND
     wait(SC_ZERO_TIME);
     sc_assert(test.m_dut.dbg_readReg(12) == 0xaa);
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 4);
@@ -213,8 +217,8 @@ SC_MODULE(tester) {
     writeMemory16(0xa, 0x4303);                // NOP
     std::cout << test.m_dut;
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(4 * test.m_dut.m_cycleTime);  // Execute CALL
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(4 * test.m_dut.mclk->getPeriod());  // Execute CALL
     wait(SC_ZERO_TIME);
     std::cout << test.m_dut;
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0xa);
@@ -232,8 +236,8 @@ SC_MODULE(tester) {
     writeMemory16(0, 0x240c);               // JZ $+26
     writeMemory16(26, 0x4303);              // NOP
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(2 * test.m_dut.m_cycleTime);  // Execute JUMP
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(2 * test.m_dut.mclk->getPeriod());  // Execute JUMP
     wait(SC_ZERO_TIME);
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 26);
 
@@ -245,8 +249,8 @@ SC_MODULE(tester) {
     writeMemory16(0, 0x240c);  // JZ $+26
     writeMemory16(2, 0x4303);  // NOP
 
-    wait(1 * test.m_dut.m_cycleTime);  // 1 Cycle of sleep after reset
-    wait(2 * test.m_dut.m_cycleTime);  // Execute JUMP (not taken)
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(2 * test.m_dut.mclk->getPeriod());  // Execute JUMP (not taken)
     wait(SC_ZERO_TIME);
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 2);
 
