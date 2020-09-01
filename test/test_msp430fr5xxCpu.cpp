@@ -203,6 +203,7 @@ SC_MODULE(tester) {
      * Format II (Single-operand)
      *************************************************************************/
     // TEST -- CALL rn
+    /*
     spdlog::info("TEST: CALL r8");
     test.reset();
     test.m_dut.dbg_writeReg(SP_REGNUM, 0xaa);  // Initialise SP
@@ -224,6 +225,24 @@ SC_MODULE(tester) {
     wait(SC_ZERO_TIME);
     std::cout << test.m_dut;
     sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0xa);
+    sc_assert(test.m_dut.dbg_readReg(SP_REGNUM) == 0xa8);
+    sc_assert(readMemory16(0xa8) == 0x00);
+    */
+
+    // TEST -- PUSH rn
+    spdlog::info("TEST: PUSH r8");
+    test.reset();
+    test.m_dut.dbg_writeReg(SP_REGNUM, 0xaa);  // Initialise SP
+    test.m_dut.dbg_writeReg(8, 0xaabb);        // Initialise value in r8 to push
+    writeMemory16(0, 0x1208);                  // Push r8
+    writeMemory16(2, 0x4303);                  // NOP
+
+    wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
+    wait(3 * test.m_dut.mclk->getPeriod());  // Execute PUSH
+    wait(SC_ZERO_TIME);
+    sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0x2);
+    sc_assert(test.m_dut.dbg_readReg(SP_REGNUM) == 0xa8);
+    sc_assert(readMemory16(0xa8) == 0xaabb);
 
     /**************************************************************************
      * Format III (Jump)
