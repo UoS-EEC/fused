@@ -29,7 +29,8 @@ Some key features of Fused include:
 * Executes unmodified binaries to be deployed on real hardware;
 * Allows modelling of complex external circuitry through SystemC-AMS.
 
-Fused will be presented at the 2020 ISPASS conference.
+Fused was presented at the 2020 ISPASS conference, the 
+`Fused presentation video`_ is available on YouTube.
 Please cite the following paper when using Fused in your research.
 
     | "Fused: Closed-loop Performance and Energy Simulation of Embedded Systems",
@@ -37,7 +38,7 @@ Please cite the following paper when using Fused in your research.
     | 2020 International Symposium on Performance Analysis of Systems and Software (ISPASS),
     | Boston, MA, USA, 2020.
 
-The paper is available at `computer.org`_ , and the supporting dataset at
+The paper is available at `ePrints`_ , and the supporting dataset at
 `DOI 10.5258/SOTON/D1200`_.
 
 
@@ -253,7 +254,8 @@ Contributions are accepted under the Apache 2.0 license. Only submit
 contributions where you have authored all of the code.
 
 
-.. _TBD: https://doi.org/xxxx
+.. _Fused presentation video: https://www.youtube.com/watch?v=Jb1d_d4lN7U
 .. _DOI 10.5258/SOTON/D1200: http://dx.doi.org/10.5258/SOTON/D1200
 .. _Docker Engine: https://docs.docker.com/install/
 .. _computer.org: https://conferences.computer.org/ispass/2020/pdfs/ISPASS2020-6XKlsJVdID5VxIhCMcg4bY/479800a121/479800a121.pdf
+.. _ePrints: https://eprints.soton.ac.uk/439059/
