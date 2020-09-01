@@ -14,14 +14,14 @@
 using namespace sc_core;
 
 NonvolatileMemory::NonvolatileMemory(sc_module_name name, unsigned startAddress,
-                                     unsigned endAddress, sc_time delay)
-    : GenericMemory(name, startAddress, endAddress, delay) {}
+                                     unsigned endAddress)
+    : GenericMemory(name, startAddress, endAddress) {}
 
 void NonvolatileMemory::b_transport(tlm::tlm_generic_payload &trans,
                                     sc_time &delay) {
   sc_time dummyDelay = sc_time(0, SC_NS);  // ignore GenericMemory's delay
   GenericMemory::b_transport(trans, dummyDelay);
-  delay += waitStates.read() * m_delay;
+  delay += waitStates.read() * systemClk->getPeriod();
 }
 
 unsigned int NonvolatileMemory::countSetBitsArray(const uint8_t *arr,

@@ -21,7 +21,7 @@ class GenericMemory : public BusTarget {
 
   /* ------ Public methods ------ */
   GenericMemory(sc_core::sc_module_name name, unsigned startAddress,
-                unsigned endAddress, sc_core::sc_time delay);
+                unsigned endAddress);
 
   /**
    * @brief reset Do nothing, i.e. models nonvolatile memory by default.

@@ -27,13 +27,13 @@ class PowerManagementModule : public BusTarget {
   /**
    * Default constructor, reads start and end address from msp430xxxx.h
    */
-  PowerManagementModule(sc_core::sc_module_name name, sc_core::sc_time delay);
+  PowerManagementModule(sc_core::sc_module_name name);
 
   /**
    * Full constructor
    */
-  PowerManagementModule(sc_core::sc_module_name name, sc_core::sc_time delay,
-                        unsigned startAddress, unsigned endAddress);
+  PowerManagementModule(sc_core::sc_module_name name, unsigned startAddress,
+                        unsigned endAddress);
 
   virtual void b_transport(tlm::tlm_generic_payload &trans,
                            sc_core::sc_time &delay) override;

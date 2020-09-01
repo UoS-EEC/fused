@@ -27,13 +27,13 @@ using namespace sc_core;
 
 SC_HAS_PROCESS(PowerManagementModule);
 
-PowerManagementModule::PowerManagementModule(sc_module_name name, sc_time delay)
-    : PowerManagementModule(name, delay, PMM_BASE, PMM_BASE + PMM_SIZE - 1) {}
+PowerManagementModule::PowerManagementModule(sc_module_name name)
+    : PowerManagementModule(name, PMM_BASE, PMM_BASE + PMM_SIZE - 1) {}
 
-PowerManagementModule::PowerManagementModule(sc_module_name name, sc_time delay,
+PowerManagementModule::PowerManagementModule(sc_module_name name,
                                              unsigned startAddress,
                                              unsigned endAddress)
-    : BusTarget(name, startAddress, endAddress, delay) {
+    : BusTarget(name, startAddress, endAddress) {
   m_vOn = Config::get().getDouble("PMMOn");
   m_vOff = Config::get().getDouble("PMMOff");
   m_vMax = Config::get().getDouble("VMAX");
@@ -144,7 +144,7 @@ void PowerManagementModule::b_transport(tlm::tlm_generic_payload &trans,
         }
     }
 
-    m_writeEvent.notify(delay + m_delay);
+    m_writeEvent.notify(delay + systemClk->getPeriod());
 
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     switch (addr) {
@@ -157,11 +157,11 @@ void PowerManagementModule::b_transport(tlm::tlm_generic_payload &trans,
         break;
     }
 
-    m_readEvent.notify(delay + m_delay);
+    m_readEvent.notify(delay + systemClk->getPeriod());
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }
 
-  delay += m_delay;
+  delay += systemClk->getPeriod();
   trans.set_response_status(tlm::TLM_OK_RESPONSE);
 }

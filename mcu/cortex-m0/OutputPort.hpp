@@ -29,10 +29,9 @@ class OutputPort : public BusTarget {
   /**
    * @brief DigitalIo Constructor: initialise registers
    * @param name
-   * @param delay Bus access delay
    */
-  OutputPort(const sc_core::sc_module_name name, const sc_core::sc_time delay)
-      : BusTarget(name, OUTPORT_BASE, OUTPORT_BASE + 4, delay) {
+  OutputPort(const sc_core::sc_module_name name)
+      : BusTarget(name, OUTPORT_BASE, OUTPORT_BASE + 4) {
     // Initialize register file
     m_regs.addRegister(OFS_OUTPORT_OUT, 0);
 

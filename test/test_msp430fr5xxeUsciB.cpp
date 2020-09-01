@@ -38,6 +38,7 @@ SC_MODULE(dut) {
   tlm_utils::simple_target_socket<dut> tEusciSocket{"tEusciSocket"};
   ClockSourceChannel smclk{"smclk", sc_time(1, SC_US)};
   ClockSourceChannel aclk{"aclk", sc_time(1, SC_US)};
+  ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
@@ -48,6 +49,7 @@ SC_MODULE(dut) {
     m_dut.irq.bind(irq);
     m_dut.ira.bind(ira);
     m_dut.dmaTrigger.bind(dmaTrigger);
+    m_dut.systemClk.bind(mclk);
 
     tEusciSocket.register_b_transport(this, &dut::b_transport);
   }
@@ -73,7 +75,7 @@ SC_MODULE(dut) {
                ->clkPeriod == c;
   }
 
-  eUSCI_B m_dut{"dut", 0, 0x2f, sc_time(1, SC_NS)};
+  eUSCI_B m_dut{"dut", 0, 0x2f};
 
   // Variables
   tlm::tlm_generic_payload m_lastTransaction;

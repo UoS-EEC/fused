@@ -29,8 +29,8 @@ const int Adc12::ACLK_SEL = 1;
 const int Adc12::MCLK_SEL = 2;
 const int Adc12::SMCLK_SEL = 3;
 
-Adc12::Adc12(const sc_module_name name, const sc_time delay)
-    : BusTarget(name, ADC12_B_BASE, ADC12_B_BASE + OFS_ADC12MEM31_H, delay) {
+Adc12::Adc12(const sc_module_name name)
+    : BusTarget(name, ADC12_B_BASE, ADC12_B_BASE + OFS_ADC12MEM31_H) {
   // Bind submodules
   // {aclk / smlclk} -> mux -> div -> timerClock
   clkMux.inClk[MODCLK_SEL].bind(modclk);

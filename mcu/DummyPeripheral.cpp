@@ -12,14 +12,14 @@ using namespace sc_core;
 DummyPeripheral::DummyPeripheral(const sc_module_name name,
                                  const std::vector<unsigned char> retvals,
                                  const unsigned startAddress,
-                                 const unsigned endAddress, const sc_time delay)
-    : retvals(retvals), BusTarget(name, startAddress, endAddress, delay) {}
+                                 const unsigned endAddress)
+    : retvals(retvals), BusTarget(name, startAddress, endAddress) {}
 
 DummyPeripheral::DummyPeripheral(const sc_module_name name,
                                  const unsigned startAddress,
-                                 const unsigned endAddress, const sc_time delay)
+                                 const unsigned endAddress)
     : retvals(endAddress - startAddress + 1, 0),
-      BusTarget(name, startAddress, endAddress, delay) {}
+      BusTarget(name, startAddress, endAddress) {}
 
 void DummyPeripheral::b_transport(tlm::tlm_generic_payload &trans,
                                   sc_time &delay) {
@@ -27,7 +27,7 @@ void DummyPeripheral::b_transport(tlm::tlm_generic_payload &trans,
 
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     // Do nothing, writes are discarded
-    m_writeEvent.notify(delay + m_delay);
+    m_writeEvent.notify(delay + systemClk->getPeriod());
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     int remaining = trans.get_data_length();
     unsigned char *dst = trans.get_data_ptr();
@@ -35,12 +35,12 @@ void DummyPeripheral::b_transport(tlm::tlm_generic_payload &trans,
       *dst++ = retvals[addr++];
       remaining--;
     }
-    m_readEvent.notify(delay + m_delay);
+    m_readEvent.notify(delay + systemClk->getPeriod());
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }
 
-  delay += m_delay;
+  delay += systemClk->getPeriod();
   trans.set_response_status(tlm::TLM_OK_RESPONSE);
 }
 

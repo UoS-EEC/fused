@@ -35,6 +35,7 @@ SC_MODULE(dut) {
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel smclk_sig{"smclk_sig", sc_time(1, SC_US)};
   ClockSourceChannel aclk_sig{"aclk_sig", sc_time(1, SC_US)};
+  ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
@@ -44,9 +45,10 @@ SC_MODULE(dut) {
     m_dut.irq.bind(irq);
     m_dut.ira.bind(ira);
     m_dut.dmaTrigger.bind(dmaTrigger);
+    m_dut.systemClk.bind(clk);
   }
 
-  TimerA m_dut{"dut", 0, sc_time(1, SC_NS)};
+  TimerA m_dut{"dut", 0};
 };
 
 SC_MODULE(tester) {

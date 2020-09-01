@@ -19,8 +19,8 @@ extern "C" {
 using namespace sc_core;
 
 DigitalIo::DigitalIo(sc_module_name name, const uint16_t startAddress,
-                     const uint16_t endAddress, const sc_time delay)
-    : BusTarget(name, startAddress, endAddress, delay) {
+                     const uint16_t endAddress)
+    : BusTarget(name, startAddress, endAddress) {
   // Register events
   m_pinPosEdge = EventLog::getInstance().registerEvent(
       std::string(this->name()) + " io_pin_pos");

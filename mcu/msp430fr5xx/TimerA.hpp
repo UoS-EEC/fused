@@ -33,10 +33,8 @@ class TimerA : public BusTarget {
    * @brief TimerA constructor
    * @param name
    * @param startAddress Peripheral start address
-   * @param delay Bus access delay
    */
-  TimerA(sc_core::sc_module_name name, unsigned startAddress,
-         sc_core::sc_time delay);
+  TimerA(sc_core::sc_module_name name, unsigned startAddress);
 
   /**
    * @brief reset Reset registers and member values to their power-on values.

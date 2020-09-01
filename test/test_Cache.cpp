@@ -15,6 +15,8 @@
 #include <tlm>
 #include "include/fused.h"
 #include "mcu/Cache.hpp"
+#include "mcu/ClockSourceChannel.hpp"
+#include "mcu/ClockSourceIf.hpp"
 #include "mcu/NonvolatileMemory.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "utilities/Config.hpp"
@@ -29,19 +31,20 @@ SC_MODULE(dut) {
   sc_signal<bool> pwrGood{"pwrGood", false};
   sc_signal<unsigned> framWaitStates{"framWaitStates", 1};
   tlm_utils::simple_initiator_socket<dut> cacheSocket{"cacheSocket"};
+  ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
+    m_dut.systemClk.bind(clk);
     nvm.pwrOn.bind(pwrGood);
+    nvm.systemClk.bind(clk);
     m_dut.tSocket.bind(cacheSocket);
     m_dut.iSocket.bind(nvm.tSocket);
     nvm.waitStates.bind(framWaitStates);
   }
 
-  Cache m_dut{"dut", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1,
-              sc_time(1, SC_NS)};
-  NonvolatileMemory nvm{"nvm", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1,
-                        sc_time(1, SC_NS)};
+  Cache m_dut{"dut", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1};
+  NonvolatileMemory nvm{"nvm", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1};
 };
 
 SC_MODULE(tester) {

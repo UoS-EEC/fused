@@ -51,14 +51,13 @@ class Nvic : public BusTarget {
   sc_core::sc_out<int> pending{"pending"};
   sc_core::sc_in<int> returning{"returning"};
   sc_core::sc_in<int> active{"active"};
-  sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! clock input
 
   /*------ Methods ------*/
   /**
    * @brief Nvic constructor
    * @param name
    */
-  Nvic(const sc_core::sc_module_name name, const sc_core::sc_time delay);
+  Nvic(const sc_core::sc_module_name name);
 
   /**
    * @brief reset Reset registers and member values to their power-on values,

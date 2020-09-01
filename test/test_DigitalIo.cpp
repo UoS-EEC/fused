@@ -10,6 +10,8 @@
 #include <string>
 #include <systemc>
 #include <tlm>
+#include "mcu/ClockSourceChannel.hpp"
+#include "mcu/ClockSourceIf.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "utilities/Config.hpp"
@@ -28,6 +30,7 @@ SC_MODULE(dut) {
   sc_signal<bool> irq1{"irq1"};
   sc_signal<bool> pwrGood{"pwrGood"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
+  ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
 
   SC_CTOR(dut) {
     for (unsigned int i = 0; i < port.size(); i++) {
@@ -37,9 +40,10 @@ SC_MODULE(dut) {
     m_dut.irq[0].bind(irq0);
     m_dut.irq[1].bind(irq1);
     m_dut.tSocket.bind(iSocket);
+    m_dut.systemClk.bind(clk);
   }
 
-  DigitalIo m_dut{"port", 0, 0x1f, sc_time(1, SC_NS)};
+  DigitalIo m_dut{"port", 0, 0x1f};
 };
 
 SC_MODULE(tester) {

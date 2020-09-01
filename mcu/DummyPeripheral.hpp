@@ -24,12 +24,10 @@ class DummyPeripheral : public BusTarget {
  public:
   DummyPeripheral(const sc_core::sc_module_name name,
                   const std::vector<unsigned char> retvals,
-                  const unsigned startAddress, const unsigned endAddress,
-                  const sc_core::sc_time delay);
+                  const unsigned startAddress, const unsigned endAddress);
 
   DummyPeripheral(const sc_core::sc_module_name name,
-                  const unsigned startAddress, const unsigned endAddress,
-                  const sc_core::sc_time delay);
+                  const unsigned startAddress, const unsigned endAddress);
 
   /**
    * @brief reset do nothing.

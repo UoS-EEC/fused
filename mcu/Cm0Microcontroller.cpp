@@ -26,28 +26,21 @@
 using namespace sc_core;
 
 Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
-    : Microcontroller(nm), m_cpu("CPU", m_cycleTime), bus("bus") {
-  /*
-for (unsigned i = 0; i < nvic_irq.size(); i++) {
-nvic_irq[i].write(false);
-}
-*/
+    : Microcontroller(nm), m_cpu("CPU"), bus("bus") {
   /* ------ Memories ------ */
-  invm = new NonvolatileMemory("invm", ROM_START, ROM_START + ROM_SIZE - 1,
-                               m_cycleTime);
-  dnvm = new NonvolatileMemory("dnvm", NVRAM_START,
-                               NVRAM_START + NVRAM_SIZE - 1, m_cycleTime);
+  invm = new NonvolatileMemory("invm", ROM_START, ROM_START + ROM_SIZE - 1);
+  dnvm =
+      new NonvolatileMemory("dnvm", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1);
 
-  sram = new VolatileMemory("sram", SRAM_START, SRAM_START + SRAM_SIZE - 1,
-                            m_cycleTime);
+  sram = new VolatileMemory("sram", SRAM_START, SRAM_START + SRAM_SIZE - 1);
 
   /* ------ Peripherals ------ */
-  scb = new DummyPeripheral("scb", 0xe000ed00, 0xe000ed8f, m_cycleTime);
-  sysTick = new SysTick("sysTick", m_cycleTime);
-  nvic = new Nvic("nvic", m_cycleTime);
-  mon = new SimpleMonitor("mon", m_cycleTime);
-  outputPort = new OutputPort("outputPort", m_cycleTime);
-  spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10, m_cycleTime);
+  scb = new DummyPeripheral("scb", 0xe000ed00, 0xe000ed8f);
+  sysTick = new SysTick("sysTick");
+  nvic = new Nvic("nvic");
+  mon = new SimpleMonitor("mon");
+  outputPort = new OutputPort("outputPort");
+  spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10);
 
   slaves.push_back(dnvm);
   slaves.push_back(invm);
@@ -61,6 +54,11 @@ nvic_irq[i].write(false);
 
   /* ------------------------ */
 
+  m_cpu.clk.bind(masterClock);
+  for (const auto &s : slaves) {
+    s->systemClk.bind(masterClock);
+  }
+
   // Sort slaves by address
   std::sort(slaves.begin(), slaves.end(),
             [](const BusTarget *a, const BusTarget *b) {
@@ -73,7 +71,6 @@ nvic_irq[i].write(false);
 
   // Clocks
   sysTick->clk.bind(masterClock);
-  nvic->clk.bind(masterClock);
   spi->clk.bind(peripheralClock);
 
   // Interrupts

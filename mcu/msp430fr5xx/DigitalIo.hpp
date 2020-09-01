@@ -29,10 +29,9 @@ class DigitalIo : public BusTarget {
   /**
    * @brief DigitalIo Constructor: initialise registers
    * @param name
-   * @param delay Bus access delay
    */
   DigitalIo(sc_core::sc_module_name name, const uint16_t startAddress,
-            const uint16_t endAddress, const sc_core::sc_time delay);
+            const uint16_t endAddress);
 
   /**
    * @brief reset Resets the IO registers to their default power-up values

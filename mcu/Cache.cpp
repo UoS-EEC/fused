@@ -38,8 +38,8 @@ void CacheSet::reset() {
 }
 
 Cache::Cache(const sc_module_name name, const unsigned startAddress,
-             const unsigned endAddress, const sc_time delay)
-    : BusTarget(name, startAddress, endAddress, delay) {
+             const unsigned endAddress)
+    : BusTarget(name, startAddress, endAddress) {
   iSocket.bind(*this);
 
   // Config
@@ -133,7 +133,7 @@ void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   auto &line = m_sets[index(addr)].lines[lineIdx];
 
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
-    m_writeEvent.notify(delay + m_delay);
+    m_writeEvent.notify(delay + systemClk->getPeriod());
     m_elog.increment(m_writeEventId);
     m_elog.increment(m_nBytesWrittenEvent, len);
 
@@ -188,7 +188,7 @@ void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
         break;
     }
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
-    m_readEvent.notify(delay + m_delay);
+    m_readEvent.notify(delay + systemClk->getPeriod());
     m_elog.increment(m_readEventId);
     m_elog.increment(m_nBytesReadEvent, trans.get_data_length());
 
@@ -212,7 +212,7 @@ void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     SC_REPORT_FATAL(this->name(), "Transaction command not supported.");
   }
 
-  delay += m_delay;
+  delay += systemClk->getPeriod();
   trans.set_response_status(tlm::TLM_OK_RESPONSE);
 }
 

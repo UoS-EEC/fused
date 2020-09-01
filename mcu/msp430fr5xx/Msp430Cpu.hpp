@@ -15,6 +15,7 @@
 #include <systemc>
 #include <tlm>
 #include <unordered_set>
+#include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -22,11 +23,12 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
  public:
   /*------ Ports ------*/
   tlm::tlm_initiator_socket<> iSocket{"iSocket"};  //! TLM initiator socket
-  sc_core::sc_in<bool> irq{"irq_in"};              //! Interrupt request line
-  sc_core::sc_in<unsigned> irqIdx{"irqIdx"};       //! Irq source index
-  sc_core::sc_in<bool> pwrOn{"pwrOn"};             //! "power-good" signal
-  sc_core::sc_in<bool> busStall{"busStall"};       //! indicate busy bus
-  sc_core::sc_out<bool> ira{"ira_out"};            //! irq accepted
+  sc_core::sc_port<ClockSourceConsumerIf> mclk{"mclk"};
+  sc_core::sc_in<bool> irq{"irq_in"};         //! Interrupt request line
+  sc_core::sc_in<unsigned> irqIdx{"irqIdx"};  //! Irq source index
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};        //! "power-good" signal
+  sc_core::sc_in<bool> busStall{"busStall"};  //! indicate busy bus
+  sc_core::sc_out<bool> ira{"ira_out"};       //! irq accepted
 
   //! Decides whether to wait for peripheral's ack of IRA asserted or
   //! just wait one cycle
@@ -38,8 +40,8 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   /*------ Methods ------*/
   SC_HAS_PROCESS(Msp430Cpu);
 
-  Msp430Cpu(sc_core::sc_module_name name, sc_core::sc_time cycleTime,
-            bool logOperation = false, bool logInstruction = false);
+  Msp430Cpu(const sc_core::sc_module_name name, const bool logOperation = false,
+            const bool logInstruction = false);
 
   /**
    * @brief writeMem: Callback function for write operations to memory by
@@ -58,7 +60,7 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
    * @brief waitCycles wait nCycles clock cycles.
    * @param nCycles  number of clock cycles to wait
    */
-  void waitCycles(unsigned nCycles) { sc_core::wait(nCycles * m_cycleTime); }
+  void waitCycles(unsigned nCycles) { sc_core::wait(mclk->getPeriod()); }
 
   /**
    * @brief dbg_readReg Read register value without consuming simulation
@@ -143,8 +145,6 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
     exit(1);
   }
   /* ------ Public variables ------ */
-  const sc_core::sc_time m_cycleTime;  //! CPU clock period
-
  private:
   /* ------ Types ----- */
 

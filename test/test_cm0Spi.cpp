@@ -33,9 +33,11 @@ SC_MODULE(dut) {
   sc_signal<int> active_exception{"active_exception", -1};
   sc_signal<bool> irq{"irq"};
   ClockSourceChannel spiclk{"spiclk", sc_time(1, SC_US)};
+  ClockSourceChannel sysclk{"sysclk", sc_time(1, SC_NS)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
+    m_dut.systemClk.bind(sysclk);
     m_dut.tSocket.bind(iSocket);
     m_dut.spiSocket.bind(spiSocket);
     m_dut.clk.bind(spiclk);
@@ -60,7 +62,7 @@ SC_MODULE(dut) {
 
   bool checkPayload(const unsigned c) const { return m_lastPayload == c; }
 
-  Spi m_dut{"dut", 0, 0xff, sc_time(1, SC_NS)};
+  Spi m_dut{"dut", 0, 0xff};
 
   // Variables
   tlm::tlm_generic_payload m_lastTransaction;

@@ -27,17 +27,19 @@ SC_MODULE(dut) {
   sc_signal<bool> irq{"irq"};
   sc_signal<int> returning_exception{"returning_exception", -1};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
+  ClockSourceChannel sysclk{"sysclk", sc_time(1, SC_NS)};
   ClockSourceChannel clk{"clk", sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
+    m_dut.systemClk.bind(sysclk);
     m_dut.tSocket.bind(iSocket);
     m_dut.clk.bind(clk);
     m_dut.irq.bind(irq);
     m_dut.returning_exception.bind(returning_exception);
   }
 
-  SysTick m_dut{"dut", sc_time(1, SC_NS)};
+  SysTick m_dut{"dut"};
 };
 
 SC_MODULE(tester) {

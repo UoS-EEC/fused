@@ -42,10 +42,9 @@ class eUSCI_B : public BusTarget {
    * @param name
    * @param control register start address
    * @param control register end address
-   * @param delay Bus access delay
    */
   eUSCI_B(sc_core::sc_module_name name, const uint16_t startAddress,
-          const uint16_t endAddress, const sc_core::sc_time delay);
+          const uint16_t endAddress);
 
   /**
    * @brief b_transport Blocking reads and writes to the config/control

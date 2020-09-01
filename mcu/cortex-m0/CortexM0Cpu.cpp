@@ -23,8 +23,7 @@ struct CPU cpu;
 CortexM0Cpu *m_ctx =
     nullptr;  //! Simulation context used for hooking callbacks into thumbulator
 
-CortexM0Cpu::CortexM0Cpu(sc_module_name nm, sc_time cycleTime)
-    : m_cycleTime(cycleTime), sc_module(nm) {
+CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
   iSocket.bind(*this);
   m_ctx = this;
 
@@ -108,7 +107,7 @@ void CortexM0Cpu::process() {
           auto exCycles = exwbmem(insn);
           if (exCycles > 0) {
             // Extra cycles spent for special instructions.
-            wait(m_cycleTime * exCycles);
+            wait(clk->getPeriod() * exCycles);
           }
         }
 
@@ -335,7 +334,7 @@ void CortexM0Cpu::write_cb(const uint32_t addr, uint8_t *const data,
 }
 
 void CortexM0Cpu::consume_cycles_cb(const size_t n) {
-  sc_time delay = n * m_ctx->m_cycleTime;
+  sc_time delay = n * m_ctx->clk->getPeriod();
   m_ctx->wait(delay);
   EventLog::getInstance().increment(m_ctx->m_idleCyclesEvent);
 }
@@ -472,7 +471,7 @@ std::ostream &operator<<(std::ostream &os, const CortexM0Cpu &rhs) {
   // clang-format off
   os << "<CortexM0Cpu> " << rhs.name()
     << "\nPower: " << rhs.pwrOn.read()
-    << "\nClock period: " << rhs.m_cycleTime
+    << "\nClock period: " << rhs.clk->getPeriod()
     << "\nactiveException: " << rhs.activeException.read()
     << "\nreturningException: " << rhs.returningException.read()
     << "\nNVIC irq: " << rhs.nvicIrq.read()
@@ -482,7 +481,7 @@ std::ostream &operator<<(std::ostream &os, const CortexM0Cpu &rhs) {
     os << i << ", ";
   }
   os << "]\n";
-  os << "\nCPU regs:" << rhs.m_cycleTime;
+  os << "\nCPU regs:";
   for (int i = 0; i <=12; i++) {
     os << fmt::format("\n\tR{:02d}: 0x{:08x}", i, cpu.gpr[i]);
   }

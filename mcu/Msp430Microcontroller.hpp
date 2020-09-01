@@ -209,7 +209,6 @@ class Msp430Microcontroller : public Microcontroller {
   void process(void);
 
   /* ------ Constants ------ */
-  const sc_core::sc_time m_cycleTime{125, sc_core::SC_NS};
 
   /* ------ Private variables ------ */
 

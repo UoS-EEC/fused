@@ -24,13 +24,12 @@ extern "C" {
 using namespace sc_core;
 
 Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
-    : Microcontroller(nm), m_cpu("CPU", m_cycleTime, false, false), bus("bus") {
+    : Microcontroller(nm), m_cpu("CPU", false, false), bus("bus") {
   /* ------ Memories ------ */
-  cache = new Cache("cache", FRAM_START, 0xff7f, m_cycleTime);
-  fram = new NonvolatileMemory("fram", FRAM_START, 0xff7f, m_cycleTime);
-  vectors = new GenericMemory("vectors", 0xff80, 0xffff, m_cycleTime);
-  sram = new VolatileMemory("sram", RAM_START, RAM_START + 0x2000 - 1,
-                            m_cycleTime);
+  cache = new Cache("cache", FRAM_START, 0xff7f);
+  fram = new NonvolatileMemory("fram", FRAM_START, 0xff7f);
+  vectors = new GenericMemory("vectors", 0xff80, 0xffff);
+  sram = new VolatileMemory("sram", RAM_START, RAM_START + 0x2000 - 1);
 
   /* ------ Peripherals ------ */
   std::vector<unsigned char> zeroRetval(0x800, 0);    // Read reg's as 0s
@@ -38,27 +37,25 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   refgenRetVal[OFS_REFCTL0 + 1] = static_cast<uint8_t>(REFGENRDY >> 8);
   refgenRetVal[OFS_REFCTL0] = static_cast<uint8_t>(REFGENRDY & 0xff);
 
-  pmm = new PowerManagementModule("pmm", /*delay=*/m_cycleTime);
-  adc = new Adc12("Adc", m_cycleTime);
-  refgen = new DummyPeripheral("refgen", refgenRetVal, REF_A_BASE,
-                               REF_A_BASE + 1, m_cycleTime);
-  fram_ctl = new Frctl_a("FRAM_CTL_A", m_cycleTime);
-  watchdog = new DummyPeripheral("watchdog", zeroRetval, WDT_A_BASE,
-                                 WDT_A_BASE + 1, m_cycleTime);
-  mon = new SimpleMonitor("mon", m_cycleTime);
-  portJ = new DummyPeripheral("portJ", zeroRetval, PJ_BASE, PJ_BASE + 0x16,
-                              m_cycleTime);
-  portA = new DigitalIo("portA", PA_BASE, PA_BASE + 0x1f, m_cycleTime);
-  portB = new DigitalIo("portB", PB_BASE, PB_BASE + 0x1f, m_cycleTime);
-  portC = new DigitalIo("portC", PC_BASE, PC_BASE + 0x1f, m_cycleTime);
-  portD = new DigitalIo("portD", PD_BASE, PD_BASE + 0x1f, m_cycleTime);
-  cs = new ClockSystem("cs", CS_BASE, m_cycleTime);
-  tima = new TimerA("tima", TA0_BASE, m_cycleTime);
+  pmm = new PowerManagementModule("pmm");
+  adc = new Adc12("Adc");
+  refgen =
+      new DummyPeripheral("refgen", refgenRetVal, REF_A_BASE, REF_A_BASE + 1);
+  fram_ctl = new Frctl_a("FRAM_CTL_A");
+  watchdog =
+      new DummyPeripheral("watchdog", zeroRetval, WDT_A_BASE, WDT_A_BASE + 1);
+  mon = new SimpleMonitor("mon");
+  portJ = new DummyPeripheral("portJ", zeroRetval, PJ_BASE, PJ_BASE + 0x16);
+  portA = new DigitalIo("portA", PA_BASE, PA_BASE + 0x1f);
+  portB = new DigitalIo("portB", PB_BASE, PB_BASE + 0x1f);
+  portC = new DigitalIo("portC", PC_BASE, PC_BASE + 0x1f);
+  portD = new DigitalIo("portD", PD_BASE, PD_BASE + 0x1f);
+  cs = new ClockSystem("cs", CS_BASE);
+  tima = new TimerA("tima", TA0_BASE);
   interruptArbiter = new InterruptArbiter<37>("interruptArbiter", false);
-  mpy32 = new Mpy32("mpy32", MPY32_BASE, MPY32_BASE + 0x2f, m_cycleTime);
-  euscib =
-      new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2f, m_cycleTime);
-  dma = new Dma("Dma", m_cycleTime);
+  mpy32 = new Mpy32("mpy32", MPY32_BASE, MPY32_BASE + 0x2f);
+  euscib = new eUSCI_B("eUSCI_B", EUSCI_B0_BASE, EUSCI_B0_BASE + 0x2f);
+  dma = new Dma("Dma");
 
   slaves.push_back(cache);
   slaves.push_back(fram_ctl);
@@ -96,6 +93,12 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   }
 
   // Clocks
+  m_cpu.mclk.bind(mclk);
+  for (const auto &s : slaves) {
+    s->systemClk.bind(mclk);
+  }
+  fram->systemClk.bind(mclk);
+
   cs->aclk.bind(aclk);
   cs->smclk.bind(smclk);
   cs->mclk.bind(mclk);
@@ -112,8 +115,6 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
 
   euscib->aclk.bind(aclk);
   euscib->smclk.bind(smclk);
-
-  dma->clk.bind(mclk);
 
   // Interrupts
   m_cpu.ira.bind(cpu_ira);

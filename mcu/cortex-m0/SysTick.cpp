@@ -10,8 +10,8 @@
 
 using namespace sc_core;
 
-SysTick::SysTick(const sc_module_name name, const sc_time delay)
-    : BusTarget(name, SYST_BASE, SYST_END, delay) {
+SysTick::SysTick(const sc_module_name name)
+    : BusTarget(name, SYST_BASE, SYST_END) {
   // Methods
   SC_METHOD(process);
   sensitive << m_expiredEvent;

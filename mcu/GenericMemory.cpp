@@ -15,8 +15,8 @@
 using namespace sc_core;
 
 GenericMemory::GenericMemory(sc_module_name name, unsigned startAddress,
-                             unsigned endAddress, sc_time delay)
-    : BusTarget(name, startAddress, endAddress, delay),
+                             unsigned endAddress)
+    : BusTarget(name, startAddress, endAddress),
       mem(std::make_unique<uint8_t[]>(endAddress - startAddress + 1)),
       m_capacity(endAddress - startAddress + 1) {
   // Register events to be logged
@@ -34,19 +34,19 @@ void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
 
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     std::memcpy(&mem[addr], data, len);
-    m_writeEvent.notify(delay + m_delay);
+    m_writeEvent.notify(delay + systemClk->getPeriod());
     m_elog.increment(m_writeEventId);
     m_elog.increment(m_nBytesWrittenEventId, len);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     std::memcpy(data, &mem[addr], len);
-    m_readEvent.notify(delay + m_delay);
+    m_readEvent.notify(delay + systemClk->getPeriod());
     m_elog.increment(m_readEventId);
     m_elog.increment(m_nBytesReadEventId, len);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }
 
-  delay += m_delay;
+  delay += systemClk->getPeriod();
   trans.set_response_status(tlm::TLM_OK_RESPONSE);
 }
 

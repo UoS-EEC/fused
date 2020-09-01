@@ -16,8 +16,7 @@
 typedef unsigned __int128 uint128_t;
 
 /**
- * @brief The Mpy32 class : 32 bit fix delay multiplier
- * IO outputs
+ * @brief The Mpy32 class : 32 bit fixed delay multiplier
  */
 class Mpy32 : public BusTarget {
   SC_HAS_PROCESS(Mpy32);
@@ -29,10 +28,9 @@ class Mpy32 : public BusTarget {
   /**
    * @brief Mpy32 Constructor: initialise registers
    * @param name
-   * @param delay Bus access delay
    */
   Mpy32(sc_core::sc_module_name name, const uint16_t startAddress,
-        const uint16_t endAddress, const sc_core::sc_time delay);
+        const uint16_t endAddress);
 
   /**
    * @brief b_transport Blocking reads and writes. Overridden to set state

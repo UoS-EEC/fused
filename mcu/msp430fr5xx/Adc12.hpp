@@ -63,7 +63,7 @@ class Adc12 : public BusTarget {
    * @param name
    * @param delay Bus access delay
    */
-  Adc12(const sc_core::sc_module_name name, const sc_core::sc_time delay);
+  Adc12(const sc_core::sc_module_name name);
 
   /**
    * @brief b_transport Blocking reads and writes
