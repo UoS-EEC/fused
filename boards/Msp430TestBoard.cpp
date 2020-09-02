@@ -66,24 +66,6 @@ SC_MODULE(DummyModule){
 };
 // clang-format on
 
-// Custom reset controller for this module
-SC_MODULE(ResetCtrl) {
- public:
-  // Ports
-  sc_in<double> vcc{"vcc"};
-  sc_out<bool> nReset{"nReset"};
-
-  SC_CTOR(ResetCtrl) {
-    m_vCore = Config::get().getDouble("CpuCoreVoltage");
-    SC_METHOD(process);
-    sensitive << vcc;
-  }
-
- private:
-  double m_vCore;
-  void process() { nReset.write(vcc.read() > m_vCore); }
-};
-
 int sc_main(int argc, char *argv[]) {
   // sc_set_time_resolution(1, SC_NS);
   int rspPort = DEFAULT_RSP_PORT;
