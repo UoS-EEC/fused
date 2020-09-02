@@ -9,6 +9,7 @@ cmake_minimum_required(VERSION 3.13)
 
 add_library(
   Microcontroller
+  Bus.cpp
   Bus.hpp
   BusTarget.cpp
   BusTarget.hpp
