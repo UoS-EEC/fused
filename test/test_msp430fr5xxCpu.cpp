@@ -203,7 +203,6 @@ SC_MODULE(tester) {
      * Format II (Single-operand)
      *************************************************************************/
     // TEST -- CALL rn
-    /*
     spdlog::info("TEST: CALL r8");
     test.reset();
     test.m_dut.dbg_writeReg(SP_REGNUM, 0xaa);  // Initialise SP
@@ -212,22 +211,11 @@ SC_MODULE(tester) {
     writeMemory16(0xa, 0x4303);                // NOP
 
     wait(1 * test.m_dut.mclk->getPeriod());  // 1 Cycle of sleep after reset
-    // wait(4 * test.m_dut.mclk->getPeriod());  // Execute CALL
-    std::cout << test.m_dut;
-    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
-    std::cout << test.m_dut;
-    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
-    std::cout << test.m_dut;
-    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
-    std::cout << test.m_dut;
-    wait(1 * test.m_dut.mclk->getPeriod());  // Execute CALL
-    std::cout << test.m_dut;
+    wait(4 * test.m_dut.mclk->getPeriod());  // Execute CALL
     wait(SC_ZERO_TIME);
-    std::cout << test.m_dut;
-    sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0xa);
-    sc_assert(test.m_dut.dbg_readReg(SP_REGNUM) == 0xa8);
-    sc_assert(readMemory16(0xa8) == 0x00);
-    */
+    sc_assert(test.m_dut.dbg_readReg(PC_REGNUM) == 0xa);   // PC == Call target
+    sc_assert(test.m_dut.dbg_readReg(SP_REGNUM) == 0xa8);  // SP-=2
+    sc_assert(readMemory16(0xa8) == 0x02);  // Check return PC pushed
 
     // TEST -- PUSH rn
     spdlog::info("TEST: PUSH r8");

@@ -646,7 +646,7 @@ void Msp430Cpu::executeSingleOpInstruction(uint16_t opcode) {
     case 5:  // CALL
       // Push PC
       setSp(getSp() - 2);
-      writeback(getSp(), getPc(), true /*toMemory*/, false /*byteNotWord*/);
+      writeback(getSp(), getPc(), /*toMemory=*/true, /*byteNotWord=*/false);
 
       // Jump
       setPc(operand.val);
