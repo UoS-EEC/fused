@@ -28,11 +28,7 @@ class SimulationController : public SimulationControlInterface {
   virtual ~SimulationController() override {}
 
   // Control and report
-  virtual void kill() override {
-    // Unstall systemc and kill simulation
-    m_mcu->unstall();
-    m_mcu->kill();
-  }
+  virtual void kill() override;
 
   virtual void reset() override { m_mcu->reset(); }
   virtual void stall() override { m_mcu->stall(); }
@@ -68,7 +64,7 @@ class SimulationController : public SimulationControlInterface {
   //  Target info
   virtual uint32_t pcRegNum() override { return m_mcu->pc_regnum(); }
   virtual uint32_t nRegs() override { return m_mcu->n_regs(); }
-  virtual uint32_t wordSize() override { return TARGET_WORD_SIZE; }
+  virtual uint32_t wordSize() override;
 
   // Target utilities
   virtual uint32_t htotl(uint32_t hostVal) override {
