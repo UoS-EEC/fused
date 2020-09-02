@@ -17,7 +17,5 @@ env:
     FUSED_ROOT=${PWD}/fused
 
 script:
-  - cmake -Bbuild -GNinja -D TARGET_ARCH=cm0
-  - cmake --build build
-  - cmake -Bbuild -GNinja -D TARGET_ARCH=msp430
+  - cmake -Bbuild -GNinja
   - cmake --build build
