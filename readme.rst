@@ -29,7 +29,7 @@ Some key features of Fused include:
 * Executes unmodified binaries to be deployed on real hardware;
 * Allows modelling of complex external circuitry through SystemC-AMS.
 
-Fused was presented at the 2020 ISPASS conference, the 
+Fused was presented at the 2020 ISPASS conference, the
 `Fused presentation video`_ is available on YouTube.
 Please cite the following paper when using Fused in your research.
 
@@ -48,6 +48,9 @@ Directory structure
 +----------------------+-----------------------------------------------------+
 | Directory            | Content                                             |
 +======================+=====================================================+
+| boards               | Board-level models. These are the executables of    |
+|                      | Fused.                                             |
++----------------------+-----------------------------------------------------+
 | config               | Configuration files and power-model coefficients.   |
 +----------------------+-----------------------------------------------------+
 | doc                  | Documentation                                       |
@@ -106,18 +109,18 @@ follows:
 The first time you run this might take a while, as Docker downloads the
 prebuilt image.
 
-Within this session, you can build and run *Fused*. To build *Fused* run the following commands:
+Within this session, you can build and run *Fused*. To build *Fused* run the
+following commands:
 
 .. code-block:: bash
 
     #in docker session
     $> mkdir build && cd build
-    $> cmake .. -GNinja -DTARGET_ARCH=msp430
+    $> cmake .. -GNinja
     $> ninja
 
-Note that ``TARGET_ARCH`` can be either ``cm0`` or ``msp430`` for the *Arm
-Cortex-M0* or *MSP430FR5994* targets, respectively. Usage of *Fused* is
-described in `Basic usage`_.
+All boards within ``boards/`` will then be built. Usage of *Fused* is described
+in `Basic usage`_.
 
 If you need to rebuild the docker image, e.g. to modify one of the
 dependencies or add some tools to the image, run the following command:
@@ -168,18 +171,16 @@ lines to your ``~/.bashrc`` (or your shell's equivalent):
     export PATH="${HOME}/.local/msp430-gcc/bin:${PATH}"
     export PATH="${HOME}/.local/arm-gcc/bin:${PATH}"
 
-Now, to build *Fused*, disable ``INSTALL_DEPENDENCIES`` and select a target
-platform (``cm0`` for *Arm Cortex-M0* or ``msp430`` for *MSP430FR5994*):
+Now, to build Fused boards, disable ``INSTALL_DEPENDENCIES`` and rebuild:
 
 .. code-block:: bash
 
     # in fused/build
-    $> cmake .. -GNinja -DINSTALL_DEPENDENCIES=OFF -DTARGET_ARCH=msp430
+    $> cmake .. -GNinja -DINSTALL_DEPENDENCIES=OFF
     $> ninja
 
-
-Once the this has completed, there will be a ``fused`` executable in the
-``build`` folder.
+Once the this has completed, there will be a number of executables in the
+``build/boards/`` folder, one for each board.
 
 Build workloads / target software
 =================================
@@ -195,10 +196,22 @@ build folder and run CMake.
     $> ninja
 
 Make sure to completely clear the ``build`` directory if you build for one
-target then switch to another.
+target and then switch to another.
 
 Basic usage
 ===========
+
+Launch a fused-prototype/board from the build folder, the basic command is:
+
+.. code-block:: bash
+
+    $>./boards/<board>
+
+So to launch the ``Msp430TestBoard`` it'll be:
+
+.. code-block:: bash
+
+    $>./boards/Msp430TestBoard
 
 When Fused is launched, it will load configuration options from the
 ``config.yaml`` file located in the ``build`` directory, then optionally start
@@ -214,7 +227,7 @@ hex-file:
 .. code-block:: bash
 
    # in fused/build
-   $> ./fused -x <path/to/program.hex>
+   $> ./Msp430TestBoard -x <path/to/program.hex>
 
 Alternatively, set up `<config/config.yaml.in>`_ with ``GdbServer: False`` and
 ``ProgramHexFile: <path/to/program.hex>``, then rerun CMake/rebuild to update
