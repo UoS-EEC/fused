@@ -12,8 +12,6 @@
 
 //! Default port for RSP to listen on
 #define DEFAULT_RSP_PORT 51000
-//#define TARGET_LITTLE_ENDIAN
-//#define TARGET_WORD_SIZE 4
 
 #include <spdlog/spdlog.h>
 #include <chrono>
@@ -25,6 +23,7 @@
 #include <systemc>
 #include <thread>
 #include "mcu/Microcontroller.hpp"
+#include "mcu/Msp430Microcontroller.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
 #include "ps/ExternalCircuitry.hpp"
@@ -36,12 +35,6 @@
 
 #ifdef GDB_SERVER
 #include <gdb-server/GdbServer.hpp>
-#endif
-
-#ifdef CM0_ARCH
-#include "mcu/Cm0Microcontroller.hpp"
-#elif defined(MSP430_ARCH)
-#include "mcu/Msp430Microcontroller.hpp"
 #endif
 
 using namespace sc_core;
@@ -110,28 +103,6 @@ int sc_main(int argc, char *argv[]) {
   sc_signal<bool> chipSelectDummySpi{"chipSelectDummySpi", false};
 
   // Instantiate microcontroller
-#ifdef CM0_ARCH
-  ResetCtrl resetCtrl("resetCtrl");
-  resetCtrl.vcc.bind(vcc);
-  resetCtrl.nReset.bind(nReset);
-  Cm0Microcontroller *mcu = new Cm0Microcontroller("mcu");
-
-  // IO/interrupts ports
-  std::array<sc_signal<bool>, 16> externalIrq;
-  std::array<sc_signal<bool>, 32> mcuOutputPort;
-  for (unsigned i = 0; i < mcuOutputPort.size(); i++) {
-    mcu->outputPort->pins[i].bind(mcuOutputPort[i]);
-  }
-  for (unsigned i = 0; i < mcu->externalIrq.size(); i++) {
-    mcu->externalIrq[i].bind(externalIrq[i]);
-  }
-
-  // Instantiate off-chip serial devices
-  DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
-  dummySpiDevice->nReset.bind(nReset);
-  dummySpiDevice->chipSelect.bind(chipSelectDummySpi);
-  dummySpiDevice->tSocket.bind(mcu->spi->spiSocket);
-#elif defined(MSP430_ARCH)
   Msp430Microcontroller *mcu = new Msp430Microcontroller("mcu");
   mcu->pmm->pwrGood.bind(nReset);
 
@@ -152,7 +123,6 @@ int sc_main(int argc, char *argv[]) {
   dummySpiDevice->nReset.bind(nReset);
   dummySpiDevice->chipSelect.bind(chipSelectDummySpi);
   dummySpiDevice->tSocket.bind(mcu->euscib->iEusciSocket);
-#endif
 
   // Print memory map
   std::cout << "------ MCU construction complete ------\n" << mcu->bus;
@@ -179,17 +149,12 @@ int sc_main(int argc, char *argv[]) {
   ExternalCircuitry ext("ext");
   ext.i_out.bind(totMcuConsumption);
   ext.vcc.bind(vcc);
-#if defined(MSP430_ARCH)
   ext.keepAlive(DIOCPins[8]);  // P6.0 Keep alive
   // Stop simulation after <configurable> io toggles
   IoSimulationStopper simStopper("PA2Stopper");
   simStopper.in(DIOAPins[2]);
   sc_signal<bool> dummysig{"dummysig"};
   ext.v_warn.bind(dummysig);
-#elif defined(CM0_ARCH)
-  ext.keepAlive(mcuOutputPort[0]);
-  ext.v_warn.bind(externalIrq[0]);
-#endif
 
   // Set up output folder
   // When <filesystem> is available:
@@ -207,7 +172,6 @@ int sc_main(int argc, char *argv[]) {
   auto *vcdfile = sca_util::sca_create_vcd_trace_file(
       (Config::get().getString("OutputDirectory") + "/ext.vcd").c_str());
 
-#if defined(MSP430_ARCH)
   for (int i = 0; i < DIOAPins.size(); ++i) {
     sca_trace(vcdfile, DIOAPins[i], fmt::format("PA{:02d}", i));
     sca_trace(vcdfile, DIOBPins[i], fmt::format("PB{:02d}", i));
@@ -222,19 +186,6 @@ int sc_main(int argc, char *argv[]) {
               fmt::format("dma_channel{:02d}_trigger", i));
   }
   sca_trace(vcdfile, mcu->cpuStall, "cpuStall");
-#elif defined(CM0_ARCH)
-  for (int i = 0; i < mcuOutputPort.size(); ++i) {
-    sca_trace(vcdfile, mcuOutputPort[i], fmt::format("P{:02d}", i));
-  }
-  for (int i = 0; i < mcu->nvic->irq.size(); ++i) {
-    sca_trace(vcdfile, mcu->nvic->irq[i], fmt::format("NVIC.irqIn[{:02d}]", i));
-  }
-  sca_trace(vcdfile, mcu->nvic_pending, "NVIC.pendingIrq");
-  sca_trace(vcdfile, mcu->cpu_active_exception, "CPU.ActiveException");
-  sca_trace(vcdfile, mcu->cpu_returning_exception, "CPU.ReturningException");
-  sca_trace(vcdfile, mcu->spi->irq, "SPI.irq");
-  sca_trace(vcdfile, mcu->systick_irq, "SysTick.irq");
-#endif
 
   // Creates a csv-like file
   auto *tabfile = sca_util::sca_create_tabular_trace_file(

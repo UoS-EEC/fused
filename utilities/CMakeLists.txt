@@ -6,20 +6,44 @@
 #
 
 cmake_minimum_required(VERSION 2.8)
-add_library(
-  Utilities
+
+set(SOURCES
   Config.cpp
   Config.hpp
   Utilities.cpp
   Utilities.hpp
   IoSimulationStopper.hpp
   SimpleMonitor.hpp
+  SimulationController.cpp
   SimulationController.hpp
   )
 
+add_library(Cm0Utilities ${SOURCES})
+
 target_link_libraries(
-    Utilities
-    PRIVATE systemc-ams
-    PRIVATE systemc
-    PRIVATE yaml-cpp
-    )
+  Cm0Utilities
+  PRIVATE systemc-ams
+  PRIVATE systemc
+  PRIVATE yaml-cpp
+  )
+
+target_compile_definitions(
+  Cm0Utilities
+  PRIVATE TARGET_LITTLE_ENDIAN
+  PRIVATE TARGET_WORD_SIZE=4
+  )
+
+add_library(Msp430Utilities ${SOURCES})
+
+target_link_libraries(
+  Msp430Utilities
+  PRIVATE systemc-ams
+  PRIVATE systemc
+  PRIVATE yaml-cpp
+  )
+
+target_compile_definitions(
+  Msp430Utilities
+  PRIVATE TARGET_LITTLE_ENDIAN
+  PRIVATE TARGET_WORD_SIZE=2
+  )

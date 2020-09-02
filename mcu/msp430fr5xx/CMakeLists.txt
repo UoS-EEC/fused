@@ -6,7 +6,7 @@
 #
 
 add_library(
-  Msp430fr5xx
+  Msp430Peripherals
   Adc12.cpp
   Adc12.hpp
   ClockSystem.cpp
@@ -29,17 +29,12 @@ add_library(
   TimerA.hpp
   )
 
-target_link_libraries(Msp430fr5xx
+target_link_libraries(Msp430Peripherals
   PUBLIC
     systemc
     PowerSystem
-    Utilities
+    Msp430Utilities
     spdlog::spdlog
-    Microcontroller
-  )
-
-target_compile_options(
-  Msp430fr5xx PRIVATE "-Wno-unknown-pragmas"
   )
 
 add_library(
@@ -50,13 +45,20 @@ add_library(
 
 target_link_libraries(Msp430Cpu
   PUBLIC
-    Msp430fr5xx
     systemc
     PowerSystem
-    Utilities
+    Msp430Utilities
     spdlog::spdlog
   )
 
-target_compile_options(
-  Msp430Cpu PRIVATE "-Wno-unknown-pragmas"
+target_compile_definitions(
+  Msp430Cpu
+  PUBLIC
+    MSP430_ARCH
+    TARGET_LITTLE_ENDIAN
+    TARGET_WORD_SIZE=2
+    REG_PC=0
+    REG_SP=1
+    REG_SR=2
+    NUM_REGS=16
   )

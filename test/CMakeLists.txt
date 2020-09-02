@@ -6,39 +6,61 @@
 #
 
 # ------ Generic module tests ------
-add_executable(testClockSourceChannel test_ClockSourceChannel.cpp)
-target_link_libraries(testClockSourceChannel PRIVATE systemc)
+add_executable(testClockSourceChannel
+  test_ClockSourceChannel.cpp)
+target_link_libraries(testClockSourceChannel
+  PRIVATE
+    systemc
+    Cm0Microcontroller)
 
-add_executable(testCache test_Cache.cpp)
+# ------ Cache ------
+add_executable(testMsp430Cache
+  test_Cache.cpp
+  )
 
-target_link_libraries(testCache
+target_link_libraries(
+  testMsp430Cache
   PRIVATE
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
-    Microcontroller
+    Msp430Utilities
+    Msp430Microcontroller
   )
 
-add_executable(testRegisterFile
+target_compile_definitions(
+  testMsp430Cache
+  PRIVATE
+    MSP430_ARCH
+    TARGET_WORD_SIZE=2
+  )
+
+# ------ RegisterFile ------
+add_executable(testMsp430RegisterFile
   test_RegisterFile.cpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/RegisterFile.hpp
 )
 
-target_link_libraries(testRegisterFile
+target_link_libraries(
+  testMsp430RegisterFile
   PRIVATE
-    Utilities
+    Msp430Utilities
+    Msp430Microcontroller
   )
 
+add_executable(testCm0RegisterFile
+  test_RegisterFile.cpp
+)
+
+target_link_libraries(
+  testCm0RegisterFile
+  PRIVATE
+    Cm0Utilities
+    Cm0Microcontroller
+  )
+
+# ------ BME280 ------
 add_executable(testBme280
   test_Bme280.cpp
-  ../sd/Bme280.cpp
-  ../sd/Bme280.hpp
-  ../sd/SpiDevice.cpp
-  ../sd/SpiDevice.hpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/SpiTransactionExtension.hpp
 )
 
 target_link_libraries(testBme280
@@ -46,11 +68,12 @@ target_link_libraries(testBme280
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
+    SerialDevices
+    Msp430Utilities
+    Msp430Microcontroller
   )
 
-# ------ Target-specific tests ------
-IF(${TARGET_ARCH} STREQUAL "msp430")
+# ------ MSP430 DigitalIo ------
 add_executable(testDigitalIo
   test_DigitalIo.cpp
 )
@@ -59,10 +82,10 @@ target_link_libraries(testDigitalIo
   PRIVATE
     PowerSystem
     systemc
-    Msp430fr5xx
-    Microcontroller
+    Msp430Microcontroller
 )
 
+# ------ MSP430 ClockSystem ------
 add_executable(testMsp430fr5xxClockSystem test_msp430fr5xxClockSystem.cpp)
 
 target_link_libraries(testMsp430fr5xxClockSystem
@@ -70,10 +93,11 @@ target_link_libraries(testMsp430fr5xxClockSystem
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
-    Microcontroller
+    Msp430Utilities
+    Msp430Microcontroller
   )
 
+# ------ MSP430 TimerA ------
 add_executable(testMsp430fr5xxTimerA test_msp430fr5xxTimerA.cpp)
 
 target_link_libraries(testMsp430fr5xxTimerA
@@ -81,17 +105,13 @@ target_link_libraries(testMsp430fr5xxTimerA
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
-    Microcontroller
+    Msp430Utilities
+    Msp430Microcontroller
   )
 
+# ------ MSP430 EUSCI_B ------
 add_executable(testMsp430fr5xxeUsciB
   test_msp430fr5xxeUsciB.cpp
-  ../mcu/BusTarget.cpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/SpiTransactionExtension.hpp
-  ../mcu/msp430fr5xx/eUSCI_B.hpp
-  ../mcu/msp430fr5xx/eUSCI_B.cpp
 )
 
 target_link_libraries(testMsp430fr5xxeUsciB
@@ -99,19 +119,14 @@ target_link_libraries(testMsp430fr5xxeUsciB
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
+    Msp430Utilities
+    Msp430Microcontroller
+    SerialDevices
   )
 
+# ------ SPI device ------
 add_executable(testSpiDevice
   test_SpiDevice.cpp
-  ../sd/SpiDevice.hpp
-  ../sd/SpiDevice.cpp
-  ../sd/DummySpiDevice.hpp
-  ../sd/DummySpiDevice.cpp
-  ../mcu/SpiTransactionExtension.hpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/BusTarget.cpp
-  ../ps/DynamicEnergyChannel.hpp
 )
 
 target_link_libraries(testSpiDevice
@@ -119,21 +134,14 @@ target_link_libraries(testSpiDevice
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
+    Msp430Utilities
+    Msp430Microcontroller
+    SerialDevices
   )
 
+# ------ MSP430 DMA ------
 add_executable(testMsp430fr5xxDma
   test_msp430fr5xxDma.cpp
-  ../mcu/msp430fr5xx/Dma.cpp
-  ../mcu/msp430fr5xx/Dma.hpp
-  ../mcu/BusTarget.cpp
-  ../mcu/BusTarget.hpp
-  ../mcu/msp430fr5xx/Dma.cpp
-  ../mcu/msp430fr5xx/Dma.hpp
-  ../mcu/GenericMemory.cpp
-  ../mcu/GenericMemory.hpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/RegisterFile.hpp
   )
 
 target_link_libraries(testMsp430fr5xxDma
@@ -141,16 +149,13 @@ target_link_libraries(testMsp430fr5xxDma
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
+    Msp430Utilities
+    Msp430Microcontroller
   )
 
-ELSEIF(${TARGET_ARCH} STREQUAL "cm0")
-
+# ------ CM0 SysTick ------
 add_executable(testCm0SysTick
   test_cm0SysTick.cpp
-  ../mcu/BusTarget.cpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/cortex-m0/SysTick.cpp
 )
 
 target_link_libraries(testCm0SysTick
@@ -158,14 +163,13 @@ target_link_libraries(testCm0SysTick
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
+    Cm0Utilities
+    Cm0Microcontroller
   )
 
+# ------ CM0 NVIC ------
 add_executable(testCm0Nvic
   test_cm0Nvic.cpp
-  ../mcu/BusTarget.cpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/cortex-m0/Nvic.cpp
 )
 
 target_link_libraries(testCm0Nvic
@@ -173,17 +177,14 @@ target_link_libraries(testCm0Nvic
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
+    Cm0Utilities
+    Cm0Microcontroller
   )
 
 
+# ------ CM0 SPI ------
 add_executable(testCm0Spi
   test_cm0Spi.cpp
-  ../mcu/BusTarget.cpp
-  ../mcu/RegisterFile.cpp
-  ../mcu/SpiTransactionExtension.hpp
-  ../mcu/cortex-m0/Spi.hpp
-  ../mcu/cortex-m0/Spi.cpp
 )
 
 target_link_libraries(testCm0Spi
@@ -191,10 +192,6 @@ target_link_libraries(testCm0Spi
     systemc
     spdlog::spdlog
     PowerSystem
-    Utilities
+    Cm0Utilities
+    Cm0Microcontroller
   )
-
-ELSE()
-  message(FATAL_ERROR "Invalid TARGET_ARCH ${TARGET_ARCH}")
-ENDIF()
-

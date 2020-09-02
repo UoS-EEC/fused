@@ -7,15 +7,19 @@
 
 add_library(
     SerialDevices
-    SpiDevice.cpp
-    SpiDevice.hpp
+    Bme280.cpp
+    Bme280.hpp
     DummySpiDevice.cpp
     DummySpiDevice.hpp
+    SpiDevice.cpp
+    SpiDevice.hpp
     )
 
 target_link_libraries(
     SerialDevices
-    systemc-ams
-    systemc
-    Microcontroller
+    PUBLIC
+      systemc-ams
+      systemc
+    PRIVATE
+      Cm0Microcontroller # Necessary for RegisterFile, but shouldn't be here
     )
