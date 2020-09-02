@@ -60,7 +60,9 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
    * @brief waitCycles wait nCycles clock cycles.
    * @param nCycles  number of clock cycles to wait
    */
-  void waitCycles(unsigned nCycles) { sc_core::wait(mclk->getPeriod()); }
+  void waitCycles(unsigned nCycles) {
+    sc_core::wait(nCycles * mclk->getPeriod());
+  }
 
   /**
    * @brief dbg_readReg Read register value without consuming simulation
