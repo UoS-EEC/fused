@@ -84,7 +84,7 @@ In either case, the first step is to clone the repository:
 
 .. code-block:: bash
 
-   $> git clone https://git.soton.ac.uk/energy-driven/fused
+   $> git clone https://github.com/UoS-EEC/fused.git
    $> cd fused
 
 Continue the installation by following the instructions for `Using Docker`_
