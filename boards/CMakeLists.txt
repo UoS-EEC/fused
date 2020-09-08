@@ -67,7 +67,6 @@ target_link_libraries(
     Msp430Microcontroller
     PowerSystem
     SerialDevices
-    Header
     systemc-ams
     systemc
     spdlog::spdlog

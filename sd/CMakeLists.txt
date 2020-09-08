@@ -9,6 +9,8 @@ add_library(
     SerialDevices
     Bme280.cpp
     Bme280.hpp
+    SpiWire.cpp
+    SpiWire.hpp
     DummySpiDevice.cpp
     DummySpiDevice.hpp
     SpiDevice.cpp

@@ -24,7 +24,6 @@
 #include <systemc>
 #include <thread>
 
-#include "comp-misc/Header.cpp"
 #include "mcu/Microcontroller.hpp"
 #include "mcu/Msp430Microcontroller.hpp"
 #include "ps/DynamicEnergyChannel.hpp"

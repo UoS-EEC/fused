@@ -51,7 +51,6 @@ add_subdirectory(ps)
 add_subdirectory(utilities)
 add_subdirectory(sd)
 add_subdirectory(boards)
-add_subdirectory(comp-misc)
 
 configure_file(config/config.yaml.in config.yaml)
 
