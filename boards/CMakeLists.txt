@@ -55,3 +55,28 @@ IF(GDB_SERVER)
   target_compile_definitions(Msp430TestBoard PUBLIC GDB_SERVER)
 ENDIF()
 
+# ------ MSP430FR5994Launchpad ------
+add_executable(
+  Msp430FR5994Launchpad
+  Msp430FR5994Launchpad.cpp
+  )
+
+target_link_libraries(
+  Msp430FR5994Launchpad
+  PRIVATE
+    Msp430Microcontroller
+    PowerSystem
+    SerialDevices
+    Header
+    systemc-ams
+    systemc
+    spdlog::spdlog
+    Msp430Utilities
+    IntelHexParser::ihex-parser
+  )
+
+IF(GDB_SERVER)
+  target_link_libraries(Msp430FR5994Launchpad PRIVATE gdb-server::gdb-server)
+  target_compile_definitions(Msp430FR5994Launchpad PUBLIC GDB_SERVER)
+ENDIF()
+
