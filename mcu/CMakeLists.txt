@@ -53,6 +53,8 @@ target_link_libraries(
     CortexM0Cpu
     Cm0Peripherals
     PowerSystem
+    systemc-ams
+    systemc
 )
 
 add_library(Msp430Microcontroller)
@@ -70,5 +72,7 @@ target_link_libraries(
     Msp430Cpu
     Msp430Peripherals
     PowerSystem
+    systemc-ams
+    systemc
   )
 
