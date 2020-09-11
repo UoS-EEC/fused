@@ -22,6 +22,13 @@ add_library(
   sim_support.h
   )
 
+target_compile_definitions(
+  cm0-cpu
+  PRIVATE
+    TARGET_LITTLE_ENDIAN
+    TARGET_WORD_SIZE=4
+  )
+
 target_include_directories(cm0-cpu PRIVATE ${CMAKE_CURRENT_LIST_DIRECTORY})
 
 add_library(Cm0Peripherals

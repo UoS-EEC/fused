@@ -8,6 +8,10 @@
 #include "exmemwb.h"
 #include "sim_support.h"
 
+#if !(defined(TARGET_BIG_ENDIAN) || defined(TARGET_LITTLE_ENDIAN))
+#error "TARGET_BIG_ENDIAN or TARGET_LITTLE_ENDIAN must be defined"
+#endif
+
 bool takenBranch = 0;
 
 // Callbacks
