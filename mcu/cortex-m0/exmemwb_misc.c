@@ -150,6 +150,10 @@ u32 cps() {
   cpu.primask = decoded.imm;
 }
 
+u32 nop() {
+  // Do nothing
+}
+
 ///--- Bit twiddling operations -------------------------------------------///
 
 // SXTB - Sign extend a byte to a word

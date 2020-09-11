@@ -163,7 +163,7 @@ void (*decodeJumpTable44[4])(const u16 pInsn) = {
 void (*decodeJumpTable47[4])(const u16 pInsn) = {
     decode_pop,              /* 10_1111_0XXX (2F0 - 2F7) */
     decode_pop, decode_imm8, /* 10_1111_10XX (2F8 - 2FB) */
-    decode_error};
+    decode_imm8};
 
 void decode_17(const u16 pInsn) {
   decodeJumpTable17[(pInsn >> 8) & 0x3](pInsn);

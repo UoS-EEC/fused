@@ -96,19 +96,19 @@ void CortexM0Cpu::process() {
         insn = m_instructionQueue.front();
         m_instructionQueue.pop_front();
 
+        // Decode & execute
+        takenBranch = 0;
+        decode(insn);
+        auto exCycles = exwbmem(insn);
+        if (exCycles > 0) {
+          // Extra cycles spent for special instructions.
+          wait(clk->getPeriod() * exCycles);
+        }
+
         if (insn == OPCODE_WFE || insn == OPCODE_WFI) {
           spdlog::info("{}: going to sleep", this->name());
           m_sleeping = true;
           EventLog::getInstance().reportState(this->name(), "sleep");
-        } else {
-          // Decode & execute
-          takenBranch = 0;
-          decode(insn);
-          auto exCycles = exwbmem(insn);
-          if (exCycles > 0) {
-            // Extra cycles spent for special instructions.
-            wait(clk->getPeriod() * exCycles);
-          }
         }
 
         if (m_bubbles > 0) {

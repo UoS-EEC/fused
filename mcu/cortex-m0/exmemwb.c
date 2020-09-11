@@ -99,6 +99,7 @@ u32 rev(void);
 u32 rev16(void);
 u32 revsh(void);
 u32 cps(void);
+u32 nop(void);
 
 u32 exmemwb_error() {
   fprintf(stderr, "Error: Unsupported instruction: Unable to execute\n");
@@ -186,12 +187,37 @@ u32 (*executeJumpTable46[16])(void) = {
 
 u32 entry46(void) { return executeJumpTable46[(insn >> 6) & 0xF](); }
 
-u32 (*executeJumpTable47[2])(void) = {pop, /* (2F0 - 2F7) */
-                                      // breakpoint /* (2F8 - 2FB) */
-                                      // SEV?
-                                      exmemwb_error};
-
-u32 entry47(void) { return executeJumpTable47[(insn >> 9) & 0x1](); }
+u32 entry47(void) {
+  if ((insn >> 8) == 0xbf) {  // hint instructions
+    switch (insn & 0xff) {
+      case 0:
+        // NOP
+        return nop();
+      case 0x10:
+        // YIELD
+        return nop();
+      case 0x20:
+        // WFE
+        return nop();
+      case 0x30:
+        // WFI
+        return nop();
+      case 0x40:
+        // SEV
+        return nop();
+      default:
+        fprintf(stderr, "UNDEFINED hint instruction 0x%08x", insn);
+        return exmemwb_error();
+    }
+  } else if ((insn >> 8) == 0xbe) {  // Breakpoint
+    fprintf(stderr, "BKPT not implemented.");
+    return exmemwb_error();
+  } else if ((insn >> 9) == 0x5e) {  // Pop
+    return pop();
+  } else {
+    return exmemwb_error();
+  }
+}
 
 u32 entry55(void) {
   if ((insn & 0x0300) != 0x0300) {
