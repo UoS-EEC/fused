@@ -227,11 +227,18 @@ int sc_main(int argc, char *argv[]) {
     simCtrl.unstall();
   }
 
-  spdlog::info("Starting simulation.");
-  sc_start(sc_time::from_seconds(Config::get().getDouble("SimTimeLimit")));
+  auto timeLimit =
+      sc_time::from_seconds(Config::get().getDouble("SimTimeLimit"));
 
-  if (!sc_end_of_simulation_invoked()) {
-    spdlog::error("Simulation stopped without explicit sc_stop()");
+  spdlog::info("Starting simulation.");
+  sc_start(timeLimit);
+
+  if (sc_time_stamp() >= timeLimit) {
+    spdlog::warn("Simulation stopped at SimTimeLimit {:s}",
+                 sc_time_stamp().to_string());
+  } else if (!sc_end_of_simulation_invoked()) {
+    spdlog::warn("Simulation stopped without explicit sc_stop() at {:s}",
+                 sc_time_stamp().to_string());
     sc_stop();
   }
 
