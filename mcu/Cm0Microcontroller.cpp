@@ -26,7 +26,15 @@
 using namespace sc_core;
 
 Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
-    : Microcontroller(nm), m_cpu("CPU"), bus("bus") {
+    : Microcontroller(nm),
+      m_cpu("CPU"),
+      bus("bus"),
+      masterClock(
+          "masterClock",
+          sc_time::from_seconds(Config::get().getDouble("MasterClockPeriod"))),
+      peripheralClock("peripheralClock",
+                      sc_time::from_seconds(
+                          Config::get().getDouble("PeripheralClockPeriod"))) {
   /* ------ Memories ------ */
   invm = new NonvolatileMemory("invm", ROM_START, ROM_START + ROM_SIZE - 1);
   dnvm =

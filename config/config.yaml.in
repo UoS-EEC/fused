@@ -31,6 +31,10 @@ MCUPowerTimestep: 10.1e-6 # Rate at which mcu current is computed
 ExtTimestep: 5.0E-6
 CapacitorTimeStep: 5.0e-6
 
+# ------ Cortex M0 Clocks ------
+MasterClockPeriod: 125.0e-9
+PeripheralClockPeriod: 125.0e-9
+
 # ------ Power supply ------
 PowerSupply: ConstantCurrentSupply
 SupplyCurrentLimit: 5.0E-3
