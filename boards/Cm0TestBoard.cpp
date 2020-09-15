@@ -109,14 +109,20 @@ int sc_main(int argc, char *argv[]) {
   Cm0Microcontroller *mcu = new Cm0Microcontroller("mcu");
 
   // IO/interrupts ports
-  std::array<sc_signal<bool>, 16> externalIrq;
+  std::array<sc_signal<bool>, 32> gpioPins;
+  // std::array<sc_signal_resolved, 32> gpioPins;
+  for (unsigned i = 0; i < gpioPins.size(); i++) {
+    mcu->gpio->pins[i].bind(gpioPins[i]);
+  }
+
+  // std::array<sc_signal<bool>, 16> externalIrq;
   std::array<sc_signal<bool>, 32> mcuOutputPort;
   for (unsigned i = 0; i < mcuOutputPort.size(); i++) {
     mcu->outputPort->pins[i].bind(mcuOutputPort[i]);
   }
-  for (unsigned i = 0; i < mcu->externalIrq.size(); i++) {
-    mcu->externalIrq[i].bind(externalIrq[i]);
-  }
+  // for (unsigned i = 0; i < mcu->externalIrq.size(); i++) {
+  // mcu->externalIrq[i].bind(externalIrq[i]);
+  //}
 
   // Instantiate off-chip serial devices
   DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");
@@ -150,7 +156,10 @@ int sc_main(int argc, char *argv[]) {
   ext.i_out.bind(totMcuConsumption);
   ext.vcc.bind(vcc);
   ext.keepAlive(mcuOutputPort[0]);
-  ext.v_warn.bind(externalIrq[0]);
+  // ext.v_warn.bind(externalIrq[0]);
+  // ext.v_warn.bind(gpioPins[31]);
+  sc_signal<bool> v_warn_sig{"v_warn_sig"};
+  ext.v_warn.bind(v_warn_sig);
 
   // Set up output folder
   // When <filesystem> is available:
@@ -168,8 +177,11 @@ int sc_main(int argc, char *argv[]) {
   auto *vcdfile = sca_util::sca_create_vcd_trace_file(
       (Config::get().getString("OutputDirectory") + "/ext.vcd").c_str());
 
+  for (int i = 0; i < gpioPins.size(); ++i) {
+    sca_trace(vcdfile, gpioPins[i], fmt::format("GPIO[{:02d}]", i));
+  }
   for (int i = 0; i < mcuOutputPort.size(); ++i) {
-    sca_trace(vcdfile, mcuOutputPort[i], fmt::format("P{:02d}", i));
+    sca_trace(vcdfile, mcuOutputPort[i], fmt::format("OutPort[{:02d}]", i));
   }
   for (int i = 0; i < mcu->nvic->irq.size(); ++i) {
     sca_trace(vcdfile, mcu->nvic->irq[i], fmt::format("NVIC.irqIn[{:02d}]", i));
@@ -214,9 +226,12 @@ int sc_main(int argc, char *argv[]) {
   } else {
     // Load binary to mcu
     auto fn = Config::get().getString("ProgramHexFile");
-    if (fn.find(".hex") == std::string::npos) {
+    if (fn.find(".hex") == std::string::npos &&
+        fn.find(".ihex") == std::string::npos) {
       spdlog::error(
-          "-x: Invalid file format for input file {:s}, must be '.hex'", fn);
+          "-x: Invalid file format for input file {:s}, must be '.hex' or "
+          "'.ihex'",
+          fn);
       return 1;
     }
     IntelHexFile programFile(fn);

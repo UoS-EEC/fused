@@ -18,6 +18,7 @@
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
+#include "mcu/cortex-m0/Gpio.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "mcu/cortex-m0/OutputPort.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
@@ -48,10 +49,12 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   nvic = new Nvic("nvic");
   mon = new SimpleMonitor("mon");
   outputPort = new OutputPort("outputPort");
+  gpio = new Gpio("gpio");
   spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10);
 
   slaves.push_back(dnvm);
   slaves.push_back(invm);
+  slaves.push_back(gpio);
   slaves.push_back(mon);
   slaves.push_back(nvic);
   slaves.push_back(outputPort);
@@ -80,6 +83,7 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   // Clocks
   sysTick->clk.bind(masterClock);
   spi->clk.bind(peripheralClock);
+  gpio->clk.bind(peripheralClock);
 
   // Interrupts
   m_cpu.activeException.bind(cpu_active_exception);
@@ -90,21 +94,19 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   sysTick->irq.bind(systick_irq);
   sysTick->returning_exception.bind(cpu_returning_exception);
 
-  spi->irq.bind(nvic_irq[SPI1_EXCEPT_ID - 16]);
+  spi->irq.bind(nvic_irq[SPI1_EXCEPT_ID]);
   spi->active_exception.bind(cpu_active_exception);
+
+  gpio->irq.bind(nvic_irq[GPIO_EXCEPT_ID]);
+  gpio->active_exception.bind(cpu_active_exception);
 
   nvic->pending.bind(nvic_pending);
   nvic->returning.bind(cpu_returning_exception);
   nvic->active.bind(cpu_active_exception);
 
-  // Bind external interrupt signals to NVIC[0:15]
-  for (unsigned i = 0; i < externalIrq.size(); i++) {
-    nvic->irq[i].bind(externalIrq[i]);
-  }
-
-  // Bind internal interrupt signals to NVIC[16:31]
+  // Bind internal interrupt signals
   for (unsigned i = 0; i < nvic_irq.size(); i++) {
-    nvic->irq[i + 16].bind(nvic_irq[i]);
+    nvic->irq[i].bind(nvic_irq[i]);
   }
 
   // Reset

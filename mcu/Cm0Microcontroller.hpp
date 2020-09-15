@@ -24,6 +24,7 @@
 #include "mcu/NonvolatileMemory.hpp"
 #include "mcu/VolatileMemory.hpp"
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
+#include "mcu/cortex-m0/Gpio.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "mcu/cortex-m0/OutputPort.hpp"
 #include "mcu/cortex-m0/Spi.hpp"
@@ -35,7 +36,6 @@ class Cm0Microcontroller : public Microcontroller {
  public:
   /* ------ Ports ------ */
   sc_core::sc_in<bool> nReset{"nReset"};
-  std::array<sc_core::sc_in<bool>, 16> externalIrq;
 
   /* ------ Signals ------ */
 
@@ -43,7 +43,7 @@ class Cm0Microcontroller : public Microcontroller {
   sc_core::sc_signal<int> cpu_active_exception{"cpu_active_exception"};
   sc_core::sc_signal<int> cpu_returning_exception{"cpu_returning_exception"};
 
-  std::array<sc_core::sc_signal<bool>, 16> nvic_irq;
+  std::array<sc_core::sc_signal<bool>, 32> nvic_irq;
   sc_core::sc_signal<int> nvic_pending{"nvic_pending"};
   sc_core::sc_signal<bool> systick_irq{"systick_irq"};
 
@@ -181,6 +181,7 @@ class Cm0Microcontroller : public Microcontroller {
   SysTick *sysTick;         //! SysTick Timer
   Nvic *nvic;               //! NVIC interrupt controller
   OutputPort *outputPort;   //! Basic output "IO" port
+  Gpio *gpio;               //! Basic GPIO
   Spi *spi;                 //! SPI peripheral
 
   /* ------- CPU & bus ------ */
