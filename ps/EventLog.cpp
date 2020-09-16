@@ -130,7 +130,7 @@ void EventLog::process() {
       std::get<EVENT_VALUES>(m_log[i]).back() = 0;  // Reset counters
     } else {
       std::get<EVENT_VALUES>(m_log[i]).back() =
-          static_cast<unsigned int>(1E6 * sc_time_stamp().to_seconds());
+          static_cast<unsigned int>(1E6 * (m_timestep + sc_time_stamp()).to_seconds());
     }
   }
 
@@ -160,6 +160,6 @@ void EventLog::process() {
       std::get<EVENT_VALUES>(v).emplace_back(0);
     }
     std::get<EVENT_VALUES>(m_log[timeId]).back() =
-        static_cast<unsigned int>(1E6 * sc_time_stamp().to_seconds());
+        static_cast<unsigned int>(1E6 * (m_timestep + sc_time_stamp()).to_seconds());
   }
 }
