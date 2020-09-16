@@ -34,6 +34,18 @@ CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
   cpu_set_exception_return_cb(&CortexM0Cpu::exception_return_cb);
   cpu_set_next_pipeline_instr_cb(&CortexM0Cpu::next_pipeline_instr_cb);
 
+  // Set number of pipeline stages
+  const auto cm0Version = Config::get().getString("CortexM0Version");
+  if (cm0Version == "cm0") {
+    m_pipelineStages = 3;
+  } else if (cm0Version == "cm0+") {
+    m_pipelineStages = 2;
+  } else {
+    SC_REPORT_FATAL(
+        this->name(),
+        "Invalid config for CortexM0Version, must be one of {cm0, cm0+}.");
+  }
+
   // Register eventlog events
   m_idleCyclesEvent = EventLog::getInstance().registerEvent(
       std::string(this->name()) + " idle cycles");
@@ -96,12 +108,18 @@ void CortexM0Cpu::process() {
         insn = m_instructionQueue.front();
         m_instructionQueue.pop_front();
 
+        // CM0+ increments PC before execute
+        if (m_pipelineStages == 2) {
+          cpu_set_pc(cpu_get_pc() + 0x2);
+        }
+
         // Decode & execute
         takenBranch = 0;
         decode(insn);
         auto exCycles = exwbmem(insn);
         if (exCycles > 0) {
           // Extra cycles spent for special instructions.
+          EventLog::getInstance().increment(m_ctx->m_idleCyclesEvent, exCycles);
           wait(clk->getPeriod() * exCycles);
         }
 
@@ -119,8 +137,8 @@ void CortexM0Cpu::process() {
           flushPipeline();
         }
 
-        // Advance PC if no jumps or exceptions
-        if (!takenBranch) {
+        // CM0 Increments pc after execute if no branches
+        if (!takenBranch && (m_pipelineStages == 3)) {
           cpu_set_pc(cpu_get_pc() + 0x2);
         }
 
@@ -134,7 +152,8 @@ void CortexM0Cpu::process() {
     }
 
     if (!m_run) {
-      waitForCommand();  // Stall simulation, waiting for gdb server interaction
+      waitForCommand();  // Stall simulation, waiting for gdb server
+                         // interaction
     }
 
     if (m_run && (!pwrOn.read())) {
@@ -148,9 +167,10 @@ void CortexM0Cpu::process() {
 
 void CortexM0Cpu::flushPipeline() {
   m_instructionQueue.clear();
-  m_instructionQueue.push_back(OPCODE_NOP);
-  m_instructionQueue.push_back(OPCODE_NOP);
-  m_bubbles = 2;
+  for (int i = 0; i < m_pipelineStages - 1; ++i) {
+    m_instructionQueue.push_back(OPCODE_NOP);
+  }
+  m_bubbles = m_pipelineStages - 1;
 }
 
 void CortexM0Cpu::reset() {
@@ -405,8 +425,9 @@ void CortexM0Cpu::readMem(const uint32_t addr, uint8_t *const data,
 
 uint32_t CortexM0Cpu::dbg_readReg(size_t addr) {
   if (addr == PC_REGNUM) {
-    return (cpu_get_pc() & (~1u)) -
-           4;  // Next instruction that will be executed.
+    // Next instruction that will be executed.
+    auto res = (cpu_get_pc() & (~1u)) - 2 * m_instructionQueue.size();
+    return res;
   } else if (addr == CPSR_REGNUM) {
     return cpu.apsr;
   } else if (addr <= N_GPR) {
@@ -421,7 +442,7 @@ uint32_t CortexM0Cpu::dbg_readReg(size_t addr) {
 
 void CortexM0Cpu::dbg_writeReg(size_t addr, uint32_t data) {
   if (addr == PC_REGNUM) {
-    cpu_set_pc((data + 4) | 1);  // Adjust for next instr to be fetched
+    cpu_set_pc((data + 2 * (m_pipelineStages - 1)) | 1);  // Adjusted for fetch
   } else if (addr == CPSR_REGNUM) {
     spdlog::warn("writes to CPSR are ignored.");
   } else if (addr <= N_GPR) {

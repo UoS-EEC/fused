@@ -35,6 +35,9 @@ CapacitorTimeStep: 5.0e-6
 MasterClockPeriod: 125.0e-9
 PeripheralClockPeriod: 125.0e-9
 
+# ------ CPU version ------
+CortexM0Version: cm0+
+
 # ------ Power supply ------
 PowerSupply: ConstantCurrentSupply
 SupplyCurrentLimit: 5.0E-3

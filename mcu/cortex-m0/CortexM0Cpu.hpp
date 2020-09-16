@@ -250,6 +250,7 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   /* ------ Private variables ------ */
   std::deque<uint16_t> m_instructionQueue{};  //! Pipeline
   int m_bubbles{0};  //! Current number of pipeline bubbles
+  int m_pipelineStages;
   bool m_sleeping{false};
   bool m_run{false};
   bool m_doStep{false};
