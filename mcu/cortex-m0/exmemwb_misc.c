@@ -84,7 +84,7 @@ u32 mrs() {
   }
   cpu_set_gpr(d, result);
   takenBranch = 1;
-  return TIMING_DEFAULT;
+  return TIMING_SPECIAL_REGISTER;
 }
 
 // MSR - Move to Special register from Register
@@ -140,7 +140,7 @@ u32 msr() {
       break;
   }
   takenBranch = 1;  // Because this was a 32-bit instruction
-  return TIMING_DEFAULT;
+  return TIMING_SPECIAL_REGISTER;
 }
 
 // CPS - Enable/disable interrupts via PRIMASK

@@ -127,5 +127,7 @@ size_t exwbmem(const u16 pInsn);
 // Extra execution cycles
 #define TIMING_DEFAULT 0
 #define TIMING_MULTIPLY 32
+#define TIMING_POP_AND_RETURN 1
+#define TIMING_SPECIAL_REGISTER 1  // MRS and MSR operations
 
 #endif

@@ -66,6 +66,7 @@ u32 pop() {
   u32 numLoaded = 0;
   u32 address = cpu_get_sp();
   u32 exceptionReturnAddress = 0;
+  u32 extraCycles = TIMING_DEFAULT;
 
   for (int i = 0; i < 16; ++i) {
     int mask = 1 << i;
@@ -76,6 +77,7 @@ u32 pop() {
       ++numLoaded;
       if (i == 15) {  // PC is target
         takenBranch = 1;
+        extraCycles = TIMING_POP_AND_RETURN;
         if ((data & 0xf0000000) == 0xf0000000) {
           // This is an exception return
           exceptionReturnAddress = data;
@@ -93,7 +95,7 @@ u32 pop() {
     exception_return_cb(exceptionReturnAddress);
   }
 
-  return TIMING_DEFAULT;
+  return extraCycles;
 }
 
 // Push multiple reg values to the stack and update SP
