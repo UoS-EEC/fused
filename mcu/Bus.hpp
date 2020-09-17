@@ -11,6 +11,7 @@
 #include <tlm_utils/multi_passthrough_initiator_socket.h>
 #include <tlm_utils/multi_passthrough_target_socket.h>
 #include <algorithm>
+#include <array>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -23,9 +24,11 @@
 
 class Bus : sc_core::sc_module {
  public:
+  /* ------ Ports ------ */
   tlm_utils::multi_passthrough_initiator_socket<Bus> iSocket;
   tlm_utils::multi_passthrough_target_socket<Bus> tSocket;
 
+  /* ------ Public methods ------ */
   explicit Bus(const sc_core::sc_module_name name);
 
   /**
@@ -55,6 +58,12 @@ class Bus : sc_core::sc_module {
    */
   unsigned int transport_dbg([[maybe_unused]] const int id,
                              tlm::tlm_generic_payload &trans);
+
+  /* ------ Trace variables ------ */
+ public:
+  unsigned addressTrace{0xffffffff};
+  unsigned sizeTrace{0};
+  unsigned dataTrace{0};
 
  private:
   /* ------ Private variables ------ */
@@ -103,6 +112,11 @@ class Bus : sc_core::sc_module {
    */
   void checkTransaction(const tlm::tlm_generic_payload &trans,
                         const int targetPort) const;
+
+  /**
+   * @brief updateTrace update trace variables according to current transaction.
+   */
+  void updateTrace(const tlm::tlm_generic_payload &trans);
 
   /**
    * @brief << debug printout.

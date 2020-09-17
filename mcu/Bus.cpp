@@ -62,6 +62,7 @@ void Bus::b_transport([[maybe_unused]] const int id,
   }
   checkTransaction(trans, port);
   iSocket[port]->b_transport(trans, delay);
+  updateTrace(trans);
 }
 
 unsigned int Bus::transport_dbg([[maybe_unused]] const int id,
@@ -121,4 +122,16 @@ std::ostream &operator<<(std::ostream &os, Bus &rhs) {
                       rhs.m_routingTable[i].second);
   }
   return os;
+}
+
+void Bus::updateTrace(const tlm::tlm_generic_payload &trans) {
+  dataTrace = 0;
+  for (int i = 0; i < sizeof(dataTrace); ++i) {
+    dataTrace <<= 8;
+    if (i < trans.get_data_length()) {
+      dataTrace |= trans.get_data_ptr()[i];
+    }
+  }
+  addressTrace = trans.get_address();
+  sizeTrace = trans.get_data_length();
 }
