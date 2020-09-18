@@ -91,8 +91,9 @@ void CortexM0Cpu::process() {
              pwrOn.default_event());
       } else {
         // Handle breakpoints
-        if (m_breakpoints.count((cpu_get_pc() & (~1u)) - 4) >
-            0) {  // Hit breakpoint
+        if (m_breakpoints.count((cpu_get_pc() & (~1u)) -
+                                2 * m_instructionQueue.size())) {
+          // Hit breakpoint
           spdlog::info("@{:10s}: Breakpoint hit (0x{:08x})",
                        sc_core::sc_time_stamp().to_string(), cpu_get_pc());
           m_run = false;
