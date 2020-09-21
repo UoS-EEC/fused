@@ -148,10 +148,12 @@ u32 cps() {
   fprintf(stderr,
           "CPS: Warning, not checking privelege before setting PRIMASK.\n");
   cpu.primask = decoded.imm;
+  return TIMING_DEFAULT;
 }
 
 u32 nop() {
   // Do nothing
+  return TIMING_DEFAULT;
 }
 
 ///--- Bit twiddling operations -------------------------------------------///
