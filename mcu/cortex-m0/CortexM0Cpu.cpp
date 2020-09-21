@@ -101,8 +101,7 @@ void CortexM0Cpu::process() {
         }
 
         // Fetch next instruction
-        simLoadInsn(cpu_get_pc(), &insn);
-        m_instructionQueue.push_back(insn);
+        m_instructionQueue.push_back(fetch(cpu_get_pc()));
 
         // Decode & execute
         // (on real hw this is done in separate steps)
@@ -168,6 +167,7 @@ void CortexM0Cpu::process() {
 
 void CortexM0Cpu::flushPipeline() {
   m_instructionQueue.clear();
+  m_instructionBuffer.valid = false;
   for (int i = 0; i < m_pipelineStages - 1; ++i) {
     m_instructionQueue.push_back(OPCODE_NOP);
   }
@@ -177,6 +177,9 @@ void CortexM0Cpu::flushPipeline() {
 void CortexM0Cpu::reset() {
   m_sleeping = false;
   takenBranch = false;
+  m_instructionBuffer.valid = 0;
+  m_instructionBuffer.address = 0;
+  m_instructionBuffer.data = 0;
 
   // Initialize the special-purpose registers
   cpu.apsr = 0;        // No flags set
@@ -194,16 +197,13 @@ void CortexM0Cpu::reset() {
   cpu.gpr[GPR_LR] = 0;
 
   // Load main stack pointer from the start of program memory
-  uint8_t tmparr[4];
   uint32_t addr = ROM_START;
-  readMem(addr, tmparr, 4);
-  cpu_set_sp(0xFFFFFFFC & Utility::ttohl(Utility::packBytes(tmparr, 4)));
+  cpu_set_sp(0xfffffffc & read32(addr));
   cpu.sp_process = 0;
 
   // Set the program counter to the address of the reset exception vector
   addr += 4;
-  readMem(addr, tmparr, 4);
-  cpu_set_pc(Utility::ttohl(Utility::packBytes(tmparr, 4)));
+  cpu_set_pc(read32(addr));
 
   // No pending exceptions
   cpu.exceptmask = 0;
@@ -372,6 +372,32 @@ uint16_t CortexM0Cpu::getNextPipelineInstr() {
   uint16_t result = m_instructionQueue.front();
   m_instructionQueue.pop_front();
   return result;
+}
+
+unsigned CortexM0Cpu::fetch(const unsigned address) {
+  const auto addressWordAligned = address & (~3u);
+  const auto addressHalfWordAligned = address & (~1u);
+  if (!m_instructionBuffer.valid ||
+      (addressWordAligned != m_instructionBuffer.address)) {
+    // Read from memory
+    m_instructionBuffer.data = read32(addressWordAligned);
+    m_instructionBuffer.address = addressWordAligned;
+    m_instructionBuffer.valid = true;
+  } else {
+    // Consume a cycle regardless
+    wait(clk->getPeriod());
+    EventLog::getInstance().increment(m_idleCyclesEvent);
+  }
+
+  // Read buffered val
+  if (addressHalfWordAligned == m_instructionBuffer.address) {
+    return m_instructionBuffer.data & 0xffff;
+  } else if (addressHalfWordAligned == m_instructionBuffer.address + 2) {
+    return (m_instructionBuffer.data & 0xffff0000) >> 16;
+  } else {
+    SC_REPORT_FATAL(this->name(), "Invalid instructino fetch address.");
+    return 0;
+  }
 }
 
 void CortexM0Cpu::writeMem(const uint32_t addr, uint8_t *const data,

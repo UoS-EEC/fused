@@ -248,12 +248,19 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   static const unsigned OPCODE_NOP = 0x46c0;  // 0xbf00;  //! NOP (mov r8, r8)
 
   /* ------ Private variables ------ */
+  struct InstructionBuffer {
+    unsigned data{0};
+    unsigned address{0};
+    bool valid{false};
+  };
+
   std::deque<uint16_t> m_instructionQueue{};  //! Pipeline
   int m_bubbles{0};  //! Current number of pipeline bubbles
   int m_pipelineStages;
   bool m_sleeping{false};
   bool m_run{false};
   bool m_doStep{false};
+  InstructionBuffer m_instructionBuffer;
   std::unordered_set<unsigned> m_breakpoints;  // Set of breakpoint addresses
   std::unordered_set<unsigned> m_watchpoints;  // Set of watchpoint addresses
   EventLog::eventId m_idleCyclesEvent;       //! Event used to track idle cycles
@@ -288,4 +295,11 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
    * @brief flushPipeline flush the instruction queue and insert nops
    */
   void flushPipeline();
+
+  /**
+   *@brief fetch fetch an instruction via the instructino buffer.
+   *@param address memory address of instruction
+   *@retval instruction at address.
+   */
+  unsigned fetch(const unsigned address);
 };
