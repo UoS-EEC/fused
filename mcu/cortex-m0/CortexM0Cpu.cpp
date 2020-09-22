@@ -371,6 +371,8 @@ uint16_t CortexM0Cpu::next_pipeline_instr_cb() {
 uint16_t CortexM0Cpu::getNextPipelineInstr() {
   uint16_t result = m_instructionQueue.front();
   m_instructionQueue.pop_front();
+  wait(clk->getPeriod());
+  EventLog::getInstance().increment(m_idleCyclesEvent);
   return result;
 }
 
