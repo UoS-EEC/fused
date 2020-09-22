@@ -28,7 +28,8 @@ class SimpleMonitor : public BusTarget {
    * Constructor
    */
   SimpleMonitor(const sc_core::sc_module_name nm)
-      : BusTarget(nm, SIMPLE_MONITOR_BASE, SIMPLE_MONITOR_BASE + 4) {
+      : BusTarget(nm, SIMPLE_MONITOR_BASE,
+                  SIMPLE_MONITOR_BASE + SIMPLE_MONITOR_SIZE - 1) {
     SC_METHOD(process);
     sensitive << m_writeEvent;
     m_regs.addRegister(0, 0);

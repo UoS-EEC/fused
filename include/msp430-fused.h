@@ -30,6 +30,7 @@ extern "C" {
 
 /* ------ SimpleMonitor ------ */
 #define SIMPLE_MONITOR_BASE PERIPHERAL_START
+#define SIMPLE_MONITOR_SIZE 4
 #define SIMPLE_MONITOR *((unsigned int *)SIMPLE_MONITOR_BASE)
 #define SIMPLE_MONITOR_KILL_SIM 0x0D1E  //! Kill simulation (success)
 #define SIMPLE_MONITOR_SW_ERROR 0x5D1E  //! Indicate SW error (kills simulation)
