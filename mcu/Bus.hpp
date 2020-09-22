@@ -115,8 +115,11 @@ class Bus : sc_core::sc_module {
 
   /**
    * @brief updateTrace update trace variables according to current transaction.
+   * @param trans transaction after completion (i.e. with loaded data)
+   * @param originalAddress Transaction address before decoding
    */
-  void updateTrace(const tlm::tlm_generic_payload &trans);
+  void updateTrace(const tlm::tlm_generic_payload &trans,
+                   const unsigned originalAddress);
 
   /**
    * @brief << debug printout.

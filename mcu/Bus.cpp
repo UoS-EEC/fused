@@ -49,6 +49,7 @@ int Bus::routeForward(tlm::tlm_generic_payload &trans) const {
 void Bus::b_transport([[maybe_unused]] const int id,
                       tlm::tlm_generic_payload &trans,
                       sc_core::sc_time &delay) {
+  const auto addr = trans.get_address();
   auto port = routeForward(trans);
   if (port == -1) {
     std::stringstream s;
@@ -62,7 +63,7 @@ void Bus::b_transport([[maybe_unused]] const int id,
   }
   checkTransaction(trans, port);
   iSocket[port]->b_transport(trans, delay);
-  updateTrace(trans);
+  updateTrace(trans, addr);
 }
 
 unsigned int Bus::transport_dbg([[maybe_unused]] const int id,
@@ -124,7 +125,8 @@ std::ostream &operator<<(std::ostream &os, Bus &rhs) {
   return os;
 }
 
-void Bus::updateTrace(const tlm::tlm_generic_payload &trans) {
+void Bus::updateTrace(const tlm::tlm_generic_payload &trans,
+                      const unsigned originalAddress) {
   dataTrace = 0;
   for (int i = 0; i < sizeof(dataTrace); ++i) {
     dataTrace <<= 8;
@@ -132,6 +134,6 @@ void Bus::updateTrace(const tlm::tlm_generic_payload &trans) {
       dataTrace |= trans.get_data_ptr()[i];
     }
   }
-  addressTrace = trans.get_address();
+  addressTrace = originalAddress;
   sizeTrace = trans.get_data_length();
 }
