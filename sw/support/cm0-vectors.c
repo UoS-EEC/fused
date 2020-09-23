@@ -61,6 +61,28 @@ extern void Interrupt6_Handler(void);
 extern void Interrupt7_Handler(void);
 extern void Interrupt8_Handler(void);
 extern void Interrupt9_Handler(void);
+extern void Interrupt10_Handler(void);
+extern void Interrupt11_Handler(void);
+extern void Interrupt12_Handler(void);
+extern void Interrupt13_Handler(void);
+extern void Interrupt14_Handler(void);
+extern void Interrupt15_Handler(void);
+extern void Interrupt16_Handler(void);
+extern void Interrupt17_Handler(void);
+extern void Interrupt18_Handler(void);
+extern void Interrupt19_Handler(void);
+extern void Interrupt20_Handler(void);
+extern void Interrupt21_Handler(void);
+extern void Interrupt22_Handler(void);
+extern void Interrupt23_Handler(void);
+extern void Interrupt24_Handler(void);
+extern void Interrupt25_Handler(void);
+extern void Interrupt26_Handler(void);
+extern void Interrupt27_Handler(void);
+extern void Interrupt28_Handler(void);
+extern void Interrupt29_Handler(void);
+extern void Interrupt30_Handler(void);
+extern void Interrupt31_Handler(void);
 
 /* Exceptions */
 void NMI_Handler(void) __attribute__((weak, alias("Default_Handler")));
