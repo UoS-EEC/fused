@@ -109,20 +109,15 @@ int sc_main(int argc, char *argv[]) {
   Cm0Microcontroller *mcu = new Cm0Microcontroller("mcu");
 
   // IO/interrupts ports
-  std::array<sc_signal<bool>, 32> gpioPins;
-  // std::array<sc_signal_resolved, 32> gpioPins;
+  std::array<sc_signal_resolved, 32> gpioPins;
   for (unsigned i = 0; i < gpioPins.size(); i++) {
     mcu->gpio->pins[i].bind(gpioPins[i]);
   }
 
-  // std::array<sc_signal<bool>, 16> externalIrq;
   std::array<sc_signal<bool>, 32> mcuOutputPort;
   for (unsigned i = 0; i < mcuOutputPort.size(); i++) {
     mcu->outputPort->pins[i].bind(mcuOutputPort[i]);
   }
-  // for (unsigned i = 0; i < mcu->externalIrq.size(); i++) {
-  // mcu->externalIrq[i].bind(externalIrq[i]);
-  //}
 
   // Instantiate off-chip serial devices
   DummySpiDevice *dummySpiDevice = new DummySpiDevice("dummySpiDevice");

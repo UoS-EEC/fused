@@ -53,8 +53,21 @@ void Gpio::process(void) {
 
   if (pwrOn.read()) {
     for (int i = 0; i < pins.size(); i++) {
-      unsigned mask = (1u << i);            // Pin mask
-      const bool current = pins[i].read();  // Current pin state
+      unsigned mask = (1u << i);  // Pin mask
+
+      // Read pin as boolean
+      bool current;
+      if (pins[i].read().is_01()) {
+        current = pins[i].read().to_bool();
+      } else {  // Read 'Z' and 'X' as 0
+        current = false;
+        SC_REPORT_WARNING(
+            this->name(),
+            fmt::format(
+                "pin {:d} reads non-binary value {:s}, interpreting as 0.", i,
+                pins[i].read().to_char())
+                .c_str());
+      }
 
       if (dir & mask) {  // If output mode
         // Count edges
@@ -67,7 +80,7 @@ void Gpio::process(void) {
         }
 
         // Write to outputs
-        pins[i].write(data & mask);
+        pins[i].write(sc_dt::sc_logic((data & mask) != 0));
       } else {  // Input mode
         // Read from inputs
         if (current && !(m_lastState & mask)) {  // Posedge
@@ -89,9 +102,9 @@ void Gpio::process(void) {
       }
     }
   } else {
-    // for (int i = 0; i < pins.size(); i++) {
-    // pins[i].write(false);
-    //}
+    for (int i = 0; i < pins.size(); i++) {
+      pins[i].write(sc_dt::sc_logic(false));
+    }
   }
   return;
 }

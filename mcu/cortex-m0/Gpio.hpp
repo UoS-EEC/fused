@@ -29,7 +29,7 @@ class Gpio : public BusTarget {
   sc_core::sc_out<bool> irq{"irq"};  //! Interrupt request output
   sc_core::sc_in<int> active_exception{
       "active_exception"};  //! Signals exception taken by cpu
-  std::array<sc_core::sc_inout<bool>, 32> pins;
+  std::array<sc_core::sc_inout_resolved, 32> pins;
 
   /*------ Methods ------*/
   /**
