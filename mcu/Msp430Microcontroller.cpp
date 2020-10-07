@@ -84,14 +84,6 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
 
   /* ------ Bind ------ */
 
-  // IO
-  for (int i = 0; i < 16; i++) {
-    portA->pins[i].bind(ioPortA[i]);
-    portB->pins[i].bind(ioPortB[i]);
-    portC->pins[i].bind(ioPortC[i]);
-    portD->pins[i].bind(ioPortD[i]);
-  }
-
   // Clocks
   m_cpu.mclk.bind(mclk);
   for (const auto &s : slaves) {

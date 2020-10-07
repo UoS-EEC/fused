@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <array>
 #include <iostream>
 #include <systemc>
 #include <vector>
@@ -41,10 +42,6 @@ class Msp430Microcontroller : public Microcontroller {
  public:
   /* ------ Ports ------ */
   sc_core::sc_in<bool> nReset{"nReset"};
-  sc_core::sc_inout<bool> ioPortA[16];  // Digital IO port A, aka 1 and 2
-  sc_core::sc_inout<bool> ioPortB[16];  // Digital IO port B, aka 3 and 4
-  sc_core::sc_inout<bool> ioPortC[16];  // Digital IO port C, aka 5 and 6
-  sc_core::sc_inout<bool> ioPortD[16];  // Digital IO port D, aka 7 and 8
 
   /* ------ Signals ------ */
   sc_core::sc_signal<bool> dma_dummy{"dma_dummy"};

@@ -14,7 +14,7 @@
  * connected to in
  */
 SC_MODULE(IoSimulationStopper) {
-  sc_core::sc_in<bool> in{"in"};
+  sc_core::sc_in_resolved in{"in"};
 
   /**
    * Constructor

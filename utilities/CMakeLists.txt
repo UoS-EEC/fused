@@ -8,6 +8,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 set(SOURCES
+  BoolLogicConverter.hpp
   Config.cpp
   Config.hpp
   Utilities.cpp

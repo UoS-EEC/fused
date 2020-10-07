@@ -29,6 +29,7 @@
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
 #include "sd/DummySpiDevice.hpp"
+#include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 #include "utilities/SimulationController.hpp"
@@ -89,15 +90,15 @@ int sc_main(int argc, char *argv[]) {
   mcu->pmm->pwrGood.bind(nReset);
 
   // IO ports
-  std::array<sc_signal<bool>, 16> DIOAPins;
-  std::array<sc_signal<bool>, 16> DIOBPins;
-  std::array<sc_signal<bool>, 16> DIOCPins;
-  std::array<sc_signal<bool>, 16> DIODPins;
+  std::array<sc_signal_resolved, 16> DIOAPins;
+  std::array<sc_signal_resolved, 16> DIOBPins;
+  std::array<sc_signal_resolved, 16> DIOCPins;
+  std::array<sc_signal_resolved, 16> DIODPins;
   for (unsigned i = 0; i < DIOAPins.size(); i++) {
-    mcu->ioPortA[i].bind(DIOAPins[i]);
-    mcu->ioPortB[i].bind(DIOBPins[i]);
-    mcu->ioPortC[i].bind(DIOCPins[i]);
-    mcu->ioPortD[i].bind(DIODPins[i]);
+    mcu->portA->pins[i].bind(DIOAPins[i]);
+    mcu->portB->pins[i].bind(DIOBPins[i]);
+    mcu->portC->pins[i].bind(DIOCPins[i]);
+    mcu->portD->pins[i].bind(DIODPins[i]);
   }
 
   // Instantiate off-chip serial devices
@@ -131,7 +132,13 @@ int sc_main(int argc, char *argv[]) {
   ExternalCircuitry ext("ext");
   ext.i_out.bind(totMcuConsumption);
   ext.vcc.bind(vcc);
-  ext.keepAlive(DIOCPins[8]);  // P6.0 Keep alive
+
+  // Keep-alive -- bind to IO via converter
+  Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
+  sc_signal<bool> keepAlive{"keepAlive"};
+  keepAliveConverter.out.bind(keepAlive);
+  keepAliveConverter.in.bind(DIOCPins[8]);  // P6.0 Keep alive
+  ext.keepAlive.bind(keepAliveConverter.out);
   // Stop simulation after <configurable> io toggles
   IoSimulationStopper simStopper("PA2Stopper");
   simStopper.in(DIOAPins[2]);

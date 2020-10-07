@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/fmt/fmt.h>
 #include <string>
 #include <systemc>
 #include <tlm>
@@ -44,7 +45,10 @@ DigitalIo::DigitalIo(sc_module_name name, const uint16_t startAddress,
   }
 }
 
-void DigitalIo::reset(void) { m_regs.reset(); }
+void DigitalIo::reset(void) {
+  m_regs.reset();
+  m_lastState = 0;
+}
 
 void DigitalIo::process(void) {
   uint16_t dir = m_regs.read(OFS_PADIR);  //  Note: offset is same for all
@@ -64,34 +68,45 @@ void DigitalIo::process(void) {
     for (int i = 0; i < 16; i++) {
       unsigned mask = (1u << i);
 
+      // Read pin as boolean
+      bool current;
+      if (pins[i].read().is_01()) {
+        current = pins[i].read().to_bool();
+      } else {  // Read 'Z' and 'X' as 0
+        current = false;
+        SC_REPORT_WARNING(
+            this->name(),
+            fmt::format(
+                "pin {:d} reads non-binary value {:s}, interpreting as 0.", i,
+                pins[i].read().to_char())
+                .c_str());
+      }
+
       if ((ren | dir) & mask) {  // If output or Pull-up mode
         // Count edges
-        bool old = pins[i].read();
-        if (!old && (out & mask)) {
+        if (!current && (out & mask)) {
           EventLog::getInstance().increment(m_pinPosEdge);
           // std::cerr << "Posedge on pin " << i << '\n';;
-        } else if (old && !(out & mask)) {
+        } else if (current && !(out & mask)) {
           EventLog::getInstance().increment(m_pinNegEdge);
           // std::cerr << "Negedge on pin " << i << '\n';;
         }
 
         // Write to outputs
-        pins[i].write(out & mask);
+        pins[i].write(sc_dt::sc_logic((out & mask) != 0));
       }
 
       if ((~dir) & mask) {  // Input mode
         // Read from inputs
-        static uint16_t prevIn;  // used to detect edges for interrupts
-        bool rval = pins[i].read();
-        if (rval && !(prevIn & mask)) {  // High
+        if (current && !(m_lastState & mask)) {  // High
           m_regs.setBit(OFS_PAIN, i, true);
-          prevIn |= mask;
+          m_lastState |= mask;
           if (irqEn & (~irqEdge) & mask) {
             m_regs.setBit(OFS_PAIFG, i, true);
           }
-        } else if (!rval && (prevIn & mask)) {  // Low
+        } else if (!current && (m_lastState & mask)) {  // Low
           m_regs.clearBit(OFS_PAIN, i, true);
-          prevIn &= ~mask;
+          m_lastState &= ~mask;
           if (irqEn & irqEdge & mask) {
             m_regs.setBit(OFS_PAIFG, i, true);
           }
@@ -105,18 +120,8 @@ void DigitalIo::process(void) {
     }
   } else {
     for (int i = 0; i < 16; i++) {
-      pins[i].write(false);
+      pins[i].write(sc_dt::sc_logic(false));
     }
   }
   return;
-}
-
-// Kernighan's Algorithm
-unsigned int DigitalIo::countSetBits(uint64_t n) {
-  unsigned int count = 0;
-  while (n) {
-    n &= (n - 1);
-    count++;
-  }
-  return count;
 }

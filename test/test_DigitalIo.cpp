@@ -25,7 +25,7 @@ using namespace sc_core;
 
 SC_MODULE(dut) {
  public:
-  std::array<sc_signal<bool>, 16> port;  // Digital IO port
+  std::array<sc_signal_resolved, 16> port;  // Digital IO port
   sc_signal<bool> irq0{"irq0"};
   sc_signal<bool> irq1{"irq1"};
   sc_signal<bool> pwrGood{"pwrGood"};
@@ -69,7 +69,7 @@ SC_MODULE(tester) {
 
     wait(sc_time(1, SC_NS));  // Wait for pins to be updated
     for (unsigned i = 0; i < test.port.size(); i++) {
-      sc_assert(test.port[i].read() == true);
+      sc_assert(test.port[i].read().to_bool() == true);
     }
 
     // ------ TEST: Set all pins to 0
@@ -79,7 +79,7 @@ SC_MODULE(tester) {
 
     wait(sc_time(1, SC_NS));  // Wait for pins to be updated
     for (unsigned i = 0; i < test.port.size(); i++) {
-      sc_assert(test.port[i].read() == false);
+      sc_assert(test.port[i].read().to_bool() == false);
     }
 
     // ------ TEST: Test direction register
@@ -90,7 +90,7 @@ SC_MODULE(tester) {
     wait(sc_time(1, SC_NS));  // Wait for pins to be updated
     bool shouldBeSet = true;
     for (unsigned int i = 0; i < test.port.size(); i++) {
-      sc_assert(test.port[i].read() == shouldBeSet);
+      sc_assert(test.port[i].read().to_bool() == shouldBeSet);
       shouldBeSet = !shouldBeSet;
     }
 
@@ -101,9 +101,9 @@ SC_MODULE(tester) {
 
     for (unsigned int i = 0; i < test.port.size(); i++) {
       if (i < 8) {
-        sc_assert(test.port[i].read() == true);
+        sc_assert(test.port[i].read().to_bool() == true);
       } else {
-        sc_assert(test.port[i].read() == false);
+        sc_assert(test.port[i].read().to_bool() == false);
       }
     }
 
@@ -139,9 +139,9 @@ SC_MODULE(tester) {
     wait(delay);
     for (unsigned int i = 0; i < test.port.size(); i++) {
       if (i < 8) {
-        sc_assert(test.port[i].read() == true);
+        sc_assert(test.port[i].read().to_bool() == true);
       } else {
-        sc_assert(test.port[i].read() == false);
+        sc_assert(test.port[i].read().to_bool() == false);
       }
     }
 

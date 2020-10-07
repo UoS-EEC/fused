@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <array>
 #include <systemc>
 #include <tlm>
 #include "mcu/BusTarget.hpp"
@@ -23,7 +24,7 @@ class DigitalIo : public BusTarget {
  public:
   /* ------ Ports ------ */
   sc_core::sc_out<bool> irq[2];
-  sc_core::sc_inout<bool> pins[16];
+  std::array<sc_core::sc_inout_resolved, 16> pins;
 
   /*------ Methods ------*/
   /**
@@ -44,8 +45,9 @@ class DigitalIo : public BusTarget {
   EventLog::eventId m_pinPosEdge;
   EventLog::eventId m_pinNegEdge;
 
+  unsigned int m_lastState{0};  // Used to detect input edges
+
   /* ------ Private methods ------ */
-  unsigned int countSetBits(uint64_t n);
   /**
    * @brief process Set all output signals according to register value
    */
