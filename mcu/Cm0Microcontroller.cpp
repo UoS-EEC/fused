@@ -48,7 +48,6 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   sysTick = new SysTick("sysTick");
   nvic = new Nvic("nvic");
   mon = new SimpleMonitor("mon");
-  outputPort = new OutputPort("outputPort");
   gpio = new Gpio("gpio");
   spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10);
 
@@ -57,7 +56,6 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   slaves.push_back(gpio);
   slaves.push_back(mon);
   slaves.push_back(nvic);
-  slaves.push_back(outputPort);
   slaves.push_back(scb);
   slaves.push_back(spi);
   slaves.push_back(sram);

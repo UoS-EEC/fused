@@ -31,6 +31,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}
   -Wall -Wextra -Wno-reorder -Wno-unused -Wno-sign-compare")
 
+configure_file(config/config.yaml.in config.yaml)
+
 set(CMAKE_CXX_STANDARD 11) #${SystemC_CXX_STANDARD})
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_EXE_LINKER_FLAGS -static)
@@ -41,10 +43,9 @@ find_package(ihex-parser REQUIRED)
 find_package(gdb-server REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
+include_directories(.)
 link_directories(${EP_INSTALL_DIR}/lib)
 include_directories(${EP_INSTALL_DIR}/include)
-
-include_directories(.)
 
 add_subdirectory(mcu)
 add_subdirectory(ps)
@@ -52,7 +53,22 @@ add_subdirectory(utilities)
 add_subdirectory(sd)
 add_subdirectory(boards)
 
-configure_file(config/config.yaml.in config.yaml)
+add_executable(
+  fused
+  main.cpp
+)
+
+target_link_libraries(
+  fused
+  PRIVATE
+    Cm0TestBoard
+    IntelHexParser::ihex-parser
+)
+
+IF(GDB_SERVER)
+  target_link_libraries(fused PRIVATE gdb-server::gdb-server)
+  target_compile_definitions(fused PRIVATE GDB_SERVER)
+ENDIF()
 
 IF(ENABLE_TESTS)
   enable_testing()

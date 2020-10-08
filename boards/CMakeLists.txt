@@ -8,8 +8,10 @@
 cmake_minimum_required(VERSION 3.13)
 
 # ------ CortexM0 Test board ------
-add_executable(
+add_library(
   Cm0TestBoard
+  Board.hpp
+  Cm0TestBoard.hpp
   Cm0TestBoard.cpp
   )
 
@@ -17,19 +19,13 @@ target_link_libraries(
   Cm0TestBoard
   PUBLIC
     Cm0Microcontroller
+    Cm0Utilities
     PowerSystem
     SerialDevices
     systemc-ams
     systemc
     spdlog::spdlog
-    Cm0Utilities
-    IntelHexParser::ihex-parser
-  )
-
-IF(GDB_SERVER)
-  target_link_libraries(Cm0TestBoard PUBLIC gdb-server::gdb-server)
-  target_compile_definitions(Cm0TestBoard PUBLIC GDB_SERVER)
-ENDIF()
+)
 
 # ------ MSP430 Test board ------
 add_executable(

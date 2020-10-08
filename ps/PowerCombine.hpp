@@ -30,7 +30,7 @@ class PowerCombine : public sc_core::sc_module {
       dynamicConsumers;
   std::array<sc_core::sc_in<double>, S> staticConsumers;
   sc_core::sc_in<double> vcc;
-  sc_core::sc_in<bool> pwrGood;
+  sc_core::sc_in<bool> nReset;
   sc_core::sc_out<double> sum;
 
   PowerCombine(sc_core::sc_module_name nm) {
@@ -91,7 +91,7 @@ class PowerCombine : public sc_core::sc_module {
       }
       if (m_compensateLdo) {
         // Multiply by vcc-dependent current multiplier
-        unsigned idx = pwrGood.read()
+        unsigned idx = nReset.read()
                            ? static_cast<unsigned int>(round(
                                  (vcc.read() - m_vccCurrentMultiplierOffset) /
                                  m_vccCurrentMultiplierResolution))

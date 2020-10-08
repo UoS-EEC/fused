@@ -129,21 +129,20 @@ int sc_main(int argc, char *argv[]) {
   EventLog::getInstance().staticPower.bind(staticConsumption);
 
   // External circuits (capacitor + supply voltage supervisor etc.)
-  ExternalCircuitry ext("ext");
-  ext.i_out.bind(totMcuConsumption);
-  ext.vcc.bind(vcc);
+  externalCircuitry.i_out.bind(totMcuConsumption);
+  externalCircuitry.vcc.bind(vcc);
 
   // Keep-alive -- bind to IO via converter
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
   sc_signal<bool> keepAlive{"keepAlive"};
   keepAliveConverter.out.bind(keepAlive);
   keepAliveConverter.in.bind(DIOCPins[8]);  // P6.0 Keep alive
-  ext.keepAlive.bind(keepAliveConverter.out);
+  externalCircuitry.keepAlive.bind(keepAliveConverter.out);
   // Stop simulation after <configurable> io toggles
   IoSimulationStopper simStopper("PA2Stopper");
   simStopper.in(DIOAPins[2]);
   sc_signal<bool> dummysig{"dummysig"};
-  ext.v_warn.bind(dummysig);
+  externalCircuitry.v_warn.bind(dummysig);
 
   // Set up output folder
   // When <filesystem> is available:
@@ -183,9 +182,10 @@ int sc_main(int argc, char *argv[]) {
   sca_trace(tabfile, vcc, "vcc");
   sca_trace(tabfile, totMcuConsumption, "icc");
   sca_trace(tabfile, nReset, "nReset");
-  sca_trace(tabfile, ext.v_cap, "ext.v_cap");
-  sca_trace(tabfile, ext.keepAlive, "ext.keepAlive");
-  sca_trace(tabfile, ext.i_supply, "ext.i_supply");
+  sca_trace(tabfile, externalCircuitry.v_cap, "externalCircuitry.v_cap");
+  sca_trace(tabfile, externalCircuitry.keepAlive,
+            "externalCircuitry.keepAlive");
+  sca_trace(tabfile, externalCircuitry.i_supply, "externalCircuitry.i_supply");
   sca_trace(tabfile, totMcuConsumption, "icc");
 
   /* ------ Simulation control ------ */

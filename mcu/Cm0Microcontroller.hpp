@@ -180,7 +180,6 @@ class Cm0Microcontroller : public Microcontroller {
   NonvolatileMemory *dnvm;  //! Data memory (NVRAM)
   SysTick *sysTick;         //! SysTick Timer
   Nvic *nvic;               //! NVIC interrupt controller
-  OutputPort *outputPort;   //! Basic output "IO" port
   Gpio *gpio;               //! Basic GPIO
   Spi *spi;                 //! SPI peripheral
 
