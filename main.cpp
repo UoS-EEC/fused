@@ -25,6 +25,7 @@
 #include <thread>
 #include "boards/Board.hpp"
 #include "boards/Cm0TestBoard.hpp"
+#include "boards/Msp430TestBoard.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/SimulationController.hpp"
@@ -72,8 +73,17 @@ int sc_main(int argc, char *argv[]) {
   config.parseFile();
 
   // Instantiate board
-  // TODO: use CLI/YAML arguments to select board
-  Board *board = new Cm0TestBoard("Cm0TestBoard");
+  Board *board;
+  const auto &bstring = Config::get().getString("Board");
+  if (bstring == "Cm0TestBoard") {
+    board = new Cm0TestBoard("Cm0TestBoard");
+  } else if (bstring == "Msp430TestBoard") {
+    board = new Msp430TestBoard("Msp430TestBoard");
+  } else {
+    SC_REPORT_FATAL(
+        "sc_main",
+        fmt::format("invalid setting for Board \"{:s}\"", bstring).c_str());
+  }
 
   // Set up output folder
   // When <filesystem> is available:

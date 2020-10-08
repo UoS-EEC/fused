@@ -14,13 +14,12 @@
 #include <string>
 #include <systemc>
 #include <tlm>
-#include "include/fused.h"
+#include "include/cm0-fused.h"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
 #include "mcu/cortex-m0/Gpio.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
-#include "mcu/cortex-m0/OutputPort.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
 #include "utilities/Config.hpp"
 
@@ -47,7 +46,7 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   scb = new DummyPeripheral("scb", 0xe000ed00, 0xe000ed8f);
   sysTick = new SysTick("sysTick");
   nvic = new Nvic("nvic");
-  mon = new SimpleMonitor("mon");
+  mon = new SimpleMonitor("mon", SIMPLE_MONITOR_BASE);
   gpio = new Gpio("gpio");
   spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10);
 

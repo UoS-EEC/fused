@@ -12,7 +12,7 @@
 #include <string>
 #include <systemc>
 #include <tlm>
-#include "include/fused.h"
+#include "include/cm0-fused.h"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/SpiTransactionExtension.hpp"

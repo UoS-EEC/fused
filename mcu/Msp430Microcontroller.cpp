@@ -11,7 +11,7 @@
 #include <numeric>
 #include <sstream>
 #include <string>
-#include "include/fused.h"
+#include "include/msp430-fused.h"
 #include "mcu/Cache.hpp"
 #include "mcu/Microcontroller.hpp"
 #include "mcu/Msp430Microcontroller.hpp"
@@ -44,7 +44,7 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   fram_ctl = new Frctl_a("FRAM_CTL_A");
   watchdog =
       new DummyPeripheral("watchdog", zeroRetval, WDT_A_BASE, WDT_A_BASE + 1);
-  mon = new SimpleMonitor("mon");
+  mon = new SimpleMonitor("mon", SIMPLE_MONITOR_BASE);
   portJ = new DummyPeripheral("portJ", zeroRetval, PJ_BASE, PJ_BASE + 0x16);
   portA = new DigitalIo("portA", PA_BASE, PA_BASE + 0x1f);
   portB = new DigitalIo("portB", PB_BASE, PB_BASE + 0x1f);

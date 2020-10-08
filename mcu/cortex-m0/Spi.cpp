@@ -8,7 +8,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <iostream>
 #include <systemc>
-#include "include/fused.h"
+#include "include/cm0-fused.h"
 #include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/cortex-m0/Spi.hpp"
 #include "ps/EventLog.hpp"

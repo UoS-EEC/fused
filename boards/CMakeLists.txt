@@ -17,7 +17,7 @@ add_library(
 
 target_link_libraries(
   Cm0TestBoard
-  PUBLIC
+  PRIVATE
     Cm0Microcontroller
     Cm0Utilities
     PowerSystem
@@ -28,50 +28,46 @@ target_link_libraries(
 )
 
 # ------ MSP430 Test board ------
-add_executable(
+add_library(
   Msp430TestBoard
+  Board.hpp
   Msp430TestBoard.cpp
+  Msp430TestBoard.hpp
   )
 
 target_link_libraries(
   Msp430TestBoard
   PRIVATE
     Msp430Microcontroller
+    Msp430Utilities
     PowerSystem
     SerialDevices
     systemc-ams
     systemc
     spdlog::spdlog
-    Msp430Utilities
-    IntelHexParser::ihex-parser
   )
-
-IF(GDB_SERVER)
-  target_link_libraries(Msp430TestBoard PRIVATE gdb-server::gdb-server)
-  target_compile_definitions(Msp430TestBoard PUBLIC GDB_SERVER)
-ENDIF()
 
 # ------ MSP430FR5994Launchpad ------
-add_executable(
-  Msp430FR5994Launchpad
-  Msp430FR5994Launchpad.cpp
-  )
-
-target_link_libraries(
-  Msp430FR5994Launchpad
-  PRIVATE
-    Msp430Microcontroller
-    PowerSystem
-    SerialDevices
-    systemc-ams
-    systemc
-    spdlog::spdlog
-    Msp430Utilities
-    IntelHexParser::ihex-parser
-  )
-
-IF(GDB_SERVER)
-  target_link_libraries(Msp430FR5994Launchpad PRIVATE gdb-server::gdb-server)
-  target_compile_definitions(Msp430FR5994Launchpad PUBLIC GDB_SERVER)
-ENDIF()
+#add_executable(
+#Msp430FR5994Launchpad
+#Msp430FR5994Launchpad.cpp
+#)
+#
+#target_link_libraries(
+#Msp430FR5994Launchpad
+#PRIVATE
+#Msp430Microcontroller
+#PowerSystem
+#SerialDevices
+#systemc-ams
+##systemc
+#spdlog::spdlog
+#Msp430Utilities
+#IntelHexParser::ihex-parser
+#)
+#
+#IF(GDB_SERVER)
+#target_link_libraries(Msp430FR5994Launchpad PRIVATE gdb-server::gdb-server)
+#target_compile_definitions(Msp430FR5994Launchpad PUBLIC GDB_SERVER)
+#ENDIF()
 

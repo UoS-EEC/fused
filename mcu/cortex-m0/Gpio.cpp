@@ -8,6 +8,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 #include <systemc>
+#include "include/cm0-fused.h"
 #include "mcu/cortex-m0/Gpio.hpp"
 
 using namespace sc_core;

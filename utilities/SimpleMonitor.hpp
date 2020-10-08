@@ -4,17 +4,15 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#pragma once
 
 #include <spdlog/spdlog.h>
 #include <mcu/BusTarget.hpp>
 #include <systemc>
 #include <vector>
+#include "include/peripheral-defines.h"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
-
-extern "C" {
-#include "include/fused.h"
-}
 
 /** SC Module SimpleMonitor
  * SimpleMonitor implements a single register to control simulation and reports
@@ -27,9 +25,8 @@ class SimpleMonitor : public BusTarget {
   /**
    * Constructor
    */
-  SimpleMonitor(const sc_core::sc_module_name nm)
-      : BusTarget(nm, SIMPLE_MONITOR_BASE,
-                  SIMPLE_MONITOR_BASE + SIMPLE_MONITOR_SIZE - 1) {
+  SimpleMonitor(const sc_core::sc_module_name nm, const unsigned startAddress)
+      : BusTarget(nm, startAddress, startAddress + 4 - 1) {
     SC_METHOD(process);
     sensitive << m_writeEvent;
     m_regs.addRegister(0, 0);

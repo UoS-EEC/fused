@@ -37,6 +37,10 @@ void Config::parseCli(int argc, char *argv[]) {
       spdlog::info("Loading and immediately running program from: {:s}",
                    m_config["ProgramHexFile"]);
       i++;
+    } else if ((std::string(argv[i]) == "-B") ||
+               (std::string(argv[i]) == "--board")) {
+      m_config["Board"] = std::string(argv[i + 1]);
+      i++;
     } else {
       // Unrecognized option
       spdlog::error("Unrecognized CLI option \"{}\" exiting...",

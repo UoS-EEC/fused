@@ -11,7 +11,6 @@
 #include <ostream>
 #include <systemc>
 #include <tlm>
-#include "include/cm0-fused.h"
 #include "mcu/BusTarget.hpp"
 #include "mcu/RegisterFile.hpp"
 #include "ps/EventLog.hpp"
