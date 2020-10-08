@@ -50,12 +50,6 @@ SC_MODULE(dut) {
 SC_MODULE(tester) {
  public:
   SC_CTOR(tester) {
-    // Get Config
-    CACHE_NSETS = Config::get().getUint("CacheNSets");
-    CACHE_NLINES = Config::get().getUint("CacheNLines");
-    CACHE_LINEWIDTH = Config::get().getUint("CacheLineWidth");
-    CACHE_WPOLICY = Config::get().getString("CacheWritePolicy");
-    CACHE_RPOLICY = Config::get().getString("CacheReplacementPolicy");
     NVM_SIZE = test.nvm.size();
     sc_assert(test.nvm.size() ==
               test.m_dut.endAddress() - test.m_dut.startAddress() + 1);
@@ -151,14 +145,7 @@ SC_MODULE(tester) {
   }
 
   // Vars
-  int CACHE_NSETS;
-  int CACHE_NLINES;
-  int CACHE_LINEWIDTH;
-  int NVM_SIZE;
-
-  std::string CACHE_WPOLICY;
-  std::string CACHE_RPOLICY;
-
+  unsigned NVM_SIZE;
   dut test{"dut"};
 };
 
