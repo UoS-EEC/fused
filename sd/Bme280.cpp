@@ -260,8 +260,7 @@ void Bme280::measurementLoop() {
       if (osrs_t == 0) {
         result = 0x8000;
       } else {
-        EventLog::getInstance().reportState(this->name(),
-                                            "measure_temperature");
+        EventLog::getInstance().reportState("BME280", "measure_temperature");
         for (int i = 0; i < nSamples(osrs_t); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result += static_cast<unsigned>((input.temperature - TEMP_OFFSET) /
@@ -286,7 +285,7 @@ void Bme280::measurementLoop() {
         result = 0x8000;
       } else {
         result = 0;
-        EventLog::getInstance().reportState(this->name(), "measure_pressure");
+        EventLog::getInstance().reportState("BME280", "measure_pressure");
         for (int i = 0; i < nSamples(osrs_p); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result += static_cast<unsigned>((input.pressure - PRESS_OFFSET) /
@@ -300,7 +299,7 @@ void Bme280::measurementLoop() {
                       (m_regs.read(ADDR_PRESS_MSB) << 12);
         result = iir(oldval, result);
         spdlog::info("{:s}: @{} Pressure measurement 0x{:04x} ({:.3f} hPa)",
-                     this->name(), sc_time_stamp().to_string(), result,
+                     "BME280", sc_time_stamp().to_string(), result,
                      (result * PRESS_SCALE) + PRESS_OFFSET);
       }
       m_regs.write(ADDR_PRESS_XLSB, result & 0x0f, true);
@@ -313,7 +312,7 @@ void Bme280::measurementLoop() {
         result = 0x8000;
       } else {
         result = 0;
-        EventLog::getInstance().reportState(this->name(), "measure_humidity");
+        EventLog::getInstance().reportState("BME280", "measure_humidity");
         for (int i = 0; i < nSamples(osrs_h); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result +=
@@ -335,7 +334,7 @@ void Bme280::measurementLoop() {
 
       if (m_measurementState == MeasurementState::Normal) {
         // Standby wait time
-        EventLog::getInstance().reportState(this->name(), "standby");
+        EventLog::getInstance().reportState("BME280", "standby");
         const int STANDBY_DELAY_US[] = {500,    62500,   125000, 250000,
                                         500000, 1000000, 10000,  20000};
         auto delay = sc_time(
@@ -344,9 +343,9 @@ void Bme280::measurementLoop() {
                      sc_time_stamp().to_string(), delay.to_string());
         wait(delay);
       } else if (m_measurementState == MeasurementState::Sleep) {
-        EventLog::getInstance().reportState(this->name(), "sleep");
+        EventLog::getInstance().reportState("BME280", "sleep");
       } else if (m_measurementState == MeasurementState::PowerOff) {
-        EventLog::getInstance().reportState(this->name(), "off");
+        EventLog::getInstance().reportState("BME280", "off");
       }
     } else {  // Inactive
       wait(m_modeUpdateEvent);

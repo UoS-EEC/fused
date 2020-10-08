@@ -102,10 +102,12 @@ Cm0TestBoard.mcu.invm write: 4.0e-9
 Cm0TestBoard.mcu.dnvm read: 8.0e-10
 Cm0TestBoard.mcu.dnvm write: 4.0e-9
 
+# ------ Peripheral settings ------
+
 # BME280 temperature/humidity/pressure sensor power consumption (state-based)
-bme280.off:  0.0
-bme280.sleep: 0.1e-6
-bme280.standby: 0.2e-6
-bme280.measure_humidity: 340.0e-6
-bme280.measure_pressure:  714.0e-6
-bme280.measure_temperature: 350.0e-6
+BME280.off:  0.0
+BME280.sleep: 0.1e-6
+BME280.standby: 0.2e-6
+BME280.measure_humidity: 340.0e-6
+BME280.measure_pressure:  714.0e-6
+BME280.measure_temperature: 350.0e-6
