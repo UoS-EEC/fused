@@ -73,6 +73,11 @@ ENDIF()
 
 IF(ENABLE_TESTS)
   enable_testing()
+
+  # Extra command to check outputs of failing tests
+  add_custom_target(testcheck COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
+
+  # ---- "unit-tests" ------
   add_subdirectory(test)
   add_test(NAME ClockSourceChannel COMMAND testClockSourceChannel)
   add_test(NAME Cm0RegisterFile COMMAND testCm0RegisterFile)
@@ -87,4 +92,38 @@ IF(ENABLE_TESTS)
   add_test(NAME Cm0SysTick COMMAND testCm0SysTick)
   add_test(NAME Cm0Nvic COMMAND testCm0Nvic)
   add_test(NAME Cm0Spi COMMAND testCm0Spi)
+
+  # ---- Software tests ------
+  set(SWTEST_BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/sw/build)
+  execute_process(
+    COMMAND ./buildall.sh
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sw
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/buildall.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/buildall.log
+  )
+
+  # Add all msp430 test binaries
+  file(GLOB_RECURSE MSP430_BINS "${SWTEST_BUILD_DIR}/validation/msp430/*.hex")
+  foreach(HEXFILE ${MSP430_BINS})
+    get_filename_component(PROGNAME ${HEXFILE} NAME)
+    set(TESTNAME "Msp430SwTest-${PROGNAME}")
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND fused --board Msp430TestBoard -x ${HEXFILE}
+    )
+    set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT 10)
+  endforeach()
+
+  # Add all cm0 test binaries
+  file(GLOB_RECURSE CM0_BINS "${SWTEST_BUILD_DIR}/validation/cm0/*.hex")
+  foreach(HEXFILE ${CM0_BINS})
+    get_filename_component(PROGNAME ${HEXFILE} NAME)
+    set(TESTNAME "Cm0SwTest-${PROGNAME}")
+    add_test(
+      NAME ${TESTNAME}
+      COMMAND fused --board Cm0TestBoard -x ${HEXFILE}
+    )
+    set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT 10)
+  endforeach()
+
 ENDIF()
