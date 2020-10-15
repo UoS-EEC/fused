@@ -18,7 +18,7 @@ Gpio::Gpio(const sc_core::sc_module_name name)
   // Initialize register file
   m_regs.addRegister(OFS_GPIO_DATA);
   m_regs.addRegister(OFS_GPIO_DIR);
-  m_regs.addRegister(OFS_GPIO_IE, 0, RegisterFile::AccessMode::READ);
+  m_regs.addRegister(OFS_GPIO_IE);
   m_regs.addRegister(OFS_GPIO_IFG, 0, RegisterFile::AccessMode::READ);
 
   // Get event IDs
@@ -62,12 +62,14 @@ void Gpio::process(void) {
         current = pins[i].read().to_bool();
       } else {  // Read 'Z' and 'X' as 0
         current = false;
+        /*
         SC_REPORT_WARNING(
             this->name(),
             fmt::format(
-                "pin {:d} reads non-binary value {:s}, interpreting as 0.", i,
+                "pin {:d} reads non-binary value {:}, interpreting as 0.", i,
                 pins[i].read().to_char())
                 .c_str());
+                */
       }
 
       if (dir & mask) {  // If output mode
@@ -90,6 +92,7 @@ void Gpio::process(void) {
           if (ie & mask) {
             m_regs.setBit(OFS_GPIO_IFG, i, true);
             m_setIrq = true;
+            m_updateIrqEvent.notify(SC_ZERO_TIME);
           }
         } else if (!current && (m_lastState & mask)) {  // Negedge
           m_regs.clearBit(OFS_GPIO_DATA, i, true);
@@ -104,7 +107,7 @@ void Gpio::process(void) {
     }
   } else {
     for (int i = 0; i < pins.size(); i++) {
-      pins[i].write(sc_dt::sc_logic(false));
+      pins[i].write(sc_dt::SC_LOGIC_Z);
     }
   }
   return;
