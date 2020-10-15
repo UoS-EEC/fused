@@ -108,7 +108,7 @@ void CortexM0Cpu::process() {
         insn = m_instructionQueue.front();
         m_instructionQueue.pop_front();
 
-        // CM0+ increments PC before execute
+        // CM0+ appears to increment PC before execute
         if (m_pipelineStages == 2) {
           cpu_set_pc(cpu_get_pc() + 0x2);
         }
@@ -137,7 +137,7 @@ void CortexM0Cpu::process() {
           flushPipeline();
         }
 
-        // CM0 Increments pc after execute if no branches
+        // CM0 appears to increment pc after execute if no branches
         if (!takenBranch && (m_pipelineStages == 3)) {
           cpu_set_pc(cpu_get_pc() + 0x2);
         }
@@ -238,10 +238,13 @@ void CortexM0Cpu::exceptionCheck() {
 }
 
 void CortexM0Cpu::exceptionEnter(const unsigned exceptionId) {
+  // Get next pc, adjusted acc
+  const auto nextPc = cpu_get_pc() - 2 * (m_pipelineStages - 1 - m_bubbles);
+
   // Save a snapshot of registers for checking correct irq handling
   std::copy(std::begin(cpu.gpr), std::end(cpu.gpr),
             std::begin(m_regsAtExceptEnter));
-  m_regsAtExceptEnter[15] -= (4 - 2 * m_bubbles);  // Point to next valid instr.
+  m_regsAtExceptEnter[15] = nextPc;  // Point to next valid instr.
   m_regsAtExceptEnter[16] = cpu_get_apsr();
 
   // Align stack frame to 8 bytes (to comply with AAPCS)
@@ -253,15 +256,16 @@ void CortexM0Cpu::exceptionEnter(const unsigned exceptionId) {
   // Stack R0-R3, R12, R14, PC, xPSR
   uint8_t tmp[4];
 
-  write32(framePtr, cpu_get_gpr(0));
-  write32(framePtr + 4, cpu_get_gpr(1));
-  write32(framePtr + 8, cpu_get_gpr(2));
-  write32(framePtr + 12, cpu_get_gpr(3));
-  write32(framePtr + 16, cpu_get_gpr(12));
-  write32(framePtr + 20, cpu_get_lr());
-  write32(framePtr + 24, cpu_get_pc() - (4 - 2 * m_bubbles));
+  write32(framePtr + 0 * 4, cpu_get_gpr(0));
+  write32(framePtr + 1 * 4, cpu_get_gpr(1));
+  write32(framePtr + 2 * 4, cpu_get_gpr(2));
+  write32(framePtr + 3 * 4, cpu_get_gpr(3));
+  write32(framePtr + 4 * 4, cpu_get_gpr(12));
+  write32(framePtr + 5 * 4, cpu_get_lr());
+  // write32(framePtr + 6 * 4, cpu_get_pc() - (4 - 2 * m_bubbles));
+  write32(framePtr + 6 * 4, nextPc);
   u32 psr = cpu_get_apsr();
-  write32(framePtr + 28,
+  write32(framePtr + 7 * 4,
           ((psr & 0xFFFFFC00) | (frameAlign << 9) | (psr & 0x1FF)));
 
   // Encode the mode of the cpu at time of exception in LR value
@@ -337,7 +341,7 @@ void CortexM0Cpu::exceptionReturn(const uint32_t EXC_RETURN) {
   for (int i = 0; i < m_regsAtExceptEnter.size(); i++) {
     if (cpu.gpr[i] != m_regsAtExceptEnter[i]) {
       spdlog::error(
-          "{}:exceptionReturn r{} has was not restored correctly, is "
+          "{}:exceptionReturn r{} was not restored correctly: is "
           "0x{:08x}, should be 0x{:08x}",
           this->name(), i, cpu.gpr[i], m_regsAtExceptEnter[i]);
     }
