@@ -35,6 +35,7 @@ extern "C" {
 /* ------ GPIO port ------ */
 #define GPIO_BASE 0x40000000
 #define GPIO_SIZE 0x00001000
+#define GPIO_EXCEPT_ID 0
 
 /* ------ SimpleMonitor ------ */
 #define SIMPLE_MONITOR_BASE 0x40001000

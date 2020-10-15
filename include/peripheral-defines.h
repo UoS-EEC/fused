@@ -18,11 +18,10 @@ extern "C" {
 #include <stdint.h>
 
 /* ------ GPIO port ------ */
-#define GPIO_EXCEPT_ID 0
 #define OFS_GPIO_DATA 0x0
 #define OFS_GPIO_DIR 0x400
 #define OFS_GPIO_IFG 0x404
-#define OFS_GPIO_IE 0x40C
+#define OFS_GPIO_IE 0x410
 
 /* ------ SimpleMonitor ------ */
 #define SIMPLE_MONITOR_KILL_SIM 0x0D1E  //! Kill simulation (success)

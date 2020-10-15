@@ -53,11 +53,10 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name) : Board(name) {
   // External circuits (capacitor + supply voltage supervisor etc.)
   externalCircuitry.i_out.bind(totMcuConsumption);
   externalCircuitry.vcc.bind(vcc);
-  externalCircuitry.v_warn.bind(v_warn_sig);
+  externalCircuitry.v_warn.bind(DIOBPins[0]);
 
-  // Keep-alive -- bind to IO via converter
   // KeepAlive -- bind to IO via converter
-  keepAliveConverter.in.bind(DIOCPins[8]);  // P6.0 as keepAlive
+  keepAliveConverter.in.bind(DIOCPins[8 + 0]);  // P6.0 as keepAlive
   keepAliveConverter.out.bind(keepAliveBool);
   externalCircuitry.keepAlive.bind(keepAliveConverter.out);
 

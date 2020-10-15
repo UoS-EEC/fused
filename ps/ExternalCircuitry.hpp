@@ -25,7 +25,7 @@ SCA_TDF_MODULE(VoltageDetectorWithOverride) {
   // Produce output voltage and input current
   sca_tdf::sc_out<double> v_out{"v_out"};
   sca_tdf::sca_out<double> i_in{"i_in"};
-  sca_tdf::sc_out<bool> v_warn{"v_warn"};
+  sca_tdf::sca_de::sca_out<sc_dt::sc_logic> v_warn{"v_warn"};
 
   void set_attributes(){};
 
@@ -45,7 +45,7 @@ SCA_TDF_MODULE(VoltageDetectorWithOverride) {
     }
 
     // Issue voltage warning
-    v_warn.write(crnt_v_in < m_vWarn);
+    v_warn.write(sc_dt::sc_logic(crnt_v_in < m_vWarn));
   }
 
   void ac_processing(){};
@@ -142,7 +142,7 @@ SC_MODULE(ExternalCircuitry) {
 
   // TDF output converter ports
   sc_core::sc_out<double> vcc{"vcc"};
-  sc_core::sc_out<bool> v_warn{"v_warn"};
+  sc_core::sc_out_resolved v_warn{"v_warn"};
 
   // Modules
   ConstantCurrentSupplyTDF supply{"supply"};

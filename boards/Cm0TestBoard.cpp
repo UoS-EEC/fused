@@ -65,10 +65,10 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
   // External circuits (capacitor + supply voltage supervisor etc.)
   externalCircuitry.i_out.bind(totMcuConsumption);
   externalCircuitry.vcc.bind(vcc);
-  externalCircuitry.v_warn.bind(v_warn_sig);
+  externalCircuitry.v_warn.bind(gpioPins[31]);
 
   // KeepAlive -- bind to IO via converter
-  keepAliveConverter.in.bind(gpioPins[31]);  // Pin 31 as keepAlive
+  keepAliveConverter.in.bind(gpioPins[5]);
   keepAliveConverter.out.bind(keepAliveBool);
   externalCircuitry.keepAlive.bind(keepAliveConverter.out);
 
