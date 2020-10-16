@@ -11,7 +11,6 @@
 #include <iostream>
 #include <list>
 #include <string>
-#include "mcu/CacheReplacementPolicies.hpp"
 #include "mcu/GenericMemory.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"

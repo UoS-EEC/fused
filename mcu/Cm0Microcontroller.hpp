@@ -15,7 +15,6 @@
 #include <vector>
 #include "mcu/Bus.hpp"
 #include "mcu/BusTarget.hpp"
-#include "mcu/Cache.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/DummyPeripheral.hpp"
 #include "mcu/GenericMemory.hpp"

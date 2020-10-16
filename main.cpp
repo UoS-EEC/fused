@@ -24,6 +24,7 @@
 #include <systemc>
 #include <thread>
 #include "boards/Board.hpp"
+#include "boards/Cm0SensorNode.hpp"
 #include "boards/Cm0TestBoard.hpp"
 #include "boards/Msp430TestBoard.hpp"
 #include "ps/EventLog.hpp"
@@ -79,6 +80,8 @@ int sc_main(int argc, char *argv[]) {
     board = new Cm0TestBoard("Cm0TestBoard");
   } else if (bstring == "Msp430TestBoard") {
     board = new Msp430TestBoard("Msp430TestBoard");
+  } else if (bstring == "Cm0SensorNode") {
+    board = new Cm0SensorNode("Cm0SensorNode");
   } else {
     SC_REPORT_FATAL(
         "sc_main",

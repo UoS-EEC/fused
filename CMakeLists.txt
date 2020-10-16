@@ -62,6 +62,7 @@ target_link_libraries(
   fused
   PRIVATE
     Cm0TestBoard
+    Cm0SensorNode
     Msp430TestBoard
     IntelHexParser::ihex-parser
 )

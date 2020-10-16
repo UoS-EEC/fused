@@ -15,46 +15,54 @@
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
+#include "sd/Bme280.hpp"
 #include "sd/DummySpiDevice.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 
-// Simple custom reset controller for this board
-SC_MODULE(ResetCtrl) {
+class Cm0SensorNode : public Board {
  public:
-  // Ports
-  sc_core::sc_in<double> vcc{"vcc"};
-  sc_core::sc_out<bool> nReset{"nReset"};
+  // Simple custom reset controller for this board
+  SC_MODULE(ResetCtrl) {
+   public:
+    // Ports
+    sc_core::sc_in<double> vcc{"vcc"};
+    sc_core::sc_out<bool> nReset{"nReset"};
 
-  SC_CTOR(ResetCtrl) {
-    m_vCore = Config::get().getDouble("CpuCoreVoltage");
-    SC_METHOD(process);
-    sensitive << vcc;
-  }
+    SC_CTOR(ResetCtrl) {
+      m_vCore = Config::get().getDouble("CpuCoreVoltage");
+      SC_METHOD(process);
+      sensitive << vcc;
+    }
 
- private:
-  double m_vCore;
-  void process() { nReset.write(vcc.read() > m_vCore); }
-};
+   private:
+    double m_vCore;
+    void process() { nReset.write(vcc.read() > m_vCore); }
+  };
 
-class Cm0TestBoard : public Board {
- public:
   /* ------ Public methods ------ */
   /**
    * @brief constructor
    */
-  Cm0TestBoard(const sc_core::sc_module_name name);
+  Cm0SensorNode(const sc_core::sc_module_name name);
 
   /**
    * @brief destructor closes vcd files
    */
-  ~Cm0TestBoard();
+  ~Cm0SensorNode();
 
   /**
    * @brief getMicrocontroller get a reference to the microcontroller
    */
   virtual Microcontroller &getMicrocontroller() override;
+
+  /* ------ GPIO pin numbers ------ */
+  struct GpioPinAssignment {
+    static const int KEEP_ALIVE = 5;
+    static const int V_WARN = 31;
+    static const int BME280_CHIP_SELECT = 16;
+  };
 
   /* ------ Channels & signals ------ */
   DynamicEnergyChannel dynamicConsumption{"dynamicConsumption"};
@@ -64,17 +72,18 @@ class Cm0TestBoard : public Board {
   sc_core::sc_signal<double> totMcuConsumption{"totMcuConsumption", 0.0};
   sc_core::sc_signal<double> vcc{"vcc", 0.0};
   sc_core::sc_signal<bool> nReset{"nReset"};
-  sc_core::sc_signal<bool> chipSelectDummySpi{"chipSelectDummySpi", false};
   sc_core::sc_signal<bool> keepAliveBool{"keepAliveBool"};
   std::array<sc_core::sc_signal_resolved, 32> gpioPins;
 
   /* ------ Submodules ------ */
   ResetCtrl resetCtrl{"resetCtrl"};
   Cm0Microcontroller mcu{"mcu"};
-  DummySpiDevice dummySpiDevice{"dummySpiDevice"};
   PowerCombine<2, 1> pwrCombinator{"PowerCombine"};
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
+
+  /* ------ External chips ------ */
+  Bme280 bme280{"bme280"};
 
   /* ------ Tracing ------ */
   sca_util::sca_trace_file *vcdfile;

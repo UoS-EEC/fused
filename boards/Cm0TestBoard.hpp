@@ -20,26 +20,26 @@
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 
-// Simple custom reset controller for this board
-SC_MODULE(ResetCtrl) {
- public:
-  // Ports
-  sc_core::sc_in<double> vcc{"vcc"};
-  sc_core::sc_out<bool> nReset{"nReset"};
-
-  SC_CTOR(ResetCtrl) {
-    m_vCore = Config::get().getDouble("CpuCoreVoltage");
-    SC_METHOD(process);
-    sensitive << vcc;
-  }
-
- private:
-  double m_vCore;
-  void process() { nReset.write(vcc.read() > m_vCore); }
-};
-
 class Cm0TestBoard : public Board {
  public:
+  // Simple custom reset controller for this board
+  SC_MODULE(ResetCtrl) {
+   public:
+    // Ports
+    sc_core::sc_in<double> vcc{"vcc"};
+    sc_core::sc_out<bool> nReset{"nReset"};
+
+    SC_CTOR(ResetCtrl) {
+      m_vCore = Config::get().getDouble("CpuCoreVoltage");
+      SC_METHOD(process);
+      sensitive << vcc;
+    }
+
+   private:
+    double m_vCore;
+    void process() { nReset.write(vcc.read() > m_vCore); }
+  };
+
   /* ------ Public methods ------ */
   /**
    * @brief constructor
@@ -64,7 +64,8 @@ class Cm0TestBoard : public Board {
   sc_core::sc_signal<double> totMcuConsumption{"totMcuConsumption", 0.0};
   sc_core::sc_signal<double> vcc{"vcc", 0.0};
   sc_core::sc_signal<bool> nReset{"nReset"};
-  sc_core::sc_signal<bool> chipSelectDummySpi{"chipSelectDummySpi", false};
+  sc_core::sc_signal_resolved chipSelectDummySpi{"chipSelectDummySpi",
+                                                 sc_dt::SC_LOGIC_0};
   sc_core::sc_signal<bool> keepAliveBool{"keepAliveBool"};
   std::array<sc_core::sc_signal_resolved, 32> gpioPins;
 

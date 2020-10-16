@@ -17,21 +17,20 @@
 #include <systemc-ams>
 #include <systemc>
 #include <thread>
-#include "boards/Cm0TestBoard.hpp"
+#include "boards/Cm0SensorNode.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
-#include "sd/DummySpiDevice.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 #include "utilities/SimulationController.hpp"
 
 using namespace sc_core;
 
-Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
+Cm0SensorNode::Cm0SensorNode(const sc_module_name name) : Board(name) {
   /* ------ Bind ------ */
   // Reset
   resetCtrl.vcc.bind(vcc);
@@ -44,9 +43,9 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
   }
 
   // off-chip serial devices
-  dummySpiDevice.nReset.bind(nReset);
-  dummySpiDevice.chipSelect.bind(chipSelectDummySpi);
-  dummySpiDevice.tSocket.bind(mcu.spi->spiSocket);
+  bme280.nReset.bind(nReset);
+  bme280.chipSelect.bind(gpioPins[GpioPinAssignment::BME280_CHIP_SELECT]);
+  bme280.tSocket.bind(mcu.spi->spiSocket);
 
   // Power circuitry
   mcu.vcc.bind(vcc);
@@ -65,10 +64,10 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
   // External circuits (capacitor + supply voltage supervisor etc.)
   externalCircuitry.i_out.bind(totMcuConsumption);
   externalCircuitry.vcc.bind(vcc);
-  externalCircuitry.v_warn.bind(gpioPins[31]);
+  externalCircuitry.v_warn.bind(gpioPins[GpioPinAssignment::V_WARN]);
 
   // KeepAlive -- bind to IO via converter
-  keepAliveConverter.in.bind(gpioPins[5]);
+  keepAliveConverter.in.bind(gpioPins[GpioPinAssignment::KEEP_ALIVE]);
   keepAliveConverter.out.bind(keepAliveBool);
   externalCircuitry.keepAlive.bind(keepAliveConverter.out);
 
@@ -107,9 +106,9 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
   sca_trace(tabfile, totMcuConsumption, "icc");
 }
 
-Cm0TestBoard::~Cm0TestBoard() {
+Cm0SensorNode::~Cm0SensorNode() {
   sca_util::sca_close_vcd_trace_file(vcdfile);
   sca_util::sca_close_tabular_trace_file(tabfile);
 }
 
-Microcontroller &Cm0TestBoard::getMicrocontroller() { return mcu; }
+Microcontroller &Cm0SensorNode::getMicrocontroller() { return mcu; }

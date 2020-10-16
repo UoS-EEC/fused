@@ -46,8 +46,8 @@ class Msp430TestBoard : public Board {
   sc_core::sc_signal<double> totMcuConsumption{"totMcuConsumption", 0.0};
   sc_core::sc_signal<double> vcc{"vcc", 0.0};
   sc_core::sc_signal<bool> nReset{"nReset"};
-  sc_core::sc_signal<bool> chipSelectDummySpi{"chipSelectDummySpi", false};
-  sc_core::sc_signal<bool> v_warn_sig{"v_warn_sig"};
+  sc_core::sc_signal_resolved chipSelectDummySpi{"chipSelectDummySpi",
+                                                 sc_dt::SC_LOGIC_0};
   sc_core::sc_signal<bool> keepAliveBool{"keepAliveBool"};
 
   // IO pins
