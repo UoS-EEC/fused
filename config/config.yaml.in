@@ -102,6 +102,19 @@ Cm0TestBoard.mcu.invm write: 4.0e-9
 Cm0TestBoard.mcu.dnvm read: 8.0e-10
 Cm0TestBoard.mcu.dnvm write: 4.0e-9
 
+# ------ Cm0SensorNode-specific settings ------
+# Power consumption of states (in this case current (A))
+Cm0SensorNode.mcu.CPU on: 0.0
+Cm0SensorNode.mcu.CPU off: 0.0
+
+# Energy consumption of events (J)
+Cm0SensorNode.mcu.sram read: 4.0e-10
+Cm0SensorNode.mcu.sram write: 4.0e-10
+Cm0SensorNode.mcu.invm read: 8.0e-10
+Cm0SensorNode.mcu.invm write: 4.0e-9
+Cm0SensorNode.mcu.dnvm read: 8.0e-10
+Cm0SensorNode.mcu.dnvm write: 4.0e-9
+
 # ------ Peripheral settings ------
 
 # BME280 temperature/humidity/pressure sensor power consumption (state-based)
