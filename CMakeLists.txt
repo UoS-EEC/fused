@@ -7,6 +7,8 @@
 
 cmake_minimum_required(VERSION 3.12)
 
+include(cmake/Utilities.cmake)
+
 option(INSTALL_DEPENDENCIES "Download, build & install dependencies only" OFF)
 option(ENABLE_TESTS "Build tests" ON)
 option(GDB_SERVER "Link gdb server library" ON)
@@ -96,7 +98,6 @@ IF(ENABLE_TESTS)
   add_test(NAME Cm0Spi COMMAND testCm0Spi)
 
   # ---- Software tests ------
-  set(SWTEST_BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/sw/build)
   execute_process(
     COMMAND ./buildall.sh
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/sw
@@ -104,28 +105,8 @@ IF(ENABLE_TESTS)
     ERROR_FILE ${CMAKE_BINARY_DIR}/buildall.log
   )
 
-  # Add all msp430 test binaries
-  file(GLOB_RECURSE MSP430_BINS "${SWTEST_BUILD_DIR}/validation/msp430/*.hex")
-  foreach(HEXFILE ${MSP430_BINS})
-    get_filename_component(PROGNAME ${HEXFILE} NAME)
-    set(TESTNAME "Msp430SwTest-${PROGNAME}")
-    add_test(
-      NAME ${TESTNAME}
-      COMMAND fused --board Msp430TestBoard -x ${HEXFILE}
-    )
-    set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT 10)
-  endforeach()
-
-  # Add all cm0 test binaries
-  file(GLOB_RECURSE CM0_BINS "${SWTEST_BUILD_DIR}/validation/cm0/*.hex")
-  foreach(HEXFILE ${CM0_BINS})
-    get_filename_component(PROGNAME ${HEXFILE} NAME)
-    set(TESTNAME "Cm0SwTest-${PROGNAME}")
-    add_test(
-      NAME ${TESTNAME}
-      COMMAND fused --board Cm0TestBoard -x ${HEXFILE}
-    )
-    set_tests_properties(${TESTNAME} PROPERTIES TIMEOUT 10)
-  endforeach()
-
+  # Add sw/validation tests
+  add_sw_tests(Msp430TestBoard)
+  add_sw_tests(Cm0TestBoard)
+  add_sw_tests(Cm0SensorNode)
 ENDIF()
