@@ -10,12 +10,8 @@ set(CODESEC F)
 set(DATASEC S)
 set(WS 0)
 set(TESTNAME bme280)
-set(SOURCES 
-  main.c 
-  eusci_b_spi.c 
-  eusci_b_spi.h
-  gpio.c
-  gpio.h
+set(SOURCES
+  main.c
   )
 add_executable(${TESTNAME} ${SOURCES})
 include(../../../cmake/tail.cmake)

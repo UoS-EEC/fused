@@ -9,15 +9,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <support.h>
-
 #include "bme280.h"
-#include "eusci_b_spi.h"
-#include "gpio.h"
+#include "stm32f0_spi.h"
+
+#define FCLK 8000000
+#define PIN_BME280_CS (1u << 16)
 
 /* ------ Function Prototypes -----------------------------------------------*/
 
 // Initialize GPIO settings
 static void gpioInit();
+
+// Transmit data
+void spiTransmit(const uint8_t* data, int len);
 
 // Transmit data, and get response
 uint8_t spiTransaction(const uint8_t data);
@@ -32,43 +36,60 @@ static void bme280Read(const uint8_t address, uint8_t* data, int len);
 void assert(bool c);
 
 /* ------ Global Variables --------------------------------------------------*/
+volatile static SPI_TypeDef* spi = ((SPI_TypeDef*)SPI1_BASE);
+
+struct {
+  uint8_t data[100];
+  volatile int len;
+} spiPacket;
 
 /* ------ Function Definitions ----------------------------------------------*/
 
+__attribute__((optimize(1))) static inline void __delay_cycles(volatile int n) {
+  while (--n > 0) {
+    __asm__ volatile("nop" :);
+  }
+}
+
+static inline void assert_bme280_cs() { Gpio->DATA.WORD &= ~PIN_BME280_CS; }
+
+static inline void deassert_bme280_cs() { Gpio->DATA.WORD |= PIN_BME280_CS; }
+
+void Interrupt25_Handler(void) {  // SPI interrupt handler
+  while (spi->SR & SPI_SR_FRLVL) {
+    spiPacket.data[spiPacket.len++] = *((uint8_t*)&spi->DR);
+  }
+}
+
 uint8_t spiTransaction(const uint8_t data) {
-  EUSCI_B_SPI_transmitData(EUSCI_B1_BASE, data);
-  while (!EUSCI_B_SPI_getInterruptStatus(EUSCI_B1_BASE,
-                                         EUSCI_B_SPI_RECEIVE_INTERRUPT))
-    ;
-  uint8_t result = EUSCI_B_SPI_receiveData(EUSCI_B1_BASE);
-  return result;
+  while (!(spi->SR & SPI_SR_TXE))
+    ;  // Wait for a free tx slot
+  *((uint8_t*)&spi->DR) = data;
+  while (!(spi->SR & SPI_SR_RXNE))
+    ;  // Wait for transaction complete
+  return *((uint8_t*)&spi->DR);
 }
 
 static void bme280Command(const uint8_t address, const uint8_t data) {
-  GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN7);
+  assert_bme280_cs();
   spiTransaction(address & BME280_W_REG);
   spiTransaction(data);
-  GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN7);
+  deassert_bme280_cs();
 }
 
 static void bme280Read(const uint8_t address, uint8_t* data, int len) {
   assert(address != 0xE0);
   assert(address + len <= 0xff);
-  GPIO_setOutputLowOnPin(GPIO_PORT_P3, GPIO_PIN7);
+  assert_bme280_cs();
   spiTransaction(address | BME280_R_REG);
   for (int i = 0; i < len; ++i) {
     data[i] = spiTransaction(BME280_NOP);
   }
-  GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN7);
+  deassert_bme280_cs();
 }
 
 int main(void) {
-  /* Initialise Clock System and GPIO
-   * DCO = 16 MHz; VLO = ~10 kHz
-   * ACLK = VLO; MCLK = DCO/2; SMCLK = DCO/2
-   * All Ports Output Low
-   * Unlock LPM5 Hi-Z
-   */
+  indicate_workload_begin();
   target_init();
 
   /* ------ Setup I/O ------ */
@@ -76,20 +97,11 @@ int main(void) {
 
   /* ------ Setup SPI ------ */
   // Initialize SPI as Master
-  EUSCI_B_SPI_initMasterParam param = {0};
-  param.selectClockSource = EUSCI_B_SPI_CLOCKSOURCE_SMCLK;
-  param.clockSourceFrequency = 8000000;
-  param.desiredSpiClock = 1000000;  // 1 Mbps (max. 8 Mbps for radio)
-  param.msbFirst = EUSCI_B_SPI_MSB_FIRST;
-  param.clockPhase = EUSCI_B_SPI_PHASE_DATA_CAPTURED_ONFIRST_CHANGED_ON_NEXT;
-  param.clockPolarity = EUSCI_B_SPI_CLOCKPOLARITY_INACTIVITY_LOW;
-  param.spiMode = EUSCI_B_SPI_3PIN;
-  EUSCI_B_SPI_initMaster(EUSCI_B1_BASE, &param);
-  EUSCI_B_SPI_enable(EUSCI_B1_BASE);
-
-  /*EUSCI_B_SPI_enableInterrupt(EUSCI_B1_BASE,
-   * EUSCI_B_SPI_RECEIVE_INTERRUPT);*/
-  /*__enable_interrupt();*/
+  spi->CR2 = (7u << SPI_CR2_DS_Pos) |   // 8 bit data size
+             SPI_CR2_FRXTH;             // 1-byte RXNE threshold
+  spi->CR1 = (2u << SPI_CR1_BR_Pos) |   // Baudrate = clk/8 = 1MHz
+             (1u << SPI_CR1_SPE_Pos) |  // SPI enable
+             (1u << SPI_CR1_MSTR_Pos);  // Master mode
 
   /* ------ Soft reset ------ */
   bme280Command(BME280_RESET, BME280_RESET_WORD);
@@ -145,16 +157,10 @@ int main(void) {
   assert(up > 0);
   assert(ut > 0);
   assert(uh > 0);
-  // Assert?
 
-  /*__disable_interrupt();*/
   end_experiment();
-  // ^  P1.4 High
+  return 0;
 }
-
-// USCI_B1 Interrupt Service Routine
-/*__attribute__((interrupt(USCI_B1_VECTOR))) void USCI_B1_ISR(void) { ticks++;
- * }*/
 
 void assert(bool c) {
   if (!c) {
@@ -165,26 +171,6 @@ void assert(bool c) {
 }
 
 static void gpioInit() {
-  /* Select Port 5
-   * Set Pin 0,1,2 (C0,C1,C2) to Primary Module Function,
-   * UCB1MOSI, UCB1MISO, UCB1CLK.
-   */
-  GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P5,
-                                             GPIO_PIN0 + GPIO_PIN1 + GPIO_PIN2,
-                                             GPIO_PRIMARY_MODULE_FUNCTION);
-
-  // Select Port 3
-  // Set Pin 5,6 (B5,B6) as Output
-  // CSN, CE
-  GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN5 + GPIO_PIN6);
-  GPIO_setOutputHighOnPin(GPIO_PORT_P3, GPIO_PIN5);
-
-  // Select Port
-  // Set Pin 5 (A12) as Input
-  // IRQ
-  GPIO_setAsInputPin(GPIO_PORT_P2, GPIO_PIN5);
-
-  // Expose SMCLK at P3.4 (B4)
-  GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P3, GPIO_PIN4,
-                                              GPIO_SECONDARY_MODULE_FUNCTION);
+  Gpio->DATA.WORD = 0;
+  Gpio->DIR.WORD = PIN_BME280_CS;
 }
