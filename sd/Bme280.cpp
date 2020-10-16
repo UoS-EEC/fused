@@ -229,7 +229,10 @@ void Bme280::measurementLoop() {
     // Take a series of measurements
     if (m_measurementState == MeasurementState::Normal ||
         m_measurementState == MeasurementState::Forced) {
-      unsigned result = 0;
+      m_regs.setBit(ADDR_STATUS, 3, true);  // Indicate measurement
+      spdlog::info("{:s}: @{} starting measurement", this->name(),
+                   sc_time_stamp().to_string());
+
       wait(sc_time(1, SC_MS));  // Constant part of t_measure (datasheet)
 
       // Get current sample (loops through input trace)
@@ -261,11 +264,8 @@ void Bme280::measurementLoop() {
         }
       };
 
-      m_regs.setBit(ADDR_STATUS, 3, true);  // Indicate measurement
-      spdlog::info("{:s}: @{} starting measurement", this->name(),
-                   sc_time_stamp().to_string());
-
       // Measure temperature
+      unsigned result = 0;
       auto osrs_t = (m_regs.read(ADDR_CTRL_MEAS) & 0xe0) >> 5;
       if (osrs_t == 0) {
         result = 0x8000;
