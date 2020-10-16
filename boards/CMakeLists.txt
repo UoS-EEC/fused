@@ -27,6 +27,26 @@ target_link_libraries(
     spdlog::spdlog
 )
 
+# ------ CortexM0 Sensor node ------
+add_library(
+  Cm0SensorNode
+  Board.hpp
+  Cm0SensorNode.hpp
+  Cm0SensorNode.cpp
+  )
+
+target_link_libraries(
+  Cm0TestBoard
+  PRIVATE
+    Cm0Microcontroller
+    Cm0Utilities
+    PowerSystem
+    SerialDevices
+    systemc-ams
+    systemc
+    spdlog::spdlog
+)
+
 # ------ MSP430 Test board ------
 add_library(
   Msp430TestBoard
