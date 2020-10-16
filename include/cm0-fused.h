@@ -22,7 +22,7 @@ extern "C" {
 
 /* ------ Memories ------ */
 #define ROM_START 0x08000000                   //! Start address of ROM memory
-#define ROM_SIZE 0x4000                        // 16K
+#define ROM_SIZE 0x10000                       // 64K
 #define NVRAM_START 0x20000000                 // Start address of NVRAM memory
 #define NVRAM_SIZE 0x4000                      // 16K
 #define SRAM_START (NVRAM_START + NVRAM_SIZE)  // Start address of SRAM memory
