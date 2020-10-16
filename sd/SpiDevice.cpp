@@ -50,8 +50,8 @@ uint32_t SpiDevice::readSlaveOut() const { return m_SlaveOutRegister; }
 void SpiDevice::writeSlaveOut(const uint32_t val) { m_SlaveOutRegister = val; }
 
 bool SpiDevice::enabled() const {
-  return (chipSelect.read() &&
+  return ((chipSelect.read() == sc_dt::SC_LOGIC_1) &&
           (m_chipSelectPolarity == ChipSelectPolarity::ActiveHigh)) ||
-         (!chipSelect.read() &&
+         ((chipSelect.read() == sc_dt::SC_LOGIC_0) &&
           (m_chipSelectPolarity == ChipSelectPolarity::ActiveLow));
 }

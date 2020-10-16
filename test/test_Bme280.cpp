@@ -28,7 +28,7 @@ SC_MODULE(dut) {
  public:
   // Signals
   sc_signal<bool> nReset{"nReset"};
-  sc_signal<bool> chipSelect{"chipSelect"};  //! Active low
+  sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
 
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
@@ -134,7 +134,7 @@ SC_MODULE(tester) {
     sc_time delay = spiExtension->transferTime();
 
     // Start transfer
-    test.chipSelect.write(false);
+    test.chipSelect.write(sc_dt::SC_LOGIC_0);
     wait(SC_ZERO_TIME);
     trans.set_data_ptr(&addr);
     test.iSpiSocket->b_transport(trans, delay);  // Transfer address
@@ -142,7 +142,7 @@ SC_MODULE(tester) {
     trans.set_data_ptr(&cmd);
     test.iSpiSocket->b_transport(trans, delay);  // Transfer command
     wait(delay);
-    test.chipSelect.write(true);
+    test.chipSelect.write(sc_dt::SC_LOGIC_1);
     wait(SC_ZERO_TIME);
 
     // delete spiExtension;
@@ -170,7 +170,7 @@ SC_MODULE(tester) {
 
     // Start transfer
     std::vector<uint8_t> response(len);
-    test.chipSelect.write(false);
+    test.chipSelect.write(sc_dt::SC_LOGIC_0);
     wait(SC_ZERO_TIME);
     test.iSpiSocket->b_transport(trans, delay);  // Transfer address
     wait(delay);
@@ -179,7 +179,7 @@ SC_MODULE(tester) {
       response[i] = spiExtension->response;
       wait(delay);
     }
-    test.chipSelect.write(true);
+    test.chipSelect.write(sc_dt::SC_LOGIC_1);
     wait(SC_ZERO_TIME);
 
     // delete spiExtension;

@@ -25,7 +25,7 @@ class SpiDevice : public sc_core::sc_module {
  public:
   /* ------ Ports ------ */
   // sc_core::sc_in<double> vcc{"vcc"};
-  sc_core::sc_in<bool> chipSelect{"chipSelect"};
+  sc_core::sc_in_resolved chipSelect{"chipSelect"};
   sc_core::sc_in<bool> nReset{"nReset"};
   tlm_utils::simple_target_socket<SpiDevice> tSocket{"tSocket"};
 

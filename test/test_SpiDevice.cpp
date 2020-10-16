@@ -28,7 +28,7 @@ SC_MODULE(dut) {
  public:
   // Signals
   sc_signal<bool> nReset{"nReset"};
-  sc_signal<bool> chipSelect{"chipSelect"};  //! Active low
+  sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
 
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
@@ -69,7 +69,7 @@ SC_MODULE(tester) {
     trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
 
     test.nReset.write(true);
-    test.chipSelect.write(false);
+    test.chipSelect.write(sc_dt::SC_LOGIC_0);
     wait(SC_ZERO_TIME);
 
     std::cout << "TESTING STARTS" << std::endl;
@@ -111,7 +111,7 @@ SC_MODULE(tester) {
     sc_assert(spiExtension->response == 0x0b);
 
     // Pull N chip select high
-    test.chipSelect.write(true);
+    test.chipSelect.write(sc_dt::SC_LOGIC_1);
     wait(SC_ZERO_TIME);
     // Try sending something
     data = 0x0d;
@@ -125,7 +125,7 @@ SC_MODULE(tester) {
               tlm::tlm_response_status::TLM_INCOMPLETE_RESPONSE);
 
     // Pull N chip select low
-    test.chipSelect.write(false);
+    test.chipSelect.write(sc_dt::SC_LOGIC_0);
     wait(SC_ZERO_TIME);
     test.iSpiSocket->b_transport(trans, delay);
 
