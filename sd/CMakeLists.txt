@@ -7,6 +7,8 @@
 
 add_library(
     SerialDevices
+    Accelerometer.cpp
+    Accelerometer.hpp
     Bme280.cpp
     Bme280.hpp
     SpiWire.cpp
@@ -23,5 +25,5 @@ target_link_libraries(
       systemc-ams
       systemc
     PRIVATE
-      Cm0Microcontroller # Necessary for RegisterFile, but shouldn't be here
+    Cm0Microcontroller # FIXME Necessary for RegisterFile, but shouldn't be here
     )

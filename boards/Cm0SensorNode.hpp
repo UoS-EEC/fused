@@ -15,6 +15,7 @@
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
+#include "sd/Accelerometer.hpp"
 #include "sd/Bme280.hpp"
 #include "sd/DummySpiDevice.hpp"
 #include "utilities/BoolLogicConverter.hpp"
@@ -62,6 +63,7 @@ class Cm0SensorNode : public Board {
     static const int KEEP_ALIVE = 5;
     static const int V_WARN = 31;
     static const int BME280_CHIP_SELECT = 16;
+    static const int ACCELEROMETER_CHIP_SELECT = 17;
   };
 
   /* ------ Channels & signals ------ */
@@ -83,6 +85,7 @@ class Cm0SensorNode : public Board {
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
 
   /* ------ External chips ------ */
+  Accelerometer accelerometer{"accelerometer"};
   Bme280 bme280{"bme280"};
 
   /* ------ Tracing ------ */

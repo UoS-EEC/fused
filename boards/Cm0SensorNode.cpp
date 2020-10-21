@@ -47,6 +47,11 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name) : Board(name) {
   bme280.chipSelect.bind(gpioPins[GpioPinAssignment::BME280_CHIP_SELECT]);
   bme280.tSocket.bind(mcu.spi->spiSocket);
 
+  accelerometer.nReset.bind(nReset);
+  accelerometer.chipSelect.bind(
+      gpioPins[GpioPinAssignment::ACCELEROMETER_CHIP_SELECT]);
+  accelerometer.tSocket.bind(mcu.spi->spiSocket);
+
   // Power circuitry
   mcu.vcc.bind(vcc);
   mcu.staticPower.bind(staticConsumptionBoot);
