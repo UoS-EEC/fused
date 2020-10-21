@@ -5,14 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//! Maximum size of a RSP packet is used to return the value of all the
-//! registers, each of which takes 8 chars. There are a total of 32 GPRs plus
-//! PPC, SR and NPC. Plus one byte for end of string marker.
-#define RSP_MAX_PKT_SIZE ((32 + 3) * 8 + 1)
-
-//! Default port for RSP to listen on
-#define DEFAULT_RSP_PORT 51000
-
 #include <spdlog/spdlog.h>
 #include <systemc-ams>
 #include <systemc>
