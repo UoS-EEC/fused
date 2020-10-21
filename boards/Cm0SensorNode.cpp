@@ -91,6 +91,10 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name) : Board(name) {
   sca_trace(vcdfile, mcu.cpu_returning_exception, "CPU.ReturningException");
   sca_trace(vcdfile, mcu.spi->irq, "SPI.irq");
   sca_trace(vcdfile, mcu.systick_irq, "SysTick.irq");
+  sca_trace(vcdfile, vcc, "vcc");
+  sca_trace(vcdfile, totMcuConsumption, "icc");
+  sca_trace(vcdfile, nReset, "nReset");
+  sca_trace(vcdfile, externalCircuitry.v_cap, "externalCircuitry.v_cap");
 
   // Creates a csv-like file
   tabfile = sca_util::sca_create_tabular_trace_file(
