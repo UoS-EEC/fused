@@ -19,11 +19,11 @@ Accelerometer::Accelerometer(const sc_module_name name)
     : SpiDevice(name, ChipSelectPolarity::ActiveLow) {
   // Initialise memory mapped control registers.
   m_regs.addRegister(RegisterAddress::CTRL);
-  m_regs.addRegister(RegisterAddress::CTRL_FIFO);
   m_regs.addRegister(RegisterAddress::CTRL_FS);
   m_regs.addRegister(RegisterAddress::STATUS,
                      /*resetValue=*/BitMasks::STATUS_BUSY);
   m_regs.addRegister(RegisterAddress::DATA);
+  m_regs.addRegister(RegisterAddress::FIFO_THR);
 
   // Load sensor input trace
   if (Config::get().contains("AccelerometerTraceFile")) {
@@ -56,13 +56,19 @@ void Accelerometer::end_of_elaboration() {
   sensitive << m_transactionEvent << chipSelect.posedge_event();
   dont_initialize();
 
+  SC_METHOD(updateIrq);
+  sensitive << m_irqUpdateEvent;
+
   SC_THREAD(measurementLoop);
 }
 
 void Accelerometer::reset(void) {
   m_regs.reset();
   SpiDevice::reset();
+  m_spiState.reset();
   m_fifo.reset();
+  m_measurementState = MeasurementState::Sleep;
+  m_modeUpdateEvent.cancel();
 }
 
 void Accelerometer::spiInterface(void) {
@@ -72,11 +78,25 @@ void Accelerometer::spiInterface(void) {
   if (enabled()) {  // Chip select active
     switch (m_spiState.mode) {
       case SpiState::Mode::Address:  // First byte sets up address
-        m_spiState.address = payload | READ_BIT;
+        m_spiState.address = payload & ~READ_BIT;
         m_spiState.mode = (payload & READ_BIT) ? SpiState::Mode::DataRead
                                                : SpiState::Mode::DataWrite;
         break;
       case SpiState::Mode::DataRead:
+        // Potentially clear irq on read
+        if (irq.read() == sc_dt::SC_LOGIC_1) {
+          const bool clearContinuousMode =
+              m_measurementState == MeasurementState::ContinuousMeasurement &&
+              (m_fifo.size() < m_regs.read(RegisterAddress::FIFO_THR) * 4);
+          const bool clearOtherModes = m_fifo.size() == 0;
+          const bool clearInterruptsDisabled =
+              !(m_regs.read(RegisterAddress::CTRL) & BitMasks::CTRL_IE);
+          if (clearContinuousMode || clearOtherModes ||
+              clearInterruptsDisabled) {
+            m_setIrq = false;
+            m_irqUpdateEvent.notify(SC_ZERO_TIME);
+          }
+        }
         break;
       case SpiState::Mode::DataWrite:  // Commands
         if (!m_regs.contains(m_spiState.address)) {
@@ -86,6 +106,8 @@ void Accelerometer::spiInterface(void) {
                               .c_str());
         }
         m_regs.write(m_spiState.address, payload);
+        spdlog::info("spiInterface:: DataWrite addr=0x{:02x} val=0x{:02x}",
+                     m_spiState.address, payload);
 
         switch (m_spiState.address) {
           case RegisterAddress::CTRL:
@@ -125,11 +147,33 @@ void Accelerometer::spiInterface(void) {
   }
 }
 
-Accelerometer::MeasurementState Accelerometer::nextMeasurementState() const {
+Accelerometer::MeasurementState Accelerometer::nextMeasurementState() {
   auto setting = static_cast<MeasurementState>(
       m_regs.read(RegisterAddress::CTRL) & BitMasks::CTRL_MODE);
-  // TODO: can't go from Off to measure without going through standby
-  // TODO: Delays between states
+
+  // can't go from Sleep to measure without going through standby
+  if ((m_measurementState == MeasurementState::Sleep &&
+       setting == MeasurementState::ContinuousMeasurement) ||
+      (m_measurementState == MeasurementState::Sleep &&
+       setting == MeasurementState::SingleMeasurement)) {
+    SC_REPORT_WARNING(this->name(),
+                      "Attempt to go from Sleep state directly to measurement "
+                      "state. Going to standby state instead.");
+    m_regs.clearBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE);
+    m_regs.setBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE_STANDBY);
+    setting = MeasurementState::Standby;
+  }
+
+  // Delay between states
+  if (m_measurementState == MeasurementState::Sleep &&
+      setting == MeasurementState::Standby) {
+    wait(sc_time::from_seconds(DELAY_SLEEP_TO_STANDBY));
+    m_regs.clearBitMask(RegisterAddress::STATUS, BitMasks::STATUS_BUSY);
+  } else if (m_measurementState == MeasurementState::Standby &&
+             setting == MeasurementState::Sleep) {
+    wait(sc_time::from_seconds(DELAY_STANDBY_TO_SLEEP));
+  }
+
   return setting;
 }
 
@@ -139,11 +183,6 @@ void Accelerometer::measurementLoop() {
   while (1) {
     // State machine model
     m_measurementState = nextMeasurementState();
-
-    // Go back to standby after single measurement
-    if (m_measurementState == MeasurementState::SingleMeasurement) {
-      m_regs.clearBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE);
-    }
 
     // Take a series of measurements
     if (m_measurementState == MeasurementState::ContinuousMeasurement ||
@@ -167,7 +206,7 @@ void Accelerometer::measurementLoop() {
 
       // Sample axes
       const auto ctrl = m_regs.read(RegisterAddress::CTRL);
-      FifoFrame frame;
+      FifoFrame frame = FifoFrame();
       if (ctrl & BitMasks::CTRL_X_EN) {
         frame.header |= FifoFrame::HeaderFields::X_AXIS_ENABLE;
         frame.data.push_front(sampleTrace(input.acc_x));
@@ -183,12 +222,36 @@ void Accelerometer::measurementLoop() {
 
       // Store result
       m_fifo.push_front(frame);
-      // TODO send pulse on IRQ when fifo overflows
 
+      // Clear busy
+      m_regs.clearBitMask(RegisterAddress::STATUS, BitMasks::STATUS_BUSY);
+
+      // Interrupt output
+      if (ctrl & BitMasks::CTRL_IE) {
+        const bool fifoIrq =
+            m_measurementState == MeasurementState::ContinuousMeasurement &&
+            (m_fifo.size() >= m_regs.read(RegisterAddress::FIFO_THR) * 4);
+        const bool otherIrq =
+            m_measurementState != MeasurementState::ContinuousMeasurement &&
+            m_fifo.size() > 0;
+        if (fifoIrq || otherIrq) {
+          m_setIrq = true;
+          m_irqUpdateEvent.notify(SC_ZERO_TIME);
+        }
+      }
+
+      spdlog::info("{:s}: @{:s} measurment done, fifo.size() = {:d}",
+                   this->name(), sc_time_stamp().to_string(), m_fifo.size());
+
+      // Go back to standby after single measurement
+      if (m_measurementState == MeasurementState::SingleMeasurement) {
+        m_regs.clearBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE);
+        m_regs.setBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE_STANDBY);
+      }
     } else {  // Inactive
       wait(m_modeUpdateEvent);
     }
   }
 }
 
-// Override parent b_transport to check for compatible spi settings
+void Accelerometer::updateIrq() { irq.write(sc_dt::sc_logic(m_setIrq)); }

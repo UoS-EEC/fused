@@ -73,6 +73,21 @@ target_link_libraries(testBme280
     Msp430Microcontroller
   )
 
+# ------ Accelerometer ------
+add_executable(testAccelerometer
+  test_Accelerometer.cpp
+)
+
+target_link_libraries(testAccelerometer
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    SerialDevices
+    Cm0Utilities
+    Cm0Microcontroller
+  )
+
 # ------ MSP430 DigitalIo ------
 add_executable(testDigitalIo
   test_DigitalIo.cpp

@@ -18,9 +18,7 @@
 /**
  * @brief Accelerometer class to implement a simple 8-bit 3-axis accelerometer.
  * Roughly imitates the interface to that of BMA400, but in a simplified
- * version. Optionally samples 3 axes, and stores the result in a FIFO. When the
- * FIFO is full, a pulse can be generated on @irq to signal an
- * interrupt.
+ * version. Optionally samples 3 axes, and stores the result in a FIFO.
  *
  * SPI interface:
  * --------------
@@ -30,6 +28,15 @@
  * keeping chipSelect asserted after the first read, and issuing more 8-bit SPI
  * transactions. Burst reads  do not autoincrement the address, so can be used
  * to repeatedly take values from the output fifo.
+ *
+ * IRQ output:
+ * -----------
+ * When CTRL_IE is set:
+ *   - In SingleMeasurement mode, the irq signal will be asserted when the FIFO
+ *     is nonempty, and cleared when the FIFO is empty again (after being read)
+ *   - In ContinuousMeasurement mode, the irq signal will be set when the
+ *     measurement FIFO is filled to/beyond FIFO_THR*4 bytes, and cleared when
+ *     the FIFO holds less than FIFO_THR*4 bytes.
  *
  *
  * Example hookup interface:
@@ -78,19 +85,25 @@ class Accelerometer : public SpiDevice {
     // clang-format off
 
     // General control register
-    static const unsigned CTRL =                0x0;
+    static const unsigned CTRL =                0x00;
 
     // Sampling clock divider register, divides a 10KHz sampling frequency by
     // val + 1, i.e. fs = 10KHz / (CTRL_FS + 1)
-    static const unsigned CTRL_FS =             0x0;
+    static const unsigned CTRL_FS =             0x04;
 
     // Status register
-    static const unsigned STATUS =              0x0;
+    static const unsigned STATUS =              0x08;
 
     // Data register. Note that this is a virtual read-only register where
     // reads are actually forwarded to the output fifo. If the output fifo is
     // empty, a read from this register returns 0, and a warning is issued.
-    static const unsigned DATA =                0x0;
+    static const unsigned DATA =                0x0c;
+
+    // FIFO threshold register. Sets the FIFO threshold to 4*FIFO_THR, i.e. a
+    // value of 16, sets the FIFO threshold to 64 bytes.
+    // If CTRL_IE is set, an interrupt pulse is generated when FIFO is filled
+    // to or beyond the FIFO threshold.
+    static const unsigned FIFO_THR =            0x10;
 
     // clang-format on
   };
@@ -101,15 +114,36 @@ class Accelerometer : public SpiDevice {
     // CTRL Masks
     static const uint8_t CTRL_MODE =                    (3u << 0);
 
-    // CTRL Settings
+    // ------ CTRL Settings ------
+    //! Sleep mode, for low power consumption
     static const uint8_t CTRL_MODE_SLEEP =              (0u << 0);
+
+    //! Standby mode, ready for taking measurements
     static const uint8_t CTRL_MODE_STANDBY =            (1u << 0);
+
+    //! Continuous sampling until disabled by changing to a different mode. If
+    //! CTRL_IE is set, an interrupt is generated when the FIFO has filled
+    //! to/beyond FIFO_THR*4
     static const uint8_t CTRL_MODE_CONTINUOUS =         (2u << 0);
+
+    //! Single sampling: captures a single sample frame and returns to standby
+    //! mode. If CTRL_IE is set, an interrupt is generated when the FIFO is
+    //! nonempty
     static const uint8_t CTRL_MODE_SINGLE =             (3u << 0);
+
+    //! Software reset. Clears mode and state.
     static const uint8_t CTRL_SW_RESET =                (1u << 2);
+
+    //! Enable sampling of X axis
     static const uint8_t CTRL_X_EN =                    (1u << 3);
+
+    //! Enable sampling of Y axis
     static const uint8_t CTRL_Y_EN =                    (1u << 4);
+
+    //! Enable sampling of Z axis
     static const uint8_t CTRL_Z_EN =                    (1u << 5);
+
+    //! Enable interrupt output.
     static const uint8_t CTRL_IE =                      (1u << 6);
 
     // Sampling clock divider
@@ -127,15 +161,24 @@ class Accelerometer : public SpiDevice {
   static constexpr double ACC_SCALE{255.0 / 40.0};  // [lsb/ms^-2]
   static constexpr double ACC_OFFSET{0.0};
 
+  // Static delays (startup time etc), specified in seconds
+  static constexpr double DELAY_SLEEP_TO_STANDBY{1.0E-3};
+  static constexpr double DELAY_STANDBY_TO_SLEEP{1.0E-3};
+
   /* ------  Types ------ */
   struct SpiState {
     enum class Mode { Address, DataRead, DataWrite };
     Mode mode{Mode::Address};
     unsigned address{0xffffffff};
+
+    void reset() {
+      mode = Mode::Address;
+      address = 0xffffffff;
+    }
   };
 
   enum class MeasurementState {
-    Reset = 0,
+    Sleep = 0,
     Standby = 1,
     ContinuousMeasurement = 2,
     SingleMeasurement = 3
@@ -165,20 +208,44 @@ class Accelerometer : public SpiDevice {
     };
 
     int size() const {
-      return sizeof(header) + (header & HeaderFields::X_AXIS_ENABLE) +
-             (header & HeaderFields::Y_AXIS_ENABLE) +
-             (header & HeaderFields::Z_AXIS_ENABLE);
+      return sizeof(header) +
+             sizeof(uint8_t) * (((header & HeaderFields::X_AXIS_ENABLE) != 0) +
+                                ((header & HeaderFields::Y_AXIS_ENABLE) != 0) +
+                                ((header & HeaderFields::Z_AXIS_ENABLE) != 0));
     };
 
     uint8_t takeByte() {
       if (headerTaken) {
-        auto res = data.back();
-        data.pop_back();
-        return data.back();
+        auto res = data.front();
+        data.pop_front();
+        spdlog::info("FifoFrame::takeByte {:d} bytes left in data",
+                     data.size());
+        return res;
       } else {
         headerTaken = true;
+        spdlog::info("FifoFrame::takeByte {:d} bytes left in data",
+                     data.size());
         return header;
       }
+    }
+
+    /**
+     * @brief deserialize construct FifoFrame from an array of bytes.
+     */
+    static FifoFrame deserialize(const std::vector<uint8_t>& data) {
+      FifoFrame res;
+      int i = 0;
+      res.header = data[i++];
+      if (res.header & HeaderFields::X_AXIS_ENABLE) {
+        res.data.push_front(data[i++]);
+      }
+      if (res.header & HeaderFields::Y_AXIS_ENABLE) {
+        res.data.push_front(data[i++]);
+      }
+      if (res.header & HeaderFields::Z_AXIS_ENABLE) {
+        res.data.push_front(data[i++]);
+      }
+      return res;
     }
   };
 
@@ -217,6 +284,7 @@ class Accelerometer : public SpiDevice {
       if (nbytes <= 0) {
         SC_REPORT_WARNING("Accelerometer::OutputFifo::takeByte",
                           "Take byte while empty. Returning 0.");
+        sc_assert(data.empty());
         return 0;
       }
       auto& e = data.back();
@@ -225,8 +293,18 @@ class Accelerometer : public SpiDevice {
         data.pop_back();
       }
       nbytes--;
+
+      spdlog::info(
+          "OutputFifo::takeByte returning {:d}, new size {:d}, nframes left "
+          "{:d}",
+          res, nbytes, data.size());
       return res;
     }
+
+    /**
+     * @brief get the number of bytes stored in the FIFO
+     */
+    int size() const { return nbytes; }
 
     /**
      * @brief reset clear state
@@ -246,10 +324,12 @@ class Accelerometer : public SpiDevice {
 
   /* ------ Member variables ------ */
   SpiState m_spiState;
-  MeasurementState m_measurementState{MeasurementState::Reset};
+  MeasurementState m_measurementState{MeasurementState::Sleep};
   OutputFifo m_fifo;
   bool m_isWriteAccess{false};  // Indicate if current spi access is write/read
   sc_core::sc_event m_modeUpdateEvent{"modeUpdateEvent"};
+  sc_core::sc_event m_irqUpdateEvent{"irqUpdateEvent"};
+  bool m_setIrq{false};
   std::vector<InputTraceEntry> m_inputTrace;
   sc_core::sc_time m_inputTraceTimestep;
 
@@ -271,5 +351,11 @@ class Accelerometer : public SpiDevice {
    * register(s).
    * @retval next state for the measurement state machine.
    */
-  MeasurementState nextMeasurementState() const;
+  MeasurementState nextMeasurementState();
+
+  /**
+   * @brief updateIrq update irq signal according to m_setIrq when
+   * m_irqUpdateEvent is triggered triggered.
+   */
+  void updateIrq();
 };
