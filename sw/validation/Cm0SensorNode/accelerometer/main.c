@@ -144,6 +144,43 @@ int main(void) {
   assert(buf[2] == 0);
   assert(buf[3] == 62);
 
+  // Status should indicate not busy after reading out frame
+  accelerometerRead(ACC_STATUS, buf, 1);
+  assert(!(*buf & ACC_STATUS_BUSY));
+
+  /* ------ Continuous measurement ------ */
+  accelerometerCommand(ACC_CTRL_FS, 1);     // 0.1 ms sampling time
+  accelerometerCommand(ACC_FIFO_THR, 128);  // 32 samples
+
+  // Start sampling all axes
+  accelerometerCommand(ACC_CTRL, ACC_CTRL_X_EN | ACC_CTRL_Y_EN | ACC_CTRL_Z_EN |
+                                     ACC_CTRL_MODE_CONTINUOUS | ACC_CTRL_IE);
+  for (volatile int timeout = 10000; timeout >= 0; --timeout) {
+    if (Gpio->DATA.WORD & PIN_ACCELEROMETER_IRQ) {
+      break;
+    }
+    if (timeout == 0) {
+      indicate_test_fail();  // timeout
+    }
+  }
+
+  // Go to standby mode
+  accelerometerCommand(ACC_CTRL, ACC_CTRL_MODE_STANDBY);
+
+  // Read out a frame
+  accelerometerRead(ACC_DATA, buf, 4);
+  assert(buf[0] == 7);
+  assert(buf[1] == 0);
+  assert(buf[2] == 0);
+  assert(buf[3] == 62);
+
+  // Read out a lot more frames
+  accelerometerRead(ACC_DATA, buf, 124);
+
+  // Status should indicate not busy after reading out frames
+  accelerometerRead(ACC_STATUS, buf, 1);
+  assert(!(*buf & ACC_STATUS_BUSY));
+
   end_experiment();
   return 0;
 }
