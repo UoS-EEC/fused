@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <tlm_utils/simple_initiator_socket.h>
+#include <tlm_utils/multi_passthrough_initiator_socket.h>
 #include <iostream>
 #include <string>
 #include <systemc>
@@ -27,7 +27,7 @@ class Spi : public BusTarget {
 
  public:
   /* ------ Ports ------ */
-  tlm_utils::simple_initiator_socket<Spi> spiSocket{"spiSocket"};
+  tlm_utils::multi_passthrough_initiator_socket<Spi> spiSocket{"spiSocket"};
   sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};
   sc_core::sc_out<bool> irq{"irq"};  //! Interrupt request output
   sc_core::sc_in<int> active_exception{

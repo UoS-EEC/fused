@@ -37,12 +37,13 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name) : Board(name) {
   // off-chip serial devices
   bme280.nReset.bind(nReset);
   bme280.chipSelect.bind(gpioPins[GpioPinAssignment::BME280_CHIP_SELECT]);
-  bme280.tSocket.bind(mcu.spi->spiSocket);
+  mcu.spi->spiSocket.bind(bme280.tSocket);
 
   accelerometer.nReset.bind(nReset);
   accelerometer.chipSelect.bind(
       gpioPins[GpioPinAssignment::ACCELEROMETER_CHIP_SELECT]);
-  accelerometer.tSocket.bind(mcu.spi->spiSocket);
+  accelerometer.irq.bind(gpioPins[GpioPinAssignment::ACCELEROMETER_IRQ]);
+  mcu.spi->spiSocket.bind(accelerometer.tSocket);
 
   // Power circuitry
   mcu.vcc.bind(vcc);

@@ -140,6 +140,16 @@ void Spi::process(void) {
       wait(m_txEvent | m_enableEvent | pwrOn.posedge_event());
     }
 
+    // Check that there is at least one target connected
+    if (spiSocket.size() == 0) {
+      SC_REPORT_WARNING(
+          this->name(),
+          "Outgoing SPI transaction while no targets are connected to "
+          "spiSocket. Make sure that you bind from spiSocket to targets "
+          "(and not the other way around). The correct ordering is "
+          "spiSocket.bind(target), and not target.bind(spiSocket).");
+    }
+
     // Prepare  & send payload
     updateStatusRegister(/*isBusy=*/true);
     unsigned cr1 = m_regs.read(OFS_SPI_CR1);
@@ -168,10 +178,31 @@ void Spi::process(void) {
     Utility::unpackBytes(&dataOut[0], m_txFifo.get(nbits), nbytes);
     trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
     sc_time delay = spiExtension->transferTime();
-    spiSocket->b_transport(trans, delay);
-    if (trans.is_response_error()) {
-      SC_REPORT_FATAL(this->name(), "TLM response error");
+
+    // Blocking transport call to all targets
+    // Only one target should respond with OK, otherwise there's contention
+    int responses = 0;
+    auto resultResponse = tlm::TLM_INCOMPLETE_RESPONSE;
+    for (int i = 0; i < spiSocket.size(); i++) {
+      spiSocket[i]->b_transport(trans, delay);
+      if (trans.is_response_ok()) {
+        resultResponse = trans.get_response_status();
+        trans.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
+        responses++;
+        if (responses > 1) {
+          SC_REPORT_FATAL(this->name(),
+                          "Contention Error: more than one connected SPI slave "
+                          "responded to a single transaction.");
+        }
+      }
     }
+
+    if (responses == 0) {
+      SC_REPORT_WARNING(this->name(), "No response to transaction");
+    }
+
+    trans.set_response_status(resultResponse);
+
     wait(delay);
 
     // Receive response
