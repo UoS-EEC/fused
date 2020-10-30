@@ -111,22 +111,16 @@ SC_MODULE(tester) {
     // Load data
     // header + x axis + y axis + z axis
     auto resvec = spiRead(Accelerometer::RegisterAddress::DATA, 1 + 1 + 1 + 1);
+    /*
     spdlog::info("Resvec= :");
     for (const auto &it : resvec) {
       std::cout << (int)it << '\n';
     }
-    auto res = Accelerometer::FifoFrame::deserialize(resvec);
-    sc_assert(res.header ==
-              (Accelerometer::FifoFrame::HeaderFields::X_AXIS_ENABLE |
-               Accelerometer::FifoFrame::HeaderFields::Y_AXIS_ENABLE |
-               Accelerometer::FifoFrame::HeaderFields::Z_AXIS_ENABLE));
-    spdlog::info("Res= header 0x{:02x}", res.header);
-    for (const auto &it : res.data) {
-      std::cout << (int)it << '\n';
-    }
-    sc_assert(res.data[0] == 0);   // X
-    sc_assert(res.data[1] == 0);   // Y
-    sc_assert(res.data[2] == 62);  // Z
+    */
+    sc_assert(resvec[0] == 7);   // header
+    sc_assert(resvec[1] == 0);   // x
+    sc_assert(resvec[2] == 0);   // y
+    sc_assert(resvec[3] == 62);  // z
 
     sc_assert(spiRead(Accelerometer::RegisterAddress::CTRL, 1)[0] &
               Accelerometer::BitMasks::CTRL_MODE_STANDBY);
@@ -180,25 +174,19 @@ SC_MODULE(tester) {
     resvec = spiRead(Accelerometer::RegisterAddress::DATA, 1 + 1 + 1 + 1);
 
     // Irq should be cleared after loading data
-    wait(SC_ZERO_TIME);
+    wait(sc_time(1, SC_US));
     sc_assert(test.irq.read() == sc_dt::SC_LOGIC_0);
 
+    /*
     spdlog::info("Resvec= :");
     for (const auto &it : resvec) {
       std::cout << (int)it << '\n';
     }
-    res = Accelerometer::FifoFrame::deserialize(resvec);
-    sc_assert(res.header ==
-              (Accelerometer::FifoFrame::HeaderFields::X_AXIS_ENABLE |
-               Accelerometer::FifoFrame::HeaderFields::Y_AXIS_ENABLE |
-               Accelerometer::FifoFrame::HeaderFields::Z_AXIS_ENABLE));
-    spdlog::info("Res= header 0x{:02x}", res.header);
-    for (const auto &it : res.data) {
-      std::cout << (int)it << '\n';
-    }
-    sc_assert(res.data[0] == 0);   // X
-    sc_assert(res.data[1] == 0);   // Y
-    sc_assert(res.data[2] == 62);  // Z
+    */
+    sc_assert(resvec[0] == 7);   // header
+    sc_assert(resvec[1] == 0);   // x
+    sc_assert(resvec[2] == 0);   // y
+    sc_assert(resvec[3] == 62);  // z
 
     sc_assert(spiRead(Accelerometer::RegisterAddress::CTRL, 1)[0] &
               Accelerometer::BitMasks::CTRL_MODE_STANDBY);
@@ -247,18 +235,16 @@ SC_MODULE(tester) {
     // Load data
     for (int i = 0; i < 128 / 4; i++) {
       resvec = spiRead(Accelerometer::RegisterAddress::DATA, 1 + 1 + 1 + 1);
+      /*
       spdlog::info("Resvec= :");
       for (const auto &it : resvec) {
         std::cout << (int)it << '\n';
       }
-      res = Accelerometer::FifoFrame::deserialize(resvec);
-      sc_assert(res.header ==
-                (Accelerometer::FifoFrame::HeaderFields::X_AXIS_ENABLE |
-                 Accelerometer::FifoFrame::HeaderFields::Y_AXIS_ENABLE |
-                 Accelerometer::FifoFrame::HeaderFields::Z_AXIS_ENABLE));
-      sc_assert(res.data[0] == 0);   // X
-      sc_assert(res.data[1] == 0);   // Y
-      sc_assert(res.data[2] == 62);  // Z
+      */
+      sc_assert(resvec[0] == 7);   // header
+      sc_assert(resvec[1] == 0);   // x
+      sc_assert(resvec[2] == 0);   // y
+      sc_assert(resvec[3] == 62);  // z
     }
 
     // Irq shuold be cleared by now
@@ -266,11 +252,70 @@ SC_MODULE(tester) {
 
     sc_assert(spiRead(Accelerometer::RegisterAddress::CTRL, 1)[0] &
               Accelerometer::BitMasks::CTRL_MODE_STANDBY);
-    sc_assert(false);
+
+    //-------------------------------------------------------------------------
     spdlog::info("TEST: Continuous measurement with overflow");
-    sc_assert(false);
-    spdlog::info("TEST: Continuous measurement with overflow interrupt");
-    sc_assert(false);
+    resetDut();
+
+    // Move to standby mode
+    spiWrite(Accelerometer::RegisterAddress::CTRL,
+             Accelerometer::BitMasks::CTRL_MODE_STANDBY);
+    wait(sc_time::from_seconds(Accelerometer::DELAY_SLEEP_TO_STANDBY));
+    sc_assert(!(spiRead(Accelerometer::RegisterAddress::STATUS, 1)[0] &
+                Accelerometer::BitMasks::STATUS_BUSY));
+
+    // 10 ms sampling time
+    spiWrite(Accelerometer::RegisterAddress::CTRL_FS, 100);
+
+    // Set threshold to 1000 bytes
+    spiWrite(Accelerometer::RegisterAddress::FIFO_THR, 1000 / 4);
+
+    // Start sampling all axes in continuous mode, with interrupt enabled
+    spiWrite(Accelerometer::RegisterAddress::CTRL,
+             Accelerometer::BitMasks::CTRL_MODE_CONTINUOUS |
+                 Accelerometer::BitMasks::CTRL_IE |
+                 Accelerometer::BitMasks::CTRL_X_EN |
+                 Accelerometer::BitMasks::CTRL_Y_EN |
+                 Accelerometer::BitMasks::CTRL_Z_EN);
+
+    // Check busy==true while measurement ongoing
+    wait(sc_time(100, SC_US));
+    sc_assert(spiRead(Accelerometer::RegisterAddress::STATUS, 1)[0] &
+              Accelerometer::BitMasks::STATUS_BUSY);
+
+    // Wait for irq pulse
+    timeout.cancel();
+    timeout.notify(sc_time(1 + 10 * 256, SC_MS));
+    wait(timeout | test.irq.posedge_event());
+    sc_assert(test.irq.read() == sc_dt::SC_LOGIC_1);
+
+    // Wait a bit longer to let FIFO overflow
+    wait(sc_time(100, SC_MS));
+
+    // Stop measurement
+    spiWrite(Accelerometer::RegisterAddress::CTRL,
+             Accelerometer::BitMasks::CTRL_MODE_STANDBY);
+
+    // Load data
+    for (int i = 0; i < 256; i++) {
+      resvec = spiRead(Accelerometer::RegisterAddress::DATA, 1 + 1 + 1 + 1);
+      /*
+      spdlog::info("Resvec= :");
+      for (const auto &it : resvec) {
+        std::cout << (int)it << '\n';
+      }
+      */
+      sc_assert(resvec[0] == 7);   // header
+      sc_assert(resvec[1] == 0);   // x
+      sc_assert(resvec[2] == 0);   // y
+      sc_assert(resvec[3] == 62);  // z
+    }
+
+    // Irq shuold be cleared by now
+    sc_assert(test.irq.read() == sc_dt::sc_logic_0);
+
+    sc_assert(spiRead(Accelerometer::RegisterAddress::CTRL, 1)[0] &
+              Accelerometer::BitMasks::CTRL_MODE_STANDBY);
 
     sc_stop();
   }
@@ -346,13 +391,12 @@ SC_MODULE(tester) {
     for (int i = 0; i < len; ++i) {
       test.iSpiSocket->b_transport(trans, delay);  // Transfer data
       response[i] = spiExtension->response;
-      spdlog::info("spiRead::Response: 0x{:02x}", response[i]);
+      // spdlog::info("spiRead::Response: 0x{:02x}", response[i]);
       wait(delay);
     }
     test.chipSelect.write(sc_dt::SC_LOGIC_1);
     wait(SC_ZERO_TIME);
 
-    // delete spiExtension;
     return response;
   }
 

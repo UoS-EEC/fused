@@ -66,7 +66,7 @@ void Accelerometer::reset(void) {
   m_regs.reset();
   SpiDevice::reset();
   m_spiState.reset();
-  m_fifo.reset();
+  m_fifo.clear();
   m_measurementState = MeasurementState::Sleep;
   m_modeUpdateEvent.cancel();
 }
@@ -83,6 +83,16 @@ void Accelerometer::spiInterface(void) {
                                                : SpiState::Mode::DataWrite;
         break;
       case SpiState::Mode::DataRead:
+
+        if (m_spiState.address == RegisterAddress::DATA) {
+          // Pop fifo when reading from DATA
+          // We're actually popping the previously read element, which was put
+          // in the slaveOut register in the previous transaction.
+          if (!m_fifo.empty()) {
+            m_fifo.pop_front();
+          }
+        }
+
         // Potentially clear irq on read
         if (irq.read() == sc_dt::SC_LOGIC_1) {
           const bool clearContinuousMode =
@@ -106,8 +116,6 @@ void Accelerometer::spiInterface(void) {
                               .c_str());
         }
         m_regs.write(m_spiState.address, payload);
-        spdlog::info("spiInterface:: DataWrite addr=0x{:02x} val=0x{:02x}",
-                     m_spiState.address, payload);
 
         switch (m_spiState.address) {
           case RegisterAddress::CTRL:
@@ -125,7 +133,7 @@ void Accelerometer::spiInterface(void) {
     }
 
     // Prepare response to next transaction
-    if (m_spiState.mode != SpiState::Mode::DataWrite) {
+    if (m_spiState.mode == SpiState::Mode::DataRead) {
       if (!m_regs.contains(m_spiState.address)) {
         SC_REPORT_FATAL(
             this->name(),
@@ -134,7 +142,11 @@ void Accelerometer::spiInterface(void) {
       }
       if (m_spiState.address == RegisterAddress::DATA) {
         // Special case -- fifo data
-        writeSlaveOut(m_fifo.takeByte());
+        if (!m_fifo.empty()) {
+          writeSlaveOut(m_fifo.front());
+        } else {
+          writeSlaveOut(0);
+        }
       } else {
         writeSlaveOut(m_regs.read(m_spiState.address));
       }
@@ -206,22 +218,24 @@ void Accelerometer::measurementLoop() {
 
       // Sample axes
       const auto ctrl = m_regs.read(RegisterAddress::CTRL);
-      FifoFrame frame = FifoFrame();
+      const auto header =
+          (ctrl & BitMasks::CTRL_HEADER_MASK) >> BitMasks::HEADER_SHIFT;
+      m_fifo.push_back(header);
+
       if (ctrl & BitMasks::CTRL_X_EN) {
-        frame.header |= FifoFrame::HeaderFields::X_AXIS_ENABLE;
-        frame.data.push_front(sampleTrace(input.acc_x));
+        m_fifo.push_back(sampleTrace(input.acc_x));
       }
       if (ctrl & BitMasks::CTRL_Y_EN) {
-        frame.header |= FifoFrame::HeaderFields::Y_AXIS_ENABLE;
-        frame.data.push_front(sampleTrace(input.acc_y));
+        m_fifo.push_back(sampleTrace(input.acc_y));
       }
       if (ctrl & BitMasks::CTRL_Z_EN) {
-        frame.header |= FifoFrame::HeaderFields::Z_AXIS_ENABLE;
-        frame.data.push_front(sampleTrace(input.acc_z));
+        m_fifo.push_back(sampleTrace(input.acc_z));
       }
 
-      // Store result
-      m_fifo.push_front(frame);
+      // Pop old elements if FIFO is full
+      while (m_fifo.size() > FIFO_CAPACITY) {
+        popOldestframe();
+      }
 
       // Clear busy
       m_regs.clearBitMask(RegisterAddress::STATUS, BitMasks::STATUS_BUSY);
@@ -240,8 +254,11 @@ void Accelerometer::measurementLoop() {
         }
       }
 
-      spdlog::info("{:s}: @{:s} measurment done, fifo.size() = {:d}",
-                   this->name(), sc_time_stamp().to_string(), m_fifo.size());
+      spdlog::info(
+          "{:s}: @{:s} measurement (X,Y,Z)=({:d}, {:d}, {:d}) = , fifo.size() "
+          "= {:d}",
+          this->name(), sc_time_stamp().to_string(), sampleTrace(input.acc_x),
+          sampleTrace(input.acc_y), sampleTrace(input.acc_z), m_fifo.size());
 
       // Go back to standby after single measurement
       if (m_measurementState == MeasurementState::SingleMeasurement) {
@@ -255,3 +272,21 @@ void Accelerometer::measurementLoop() {
 }
 
 void Accelerometer::updateIrq() { irq.write(sc_dt::sc_logic(m_setIrq)); }
+
+void Accelerometer::popOldestframe() {
+  if (m_fifo.empty()) {
+    return;
+  }
+
+  const auto header = m_fifo.front();
+  m_fifo.pop_front();
+  if (header & MeasurementFrame::X_AXIS_ENABLE) {
+    m_fifo.pop_front();
+  }
+  if (header & MeasurementFrame::Y_AXIS_ENABLE) {
+    m_fifo.pop_front();
+  }
+  if (header & MeasurementFrame::Z_AXIS_ENABLE) {
+    m_fifo.pop_front();
+  }
+}

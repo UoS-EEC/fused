@@ -5,11 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * Model of the Bosh BME280 SPI-enabled temperature+humidity+pressure sensor.
- */
-
-#include <array>
 #include <deque>
 #include <systemc>
 #include <vector>
@@ -28,6 +23,25 @@
  * keeping chipSelect asserted after the first read, and issuing more 8-bit SPI
  * transactions. Burst reads  do not autoincrement the address, so can be used
  * to repeatedly take values from the output fifo.
+ *
+ * Data output format:
+ * -------------------
+ * Each measurement results in a measurement frame consisting of a one byte
+ * header and a variable number of data bytes.
+ *
+ * Header format: [xxxxxXYZ]
+ *                      ^^^
+ *     X axis enabled --'|`-- Z axis enabled
+ *                       `-- Y axis enabled
+ * Header indicates whether a sample is available for each of the three axes.
+ * For example, when only the X axis is enabled, the header will be xxxxx100,
+ * and the frame will be 2 bytes long (header + x axis sample).
+ *
+ * The data is always in the order XYZ, so if only XZ is present the full frame
+ * will be:
+ *      1. Header [xxxxx101]
+ *      2. X axis result
+ *      3. Z axis result
  *
  * IRQ output:
  * -----------
@@ -143,17 +157,37 @@ class Accelerometer : public SpiDevice {
     //! Enable sampling of Z axis
     static const uint8_t CTRL_Z_EN =                    (1u << 5);
 
+    //! Mask to extract header from CTRL register
+    static const uint8_t CTRL_HEADER_MASK =             (7u << 3);
+
+
+    //! Amount to shift control register down by to get header
+    static const int HEADER_SHIFT =                     3;
+
     //! Enable interrupt output.
     static const uint8_t CTRL_IE =                      (1u << 6);
+
 
     // Sampling clock divider
     static const uint8_t CTRL_FS =                      0xff;
 
-    // STATUS bits
+    // ------ STATUS bits ------
+    //! Indicate a busy device. Set when sleeping and when measurements are
+    //! ongoing.
     static const uint8_t STATUS_BUSY =                  (1u << 0);
+
+    //! Set if FIFO is filled to/beyond FIFO_THR*4 bytes
     static const uint8_t STATUS_OVERFLOW =              (1u << 1);
 
     // clang-format on
+  };
+
+  //! Holds bit-patterns and masks for measurement frames
+  struct MeasurementFrame {
+    // Masks
+    static const uint8_t X_AXIS_ENABLE = (1u << 0);
+    static const uint8_t Y_AXIS_ENABLE = (1u << 1);
+    static const uint8_t Z_AXIS_ENABLE = (1u << 2);
   };
 
   // Scaling factors to convert from physical parameters to LSB's
@@ -164,6 +198,9 @@ class Accelerometer : public SpiDevice {
   // Static delays (startup time etc), specified in seconds
   static constexpr double DELAY_SLEEP_TO_STANDBY{1.0E-3};
   static constexpr double DELAY_STANDBY_TO_SLEEP{1.0E-3};
+
+  // Fifo capacity
+  static const unsigned FIFO_CAPACITY = 1024;
 
   /* ------  Types ------ */
   struct SpiState {
@@ -184,137 +221,6 @@ class Accelerometer : public SpiDevice {
     SingleMeasurement = 3
   };
 
-  /**
-   * @brief struct to hold a fifo frame consisting of a header and samples.
-   *
-   * Header format: [xxxxxXYZ]
-   *                      ^^^
-   *     X axis enabled --'|`-- Z axis enabled
-   *                       `-- Y axis enabled
-   * Header indicates whether a sample is available for each of the three axes.
-   * For example, when only the X axis is enabled, the header will be xxxxx100,
-   * and the frame will be 2 bytes long (header + x axis sample).
-   *
-   */
-  struct FifoFrame {
-    uint8_t header;
-    std::deque<uint8_t> data;
-    bool headerTaken{false};
-
-    struct HeaderFields {
-      static const uint8_t X_AXIS_ENABLE = (1u << 0);
-      static const uint8_t Y_AXIS_ENABLE = (1u << 1);
-      static const uint8_t Z_AXIS_ENABLE = (1u << 2);
-    };
-
-    int size() const {
-      return sizeof(header) +
-             sizeof(uint8_t) * (((header & HeaderFields::X_AXIS_ENABLE) != 0) +
-                                ((header & HeaderFields::Y_AXIS_ENABLE) != 0) +
-                                ((header & HeaderFields::Z_AXIS_ENABLE) != 0));
-    };
-
-    uint8_t takeByte() {
-      if (headerTaken) {
-        auto res = data.front();
-        data.pop_front();
-        spdlog::info("FifoFrame::takeByte {:d} bytes left in data",
-                     data.size());
-        return res;
-      } else {
-        headerTaken = true;
-        spdlog::info("FifoFrame::takeByte {:d} bytes left in data",
-                     data.size());
-        return header;
-      }
-    }
-
-    /**
-     * @brief deserialize construct FifoFrame from an array of bytes.
-     */
-    static FifoFrame deserialize(const std::vector<uint8_t>& data) {
-      FifoFrame res;
-      int i = 0;
-      res.header = data[i++];
-      if (res.header & HeaderFields::X_AXIS_ENABLE) {
-        res.data.push_front(data[i++]);
-      }
-      if (res.header & HeaderFields::Y_AXIS_ENABLE) {
-        res.data.push_front(data[i++]);
-      }
-      if (res.header & HeaderFields::Z_AXIS_ENABLE) {
-        res.data.push_front(data[i++]);
-      }
-      return res;
-    }
-  };
-
-  /**
-   * @brief OutputFifo bounded fifo to hold measurement frames. Bounded by the
-   * number of bytes held, rather than frame count, so can store many small
-   * frames or fewer large frames.
-   */
-  struct OutputFifo {
-    std::deque<FifoFrame> data;
-    int nbytes = 0;
-    const int capacity = 1024;  // Capacity in bytes (not elements)
-
-    /**
-     * @brief Push a new element to the front of the queue, pop oldest
-     * element(s) if overflow.
-     * @param val fifo frame to push
-     * @retval true if the fifo overflows, false otherwise
-     */
-    bool push_front(const FifoFrame& val) {
-      data.push_front(val);
-      nbytes += val.size();
-      while (nbytes >= capacity) {
-        nbytes -= data.back().size();
-        data.pop_back();
-        return true;
-      }
-      return false;
-    }
-
-    /**
-     * @brief takeByte take a byte from the oldest fifo entry.
-     * @retval uint8_t one byte from oldest fifo entry if available, 0 if empty.
-     */
-    uint8_t takeByte() {
-      if (nbytes <= 0) {
-        SC_REPORT_WARNING("Accelerometer::OutputFifo::takeByte",
-                          "Take byte while empty. Returning 0.");
-        sc_assert(data.empty());
-        return 0;
-      }
-      auto& e = data.back();
-      uint8_t res = e.takeByte();
-      if (e.data.empty()) {
-        data.pop_back();
-      }
-      nbytes--;
-
-      spdlog::info(
-          "OutputFifo::takeByte returning {:d}, new size {:d}, nframes left "
-          "{:d}",
-          res, nbytes, data.size());
-      return res;
-    }
-
-    /**
-     * @brief get the number of bytes stored in the FIFO
-     */
-    int size() const { return nbytes; }
-
-    /**
-     * @brief reset clear state
-     */
-    void reset() {
-      data.clear();
-      nbytes = 0;
-    }
-  };
-
   // Trace file data
   struct InputTraceEntry {
     double acc_x;  // [ms^-2]
@@ -325,7 +231,8 @@ class Accelerometer : public SpiDevice {
   /* ------ Member variables ------ */
   SpiState m_spiState;
   MeasurementState m_measurementState{MeasurementState::Sleep};
-  OutputFifo m_fifo;
+  // OutputFifo m_fifo;
+  std::deque<uint8_t> m_fifo;
   bool m_isWriteAccess{false};  // Indicate if current spi access is write/read
   sc_core::sc_event m_modeUpdateEvent{"modeUpdateEvent"};
   sc_core::sc_event m_irqUpdateEvent{"irqUpdateEvent"};
@@ -358,4 +265,9 @@ class Accelerometer : public SpiDevice {
    * m_irqUpdateEvent is triggered triggered.
    */
   void updateIrq();
+
+  /**
+   * @brief popOldesFrame pop a measurement frame from the front of m_fifo
+   */
+  void popOldestframe();
 };
