@@ -64,6 +64,7 @@ class Cm0SensorNode : public Board {
     static const int V_WARN = 31;
     static const int BME280_CHIP_SELECT = 16;
     static const int ACCELEROMETER_CHIP_SELECT = 17;
+    static const int ACCELEROMETER_IRQ = 18;
   };
 
   /* ------ Channels & signals ------ */

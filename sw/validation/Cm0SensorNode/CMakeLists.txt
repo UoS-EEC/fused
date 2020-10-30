@@ -8,3 +8,4 @@
 cmake_minimum_required(VERSION 3.10)
 
 add_subdirectory(bme280)
+add_subdirectory(accelerometer)
