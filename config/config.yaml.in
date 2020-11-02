@@ -125,6 +125,12 @@ BME280.measure_humidity: 340.0e-6
 BME280.measure_pressure:  714.0e-6
 BME280.measure_temperature: 350.0e-6
 
+# Accelerometer (event- & state-based)
+Accelerometer.active: 500.0e-9 # Active/standby current [A] (~ Low-power mode from datasheet)
+Accelerometer.sleep: 160.0e-9 # Sleep current [A] (Sleep mode from datasheet)
+# Energy per sample: 1.8V * (3.5µA) / 800Hz (Normal mode, OSR=0 from datasheet)
+Accelerometer sample: 7.875e-9 # Energy per sample [J]
+
 # ------ For Unit tests only ------
 tester.dut.dut.CacheReplacementPolicy: LRU
 tester.dut.dut.CacheWritePolicy: WriteBack # {WriteThrough, WriteAround, WriteBack}

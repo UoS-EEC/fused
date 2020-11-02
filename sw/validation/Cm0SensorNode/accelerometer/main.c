@@ -124,7 +124,7 @@ int main(void) {
   assert(!(*buf & ACC_STATUS_BUSY));
 
   /* ------ Single-shot measurement ------ */
-  accelerometerCommand(ACC_CTRL_FS, 10);  // 1 ms sampling time
+  accelerometerCommand(ACC_CTRL_FS, 9);  // (10KHz/(9+1) => 1 ms sampling time
   // Start sampling all axes
   accelerometerCommand(ACC_CTRL, ACC_CTRL_X_EN | ACC_CTRL_Y_EN | ACC_CTRL_Z_EN |
                                      ACC_CTRL_MODE_SINGLE | ACC_CTRL_IE);
@@ -149,7 +149,7 @@ int main(void) {
   assert(!(*buf & ACC_STATUS_BUSY));
 
   /* ------ Continuous measurement ------ */
-  accelerometerCommand(ACC_CTRL_FS, 1);     // 0.1 ms sampling time
+  accelerometerCommand(ACC_CTRL_FS, 0);     // 0.1 ms sampling time
   accelerometerCommand(ACC_FIFO_THR, 128);  // 32 samples
 
   // Start sampling all axes

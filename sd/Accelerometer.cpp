@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 #include "libs/strtk.hpp"
+#include "ps/EventLog.hpp"
 #include "sd/Accelerometer.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -24,6 +25,12 @@ Accelerometer::Accelerometer(const sc_module_name name)
                      /*resetValue=*/BitMasks::STATUS_BUSY);
   m_regs.addRegister(RegisterAddress::DATA);
   m_regs.addRegister(RegisterAddress::FIFO_THR);
+
+  // Get event IDs
+  m_sampleEventId =
+      EventLog::getInstance().registerEvent("Accelerometer sample");
+
+  reportState();  // report initial (sleep) state
 
   // Load sensor input trace
   if (Config::get().contains("AccelerometerTraceFile")) {
@@ -69,6 +76,7 @@ void Accelerometer::reset(void) {
   m_fifo.clear();
   m_measurementState = MeasurementState::Sleep;
   m_modeUpdateEvent.cancel();
+  reportState();
 }
 
 void Accelerometer::spiInterface(void) {
@@ -186,10 +194,16 @@ Accelerometer::MeasurementState Accelerometer::nextMeasurementState() {
     wait(sc_time::from_seconds(DELAY_STANDBY_TO_SLEEP));
   }
 
+  // State reporting for power model
+  if (setting != m_measurementState) {
+    reportState();
+  }
+
   return setting;
 }
 
 void Accelerometer::measurementLoop() {
+  wait(SC_ZERO_TIME);
   wait(m_modeUpdateEvent);
 
   while (1) {
@@ -260,6 +274,9 @@ void Accelerometer::measurementLoop() {
           this->name(), sc_time_stamp().to_string(), sampleTrace(input.acc_x),
           sampleTrace(input.acc_y), sampleTrace(input.acc_z), m_fifo.size());
 
+      // Report sample event
+      EventLog::getInstance().increment(m_sampleEventId);
+
       // Go back to standby after single measurement
       if (m_measurementState == MeasurementState::SingleMeasurement) {
         m_regs.clearBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE);
@@ -288,5 +305,13 @@ void Accelerometer::popOldestframe() {
   }
   if (header & MeasurementFrame::Z_AXIS_ENABLE) {
     m_fifo.pop_front();
+  }
+}
+
+void Accelerometer::reportState() const {
+  if (m_measurementState == MeasurementState::Sleep) {
+    EventLog::getInstance().reportState("Accelerometer", "sleep");
+  } else {
+    EventLog::getInstance().reportState("Accelerometer", "active");
   }
 }

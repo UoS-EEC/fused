@@ -8,6 +8,7 @@
 #include <deque>
 #include <systemc>
 #include <vector>
+#include "ps/EventLog.hpp"
 #include "sd/SpiDevice.hpp"
 
 /**
@@ -240,6 +241,9 @@ class Accelerometer : public SpiDevice {
   std::vector<InputTraceEntry> m_inputTrace;
   sc_core::sc_time m_inputTraceTimestep;
 
+  // Eventlog IDs for power model
+  EventLog::eventId m_sampleEventId;
+
   /* ------ Private methods ------ */
 
   /**
@@ -270,4 +274,10 @@ class Accelerometer : public SpiDevice {
    * @brief popOldesFrame pop a measurement frame from the front of m_fifo
    */
   void popOldestframe();
+
+  /**
+   * @brief reportState utility function for reporting the current measurement
+   * state to the global event log.
+   */
+  void reportState() const;
 };
