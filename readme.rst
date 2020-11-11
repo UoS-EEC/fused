@@ -119,8 +119,10 @@ following commands:
     $> cmake .. -GNinja
     $> ninja
 
-All boards within ``boards/`` will then be built. Usage of *Fused* is described
-in `Basic usage`_.
+After this, the ``fused`` executable will have been built, as well as the target
+software workloads, which are found in ``fused/sw/build``. Test the installation
+by running ``ninja test`` inside the build directory. Usage of *Fused* is
+described in `Basic usage`_.
 
 If you need to rebuild the docker image, e.g. to modify one of the
 dependencies or add some tools to the image, run the following command:
@@ -179,15 +181,13 @@ Now, to build Fused boards, disable ``INSTALL_DEPENDENCIES`` and rebuild:
     $> cmake .. -GNinja -DINSTALL_DEPENDENCIES=OFF
     $> ninja
 
-Once the this has completed, there will be a number of executables in the
-``build/boards/`` folder, one for each board.
-
-Build workloads / target software
-=================================
+Target software
+===============
 
 `<sw/>`_ contains validation programs for Fused, along with a build system to
-compile them. To compile the validation programs, ``cd`` into `<sw/>` make a
-build folder and run CMake.
+compile them. These will already have been built when compiling *Fused*, but if
+you'd like to compile them separately, just ``cd`` into `<sw/>`_, make a build
+folder and run CMake.
 
 .. code-block:: bash
 
@@ -196,26 +196,28 @@ build folder and run CMake.
     $> ninja
 
 Make sure to completely clear the ``build`` directory if you build for one
-target and then switch to another.
+target and then switch to another. Alternatively, you can run the script
+`<sw/buildall.sh>`_  to clean & build for all targets.
 
 Basic usage
 ===========
+
+*Note: You may need to create a directory for Fused's output files first, so
+for a default ``config.yaml``, do ``mkdir /tmp/fused-outputs`.*
 
 Launch a fused-prototype/board from the build folder, the basic command is:
 
 .. code-block:: bash
 
-    $>./boards/<board>
+    $>./fused
 
-So to launch the ``Msp430TestBoard`` it'll be:
+This will launch *Fused*, with configurations read from ``build/config.yaml``.
+The ``config.yaml`` settings can be overridden by command line arguments, so to
+e.g. specify a different board, you can run:
 
 .. code-block:: bash
 
-    $>./boards/Msp430TestBoard
-
-When Fused is launched, it will load configuration options from the
-``config.yaml`` file located in the ``build`` directory, then optionally start
-a GDB server, or load and execute a target binary.
+    $>./fused --board Cm0SensorNode
 
 Load and execute target binary
 ------------------------------
