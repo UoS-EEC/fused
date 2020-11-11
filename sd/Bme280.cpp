@@ -77,11 +77,21 @@ Bme280::Bme280(const sc_module_name name)
   m_regs.addRegister(ADDR_CALIB_40, 0, RegisterFile::AccessMode::READ);
   m_regs.addRegister(ADDR_CALIB_41, 0, RegisterFile::AccessMode::READ);
 
-  // Load boot current trace
-  if (Config::get().contains("Bme280TraceFile")) {
+  // Load input trace
+  const bool validTraceFile =
+      Config::get().contains("Bme280TraceFile")
+          ? Config::get().getString("Bme280TraceFile") != "none"
+          : false;
+  if (validTraceFile) {
     auto fn = Config::get().getString("Bme280TraceFile");
     Utility::assertFileExists(fn);
     std::ifstream file(fn);
+
+    if (file.bad()) {
+      SC_REPORT_FATAL(this->name(),
+                      fmt::format("Couldn't open trace file {:s}", fn).c_str());
+    }
+
     std::stringstream buffer;
     buffer << file.rdbuf();
     std::string content = buffer.str();
