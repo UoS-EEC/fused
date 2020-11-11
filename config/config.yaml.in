@@ -19,7 +19,7 @@ VccMultiplierPath: @CMAKE_CURRENT_SOURCE_DIR@/config/vsweep-current.csv
 
 # Operation mode/Program to execute:
 GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
-ProgramHexFile: /tmp/output.hex # Path to a program hex file
+ProgramHexFile: none # Path to a program hex file
 
 Bme280TraceFile: none
 AccelerometerTraceFile: none

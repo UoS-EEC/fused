@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <support.h>
+
 #include "eusci_b_spi.h"
 
 /* ------ Macros ------------------------------------------------------------*/
@@ -49,11 +50,6 @@ int main(void) {
 
   EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, TXData);
 
-  for (volatile unsigned i = 0; i < 1000; i++)
-    ;
-
-  assert(ticks > 0);
-
   end_experiment();
 }
 
@@ -68,10 +64,12 @@ __attribute__((interrupt(USCI_B0_VECTOR))) void USCI_B0_ISR(void) {
         ;
 
       RXData = EUSCI_B_SPI_receiveData(EUSCI_B0_BASE);
-      if (TXData != 0) assert(RXData == TXData - 1);
+      assert(RXData == TXData);
       TXData++;
 
-      EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, TXData);
+      if (TXData < 20) {
+        EUSCI_B_SPI_transmitData(EUSCI_B0_BASE, TXData);
+      }
 
       // Delay between transmissions for slave to process information
       __delay_cycles(40);
