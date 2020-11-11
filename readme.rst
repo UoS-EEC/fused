@@ -48,12 +48,10 @@ Directory structure
 +----------------------+-----------------------------------------------------+
 | Directory            | Content                                             |
 +======================+=====================================================+
-| boards               | Board-level models. These are the executables of    |
-|                      | Fused.                                             |
+| boards               | Board-level models, these are the toplevel modules  |
+|                      | of Fused.                                           |
 +----------------------+-----------------------------------------------------+
 | config               | Configuration files and power-model coefficients.   |
-+----------------------+-----------------------------------------------------+
-| doc                  | Documentation                                       |
 +----------------------+-----------------------------------------------------+
 | libs                 | Third-party libraries                               |
 +----------------------+-----------------------------------------------------+
