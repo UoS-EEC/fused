@@ -31,7 +31,7 @@ Gpio::Gpio(const sc_core::sc_module_name name)
 void Gpio::before_end_of_elaboration() {
   // Set up methods
   SC_METHOD(reset);
-  sensitive << pwrOn.pos();
+  sensitive << pwrOn;
 
   SC_METHOD(process);
   sensitive << clk << pwrOn.pos();
@@ -43,8 +43,10 @@ void Gpio::before_end_of_elaboration() {
 
 void Gpio::reset(void) {
   m_regs.reset();
-  m_writeEvent.notify(sc_core::SC_ZERO_TIME);
   m_lastState = 0;
+  m_writeEvent.notify(sc_core::SC_ZERO_TIME);
+  m_setIrq = false;
+  m_updateIrqEvent.notify(SC_ZERO_TIME);
 }
 
 void Gpio::process(void) {
@@ -120,6 +122,11 @@ void Gpio::process(void) {
 }
 
 void Gpio::irqControl() {
+  if (pwrOn.read() == false) {
+    irq.write(false);
+    m_setIrq = false;
+    return;
+  }
   if (m_setIrq && (!irq.read())) {
     spdlog::info("{:s}: @{:s} interrupt request", this->name(),
                  sc_time_stamp().to_string());
