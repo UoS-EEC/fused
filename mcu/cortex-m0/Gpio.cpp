@@ -76,10 +76,12 @@ void Gpio::process(void) {
         // Count edges
         if (!current && (data & mask)) {  // Posedge
           EventLog::getInstance().increment(m_pinPosEdge);
-          // std::cerr << "Posedge on pin " << i << '\n';;
+          spdlog::info("{:s}: @{:s} posedge on pin {:d}", this->name(),
+                       sc_time_stamp().to_string(), i);
         } else if (current && !(data & mask)) {  // Negedge
           EventLog::getInstance().increment(m_pinNegEdge);
-          // std::cerr << "Negedge on pin " << i << '\n';;
+          spdlog::info("{:s}: @{:s} negedge on pin {:d}", this->name(),
+                       sc_time_stamp().to_string(), i);
         }
 
         // Write to outputs
@@ -87,6 +89,8 @@ void Gpio::process(void) {
       } else {  // Input mode
         // Read from inputs
         if (current && !(m_lastState & mask)) {  // Posedge
+          spdlog::info("{:s}: @{:s} posedge on pin {:d}", this->name(),
+                       sc_time_stamp().to_string(), i);
           m_regs.setBit(OFS_GPIO_DATA, i, true);
           m_lastState |= mask;
           if (ie & mask) {
@@ -95,6 +99,8 @@ void Gpio::process(void) {
             m_updateIrqEvent.notify(SC_ZERO_TIME);
           }
         } else if (!current && (m_lastState & mask)) {  // Negedge
+          spdlog::info("{:s}: @{:s} negedge on pin {:d}", this->name(),
+                       sc_time_stamp().to_string(), i);
           m_regs.clearBit(OFS_GPIO_DATA, i, true);
           m_lastState &= ~mask;
           /* // Irq only on posedge for now
