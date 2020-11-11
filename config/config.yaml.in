@@ -21,7 +21,8 @@ VccMultiplierPath: @CMAKE_CURRENT_SOURCE_DIR@/config/vsweep-current.csv
 GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
 ProgramHexFile: /tmp/output.hex # Path to a program hex file
 
-Bme280TraceFile: /tmp/bme280data.csv
+Bme280TraceFile: none
+AccelerometerTraceFile: none
 
 # ------ Simulation control ------
 SimTimeLimit: 30.0 # Simulation time limit (seconds)

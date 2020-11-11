@@ -33,7 +33,12 @@ Accelerometer::Accelerometer(const sc_module_name name)
   reportState();  // report initial (sleep) state
 
   // Load sensor input trace
-  if (Config::get().contains("AccelerometerTraceFile")) {
+  // Load sensor input tracerace
+  const bool validTraceFile =
+      Config::get().contains("AccelerometerTraceFile")
+          ? Config::get().getString("AccelerometerTraceFile") != "none"
+          : false;
+  if (validTraceFile) {
     auto fn = Config::get().getString("AccelerometerTraceFile");
     Utility::assertFileExists(fn);
     std::ifstream file(fn);
