@@ -20,7 +20,14 @@ void Config::parseCli(int argc, char *argv[]) {
   }
 
   for (int i = 1; i < argc; i++) {
-    if (std::string(argv[i]) == "-C" || std::string(argv[i]) == "--config") {
+    if (std::string(argv[i]) == "-h" || std::string(argv[i]) == "--help") {
+      std::cout << "\nusage: fused [-B board] [-O odir] [-x program] [-C config] \n\n";
+      std::cout << "-B, --board \t : which board to run\n";
+      std::cout << "-O, --odir \t : path to output directory\n";
+      std::cout << "-x, --program \t : path to program hex file\n";
+      std::cout << "-C, --config \t : path to config file\n";
+      exit(0);
+    } else if (std::string(argv[i]) == "-C" || std::string(argv[i]) == "--config") {
       m_config["ConfigFile"] = std::string(argv[i + 1]);
       spdlog::info("Loading config from file: {:s}", argv[i + 1]);
       i++;
