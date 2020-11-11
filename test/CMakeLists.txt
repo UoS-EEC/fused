@@ -139,21 +139,6 @@ target_link_libraries(testMsp430fr5xxeUsciB
     SerialDevices
   )
 
-# ------ SPI device ------
-add_executable(testSpiDevice
-  test_SpiDevice.cpp
-)
-
-target_link_libraries(testSpiDevice
-  PRIVATE
-    systemc
-    spdlog::spdlog
-    PowerSystem
-    Msp430Utilities
-    Msp430Microcontroller
-    SerialDevices
-  )
-
 # ------ MSP430 DMA ------
 add_executable(testMsp430fr5xxDma
   test_msp430fr5xxDma.cpp

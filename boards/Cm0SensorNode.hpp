@@ -17,7 +17,6 @@
 #include "ps/PowerCombine.hpp"
 #include "sd/Accelerometer.hpp"
 #include "sd/Bme280.hpp"
-#include "sd/DummySpiDevice.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"

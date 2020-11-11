@@ -16,7 +16,6 @@
 #include "ps/EventLog.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
-#include "sd/DummySpiDevice.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 #include "utilities/SimulationController.hpp"
@@ -36,9 +35,9 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
   }
 
   // off-chip serial devices
-  dummySpiDevice.nReset.bind(nReset);
-  dummySpiDevice.chipSelect.bind(chipSelectDummySpi);
-  dummySpiDevice.tSocket.bind(mcu.spi->spiSocket);
+  loopBackWire.nReset.bind(nReset);
+  loopBackWire.chipSelect.bind(chipSelectDummySpi);
+  mcu.spi->spiSocket.bind(loopBackWire.tSocket);
 
   // Power circuitry
   mcu.vcc.bind(vcc);

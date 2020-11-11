@@ -13,8 +13,6 @@ add_library(
     Bme280.hpp
     LoopBackWire.cpp
     LoopBackWire.hpp
-    DummySpiDevice.cpp
-    DummySpiDevice.hpp
     SpiDevice.cpp
     SpiDevice.hpp
     )

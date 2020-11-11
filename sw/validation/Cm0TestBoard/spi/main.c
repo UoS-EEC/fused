@@ -66,7 +66,7 @@ void main(void) {
 
   // Check equality
   for (int i = 0; i < sizeof(txpayload); i++) {
-    if (rxpayload[i + 1] != txpayload[i]) {
+    if (rxpayload[i] != txpayload[i]) {
       indicate_test_fail();
     }
   }
