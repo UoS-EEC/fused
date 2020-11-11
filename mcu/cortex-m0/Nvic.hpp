@@ -80,6 +80,7 @@ class Nvic : public BusTarget {
 
  private:
   /* ------ SC events ------ */
+  sc_core::sc_event m_resetEvent{"resetEvent"};
 
   /*------ Private variables ------*/
   std::array<bool, 32> m_prevIrq{{false}};

@@ -42,7 +42,7 @@ Nvic::Nvic(const sc_module_name name) : BusTarget(name, NVIC_BASE, NVIC_END) {
 void Nvic::end_of_elaboration() {
   SC_METHOD(process);
   sensitive << m_writeEvent << active.value_changed_event()
-            << returning.value_changed_event();
+            << returning.value_changed_event() << m_resetEvent;
   for (unsigned i = 0; i < irq.size(); i++) {
     sensitive << irq[i].value_changed_event();
   }
@@ -61,6 +61,7 @@ void Nvic::reset() {
   m_swSetPending = 0;
 
   m_regs.reset();
+  m_resetEvent.notify(SC_ZERO_TIME);
 }
 
 uint32_t Nvic::writeOneToClear(uint32_t clearbits, uint32_t oldval) {
@@ -131,76 +132,81 @@ void Nvic::b_transport(tlm::tlm_generic_payload& trans, sc_time& delay) {
 void Nvic::process() {
   // Update pending status for all interrupts & find irq with highest priority
   // (low number => high priority)
-  auto m_pending = m_regs.read(OFS_NVIC_ISPR);
+  if (pwrOn.read()) {
+    auto m_pending = m_regs.read(OFS_NVIC_ISPR);
 
-  int highestPri = 4;
-  int highestPriIrq = -1;
-  for (int i = 0; i < irq.size(); i++) {
-    uint32_t mask = (1u << i);
+    int highestPri = 4;
+    int highestPriIrq = -1;
+    for (int i = 0; i < irq.size(); i++) {
+      uint32_t mask = (1u << i);
 
-    // -- Set pending
-    // Posedge on irq
-    bool edge = irq[i].read() && (!m_prevIrq[i]);
+      // -- Set pending
+      // Posedge on irq
+      bool edge = irq[i].read() && (!m_prevIrq[i]);
 
-    // irq still requesting when returning from handler
-    bool stillRequesting =
-        irq[i].read() && (returning.read() == i + NVIC_EXCEPT_ID_BASE);
+      // irq still requesting when returning from handler
+      bool stillRequesting =
+          irq[i].read() && (returning.read() == i + NVIC_EXCEPT_ID_BASE);
 
-    // Software set pending
-    bool swSet = (m_swSetPending & mask) != 0;
+      // Software set pending
+      bool swSet = (m_swSetPending & mask) != 0;
 
-    bool setPend = edge || stillRequesting || swSet;
+      bool setPend = edge || stillRequesting || swSet;
 
-    // -- Clear pending
-    // Software clear: irq level is low && posedge on ICPR
-    bool swClear = (irq[i].read() == false) && (m_swClearPending & mask);
+      // -- Clear pending
+      // Software clear: irq level is low && posedge on ICPR
+      bool swClear = (irq[i].read() == false) && (m_swClearPending & mask);
 
-    // CPU has started executing the handler
-    bool irqActive = (active.read() == i + NVIC_EXCEPT_ID_BASE) &&
-                     (active.read() != m_prevActive);
+      // CPU has started executing the handler
+      bool irqActive = (active.read() == i + NVIC_EXCEPT_ID_BASE) &&
+                       (active.read() != m_prevActive);
 
-    bool clearPend = swClear || irqActive;
+      bool clearPend = swClear || irqActive;
 
-    // -- Resolve pending status
-    if (setPend && clearPend) {
-      spdlog::warn(
-          "{}: irq[{}] has both setPend and clearPend set, this will result in "
-          "IMPLEMENTATION DEFINED behaviour. Will set pending status and "
-          "ignore clearPend.",
-          this->name());
-      clearPend = false;
+      // -- Resolve pending status
+      if (setPend && clearPend) {
+        spdlog::warn(
+            "{}: irq[{}] has both setPend and clearPend set, this will result "
+            "in "
+            "IMPLEMENTATION DEFINED behaviour. Will set pending status and "
+            "ignore clearPend.",
+            this->name());
+        clearPend = false;
+      }
+
+      if (setPend) {
+        m_pending |= mask;
+      } else if (clearPend) {
+        m_pending &= ~mask;
+      }
+
+      // -- Check priority
+      uint8_t prio = m_regs.readByte(OFS_NVIC_IPR0 + i) >> 6;
+      if ((m_pending & mask) && (prio < highestPri) &&
+          (m_regs.read(OFS_NVIC_ISER) & mask)) {
+        highestPri = prio;
+        highestPriIrq = i;
+      }
+
+      m_prevIrq[i] = irq[i].read();
     }
 
-    if (setPend) {
-      m_pending |= mask;
-    } else if (clearPend) {
-      m_pending &= ~mask;
+    // -- Set highest-priority pending interrupt
+    if (highestPriIrq >= 0) {
+      pending.write(NVIC_EXCEPT_ID_BASE + highestPriIrq);
+    } else {
+      pending.write(highestPriIrq);
     }
 
-    // -- Check priority
-    uint8_t prio = m_regs.readByte(OFS_NVIC_IPR0 + i) >> 6;
-    if ((m_pending & mask) && (prio < highestPri) &&
-        (m_regs.read(OFS_NVIC_ISER) & mask)) {
-      highestPri = prio;
-      highestPriIrq = i;
-    }
-
-    m_prevIrq[i] = irq[i].read();
-  }
-
-  // -- Set highest-priority pending interrupt
-  if (highestPriIrq >= 0) {
-    pending.write(NVIC_EXCEPT_ID_BASE + highestPriIrq);
+    // Update state
+    m_regs.write(OFS_NVIC_ISPR, m_pending, true);
+    m_regs.write(OFS_NVIC_ICPR, m_pending, true);
+    m_prevActive = active.read();
+    m_swClearPending = 0;
+    m_swSetPending = 0;
   } else {
-    pending.write(highestPriIrq);
+    pending.write(0);
   }
-
-  // Update state
-  m_regs.write(OFS_NVIC_ISPR, m_pending, true);
-  m_regs.write(OFS_NVIC_ICPR, m_pending, true);
-  m_prevActive = active.read();
-  m_swClearPending = 0;
-  m_swSetPending = 0;
 }
 
 std::ostream& operator<<(std::ostream& os, const Nvic& rhs) {
