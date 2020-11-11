@@ -15,7 +15,7 @@
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
-#include "sd/SpiWire.hpp"
+#include "sd/LoopBackWire.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
@@ -58,7 +58,7 @@ class Msp430TestBoard : public Board {
 
   /* ------ Submodules ------ */
   Msp430Microcontroller mcu{"mcu"};
-  SpiWire spiWire{"spiWire"};
+  LoopBackWire loopBackWire{"loopBackWire"};
   PowerCombine<2, 1> pwrCombinator{"PowerCombine"};
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};

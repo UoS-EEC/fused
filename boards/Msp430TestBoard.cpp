@@ -11,7 +11,6 @@
 #include "boards/Msp430TestBoard.hpp"
 #include "ps/EventLog.hpp"
 #include "ps/PowerCombine.hpp"
-#include "sd/DummySpiDevice.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 
@@ -32,9 +31,9 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name) : Board(name) {
   }
 
   // off-chip serial devices
-  spiWire.nReset.bind(nReset);
-  spiWire.chipSelect.bind(chipSelectSpiWire);
-  spiWire.tSocket.bind(mcu.euscib->iEusciSocket);
+  loopBackWire.nReset.bind(nReset);
+  loopBackWire.chipSelect.bind(chipSelectSpiWire);
+  loopBackWire.tSocket.bind(mcu.euscib->iEusciSocket);
 
   // Power circuitry
   mcu.vcc.bind(vcc);

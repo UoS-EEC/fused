@@ -19,15 +19,15 @@
 /**
  * Base class for SPI wire.
  */
-class SpiWire : public sc_core::sc_module {
-  SC_HAS_PROCESS(SpiWire);
+class LoopBackWire : public sc_core::sc_module {
+  SC_HAS_PROCESS(LoopBackWire);
 
  public:
   /* ------ Ports ------ */
   // sc_core::sc_in<double> vcc{"vcc"};
   sc_core::sc_in_resolved chipSelect{"chipSelect"};
   sc_core::sc_in<bool> nReset{"nReset"};
-  tlm_utils::simple_target_socket<SpiWire> tSocket{"tSocket"};
+  tlm_utils::simple_target_socket<LoopBackWire> tSocket{"tSocket"};
 
   /* ------ Signals ------ */
 
@@ -37,7 +37,7 @@ class SpiWire : public sc_core::sc_module {
   /* ------ Public methods ------ */
 
   //! Constructor
-  explicit SpiWire(
+  explicit LoopBackWire(
       sc_core::sc_module_name nm,
       ChipSelectPolarity polarity = ChipSelectPolarity::ActiveLow);
 
