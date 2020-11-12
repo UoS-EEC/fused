@@ -12,9 +12,11 @@
 # toolchains).
 
 
+rm -rf build/CMake* build/.ninja* build/compile_commands.json build/rules.ninja
+
 for ARCH in cm0 msp430
 do
-  rm -rf build/CMake* build/.ninja* build/compile_commands.json build/rules.ninja
   cmake -Bbuild -GNinja -DTARGET_ARCH=$ARCH -DCMAKE_BUILD_TYPE=Debug
   cmake --build build
+  rm -rf build/CMake* build/.ninja* build/compile_commands.json build/rules.ninja
 done

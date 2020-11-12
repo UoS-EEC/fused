@@ -25,7 +25,7 @@ static bool irqTriggered = false;
 
 /* ------ Function Declarations ---------------------------------------------*/
 
-void __attribute__((__interrupt__(DMA_VECTOR), optimize("O1"))) dma_isr(void) {
+void __attribute__((__interrupt__(DMA_VECTOR), optimize(1))) dma_isr(void) {
   irqTriggered = true;
   DMAIV = 0;  // Clear pending irq
 }
@@ -33,9 +33,9 @@ void __attribute__((__interrupt__(DMA_VECTOR), optimize("O1"))) dma_isr(void) {
 void dma_copy(char* src, char* dst, const int len) {
   // Blocking block-transfer, autoincrement, 2-byte word size
   DMA0CTL = DMADT_1 | DMASRCINCR_3 | DMADSTINCR_3;
-  DMA0SA = src;
-  DMA0DA = dst;
-  DMA0SZ = len / 2;
+  DMA0SA = (uint16_t)src;
+  DMA0DA = (uint16_t)dst;
+  DMA0SZ = (uint16_t)(len / 2);
   DMA0CTL |= DMAEN | DMAREQ;
   while (DMA0CTL & DMAEN)
     ;             // Wait for transfer complete
@@ -49,8 +49,8 @@ void dma_triggered(char* src, char* dst) {
   // interrupt
   DMA0CTL = DMADT_0 | DMASRCINCR_0 | DMADSTINCR_3 | DMAIE;
   DMACTL0 = DMA0TSEL__DMA0TRIG1;  // Timer TA0
-  DMA0SA = src;
-  DMA0DA = dst;
+  DMA0SA = (uint16_t)src;
+  DMA0DA = (uint16_t)dst;
   DMA0SZ = 5;
   DMA0CTL |= DMAEN;
 
