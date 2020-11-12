@@ -15,7 +15,7 @@
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
-#include "sd/LoopBackWire.hpp"
+#include "sd/SpiLoopBack.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
@@ -72,7 +72,7 @@ class Cm0TestBoard : public Board {
   /* ------ Submodules ------ */
   ResetCtrl resetCtrl{"resetCtrl"};
   Cm0Microcontroller mcu{"mcu"};
-  LoopBackWire loopBackWire{"loopBackWire"};
+  SpiLoopBack spiLoopBack{"spiLoopBack"};
   PowerCombine<2, 1> pwrCombinator{"PowerCombine"};
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};

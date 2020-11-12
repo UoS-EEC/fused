@@ -35,9 +35,9 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
   }
 
   // off-chip serial devices
-  loopBackWire.nReset.bind(nReset);
-  loopBackWire.chipSelect.bind(chipSelectDummySpi);
-  mcu.spi->spiSocket.bind(loopBackWire.tSocket);
+  spiLoopBack.nReset.bind(nReset);
+  spiLoopBack.chipSelect.bind(chipSelectDummySpi);
+  mcu.spi->spiSocket.bind(spiLoopBack.tSocket);
 
   // Power circuitry
   mcu.vcc.bind(vcc);

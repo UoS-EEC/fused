@@ -31,9 +31,9 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name) : Board(name) {
   }
 
   // off-chip serial devices
-  loopBackWire.nReset.bind(nReset);
-  loopBackWire.chipSelect.bind(chipSelectSpiWire);
-  loopBackWire.tSocket.bind(mcu.euscib->iEusciSocket);
+  spiLoopBack.nReset.bind(nReset);
+  spiLoopBack.chipSelect.bind(chipSelectSpiWire);
+  spiLoopBack.tSocket.bind(mcu.euscib->iEusciSocket);
 
   // Power circuitry
   mcu.vcc.bind(vcc);

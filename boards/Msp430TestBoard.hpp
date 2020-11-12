@@ -15,7 +15,7 @@
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
-#include "sd/LoopBackWire.hpp"
+#include "sd/SpiLoopBack.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
@@ -47,7 +47,7 @@ class Msp430TestBoard : public Board {
   sc_core::sc_signal<double> vcc{"vcc", 0.0};
   sc_core::sc_signal<bool> nReset{"nReset"};
   sc_core::sc_signal_resolved chipSelectSpiWire{"chipSelectSpiWire",
-                                                 sc_dt::SC_LOGIC_0};
+                                                sc_dt::SC_LOGIC_0};
   sc_core::sc_signal<bool> keepAliveBool{"keepAliveBool"};
 
   // IO pins
@@ -58,7 +58,7 @@ class Msp430TestBoard : public Board {
 
   /* ------ Submodules ------ */
   Msp430Microcontroller mcu{"mcu"};
-  LoopBackWire loopBackWire{"loopBackWire"};
+  SpiLoopBack spiLoopBack{"spiLoopBack"};
   PowerCombine<2, 1> pwrCombinator{"PowerCombine"};
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};

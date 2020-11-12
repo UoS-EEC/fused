@@ -6,18 +6,18 @@
  */
 
 #include <systemc>
-#include "sd/LoopBackWire.hpp"
+#include "sd/SpiLoopBack.hpp"
 
 using namespace sc_core;
 
-LoopBackWire::LoopBackWire(const sc_module_name nm, ChipSelectPolarity polarity)
+SpiLoopBack::SpiLoopBack(const sc_module_name nm, ChipSelectPolarity polarity)
     : m_chipSelectPolarity(polarity) {
-  tSocket.register_b_transport(this, &LoopBackWire::b_transport);
+  tSocket.register_b_transport(this, &SpiLoopBack::b_transport);
   SC_METHOD(reset);
   sensitive << nReset;
 }
 
-void LoopBackWire::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
+void SpiLoopBack::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   if (enabled() && nReset.read()) {
     // Read from the received payload & set response
     auto *ptr = trans.get_data_ptr();
@@ -30,21 +30,23 @@ void LoopBackWire::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) 
   }
 }
 
-void LoopBackWire::reset(void) {
+void SpiLoopBack::reset(void) {
   // Clear slave-in & slave-out shift registers
   m_SlaveOutRegister = 0;
   m_SlaveInRegister = 0;
 }
 
-uint32_t LoopBackWire::readSlaveIn() const { return m_SlaveInRegister; }
+uint32_t SpiLoopBack::readSlaveIn() const { return m_SlaveInRegister; }
 
-void LoopBackWire::writeSlaveIn(const uint32_t val) { m_SlaveInRegister = val; }
+void SpiLoopBack::writeSlaveIn(const uint32_t val) { m_SlaveInRegister = val; }
 
-uint32_t LoopBackWire::readSlaveOut() const { return m_SlaveOutRegister; }
+uint32_t SpiLoopBack::readSlaveOut() const { return m_SlaveOutRegister; }
 
-void LoopBackWire::writeSlaveOut(const uint32_t val) { m_SlaveOutRegister = val; }
+void SpiLoopBack::writeSlaveOut(const uint32_t val) {
+  m_SlaveOutRegister = val;
+}
 
-bool LoopBackWire::enabled() const {
+bool SpiLoopBack::enabled() const {
   return ((chipSelect.read() == sc_dt::SC_LOGIC_1) &&
           (m_chipSelectPolarity == ChipSelectPolarity::ActiveHigh)) ||
          ((chipSelect.read() == sc_dt::SC_LOGIC_0) &&

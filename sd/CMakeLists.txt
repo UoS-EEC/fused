@@ -11,8 +11,8 @@ add_library(
     Accelerometer.hpp
     Bme280.cpp
     Bme280.hpp
-    LoopBackWire.cpp
-    LoopBackWire.hpp
+    SpiLoopBack.cpp
+    SpiLoopBack.hpp
     SpiDevice.cpp
     SpiDevice.hpp
     )
