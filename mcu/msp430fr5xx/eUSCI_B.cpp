@@ -73,8 +73,6 @@ void eUSCI_B::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
         // Transmit Buffer Register
         // Transmission starts after write.
         // UCTXIFG reset.
-        std::cout << "Debug - writing to TXBUF: " << int(*trans.get_data_ptr()) << std::endl;
-        std::cout << "Debug - writing to TXBUF: " << (int)m_regs.read(OFS_UCB0TXBUF) << std::endl;
         m_euscibTxEvent.notify();
         break;
       case OFS_UCB0IE:
@@ -168,7 +166,6 @@ void eUSCI_B::process(void) {
     m_regs.write(OFS_UCB0STATW, m_regs.read(OFS_UCB0STATW) | UCBUSY);
 
     uint8_t data = m_regs.read(OFS_UCB0TXBUF);
-    std::cout << "Debug - data is: "<< int(data) << std::endl;
     auto spiParameters = m_regs.read(OFS_UCB0CTLW0);
     sc_core::sc_time trigger_period{sc_core::SC_ZERO_TIME};
     if (m_regs.read(OFS_UCB0CTLW0) & UCSSEL1) {
