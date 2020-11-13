@@ -4,7 +4,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-
 add_library(
     SerialDevices
     Accelerometer.cpp
@@ -15,6 +14,8 @@ add_library(
     SpiLoopBack.hpp
     SpiDevice.cpp
     SpiDevice.hpp
+    Nrf24Radio.cpp
+    Nrf24Radio.hpp
     )
 
 target_link_libraries(

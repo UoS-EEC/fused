@@ -139,6 +139,21 @@ target_link_libraries(testMsp430fr5xxeUsciB
     SerialDevices
   )
 
+# ------ Nrf24 radio ------
+add_executable(testNrf24Radio
+  test_nrf24Radio.cpp
+)
+
+target_link_libraries(testNrf24Radio
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    SerialDevices
+    Msp430Utilities
+    Msp430Microcontroller
+  )
+
 # ------ MSP430 DMA ------
 add_executable(testMsp430fr5xxDma
   test_msp430fr5xxDma.cpp
