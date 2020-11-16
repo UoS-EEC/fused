@@ -200,8 +200,8 @@ target and then switch to another. Alternatively, you can run the script
 Basic usage
 ===========
 
-*Note: You may need to create a directory for Fused's output files first, so
-for a default ``config.yaml``, do ``mkdir /tmp/fused-outputs`.*
+**Note**: You may need to create a directory for Fused's output files first, so
+for a default ``config.yaml``, do ``mkdir /tmp/fused-outputs``.
 
 Launch a fused-prototype/board from the build folder, the basic command is:
 
