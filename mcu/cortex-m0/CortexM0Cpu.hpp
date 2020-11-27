@@ -302,4 +302,11 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
    *@retval instruction at address.
    */
   unsigned fetch(const unsigned address);
+
+  /**
+   * @brief getNextExecutionPc get the address of the next instruction to be
+   * executed. This value is PC adjusted for pipeline and bubbles.
+   * @retval address of next instruction to be executed.
+   */
+  unsigned getNextExecutionPc() const;
 };

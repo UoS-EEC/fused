@@ -91,11 +91,11 @@ void CortexM0Cpu::process() {
              pwrOn.default_event());
       } else {
         // Handle breakpoints
-        if (m_breakpoints.count((cpu_get_pc() & (~1u)) -
-                                2 * m_instructionQueue.size())) {
+        if (m_bubbles == 0 && m_breakpoints.count(getNextExecutionPc())) {
           // Hit breakpoint
           spdlog::info("@{:10s}: Breakpoint hit (0x{:08x})",
-                       sc_core::sc_time_stamp().to_string(), cpu_get_pc());
+                       sc_core::sc_time_stamp().to_string(),
+                       getNextExecutionPc());
           m_run = false;
           continue;
         }
@@ -124,7 +124,6 @@ void CortexM0Cpu::process() {
         }
 
         if (insn == OPCODE_WFE || insn == OPCODE_WFI) {
-          spdlog::info("{}: going to sleep", this->name());
           m_sleeping = true;
           EventLog::getInstance().reportState(this->name(), "sleep");
         }
@@ -238,8 +237,8 @@ void CortexM0Cpu::exceptionCheck() {
 }
 
 void CortexM0Cpu::exceptionEnter(const unsigned exceptionId) {
-  // Get next pc, adjusted acc
-  const auto nextPc = cpu_get_pc() - 2 * (m_pipelineStages - 1 - m_bubbles);
+  // First instruction to be fetched & executed after exception return
+  const auto nextPc = getNextExecutionPc() | 1u;  // |1u to add thumb bit
 
   // Save a snapshot of registers for checking correct irq handling
   std::copy(std::begin(cpu.gpr), std::end(cpu.gpr),
@@ -458,9 +457,7 @@ void CortexM0Cpu::readMem(const uint32_t addr, uint8_t *const data,
 
 uint32_t CortexM0Cpu::dbg_readReg(size_t addr) {
   if (addr == PC_REGNUM) {
-    // Next instruction that will be executed.
-    auto res = (cpu_get_pc() & (~1u)) - 2 * m_instructionQueue.size();
-    return res;
+    return getNextExecutionPc();
   } else if (addr == CPSR_REGNUM) {
     return cpu.apsr;
   } else if (addr <= N_GPR) {
@@ -519,6 +516,17 @@ void CortexM0Cpu::powerOffChecks() {
         "state.",
         this->name());
   }
+}
+
+unsigned CortexM0Cpu::getNextExecutionPc() const {
+  // PC points to next instruction to be fetched, so we need to make some
+  // adjustments:
+  //
+  //    - Clear the thumb bit
+  //    - Subtract the number of pipelined instructions
+  //    - Add the number of pipeline bubbles (which occur after branches etc.)
+  sc_assert(m_bubbles <= 1);
+  return (cpu_get_pc() & (~1u)) - 2 * (m_instructionQueue.size() - m_bubbles);
 }
 
 std::ostream &operator<<(std::ostream &os, const CortexM0Cpu &rhs) {
