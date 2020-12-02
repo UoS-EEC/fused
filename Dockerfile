@@ -33,6 +33,7 @@ FROM ubuntu:bionic as systemc-build
     # Install Fused dependencies
     ADD CMakeLists.txt /opt/src/
     ADD cmake /opt/src/cmake
+    RUN mkdir -p /opt/.local
     RUN mkdir build && cd build &&\
         cmake .. -GNinja -DINSTALL_DEPENDENCIES=ON &&\
         ninja
