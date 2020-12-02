@@ -41,7 +41,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 LIST(APPEND CMAKE_PREFIX_PATH ${EP_INSTALL_DIR})
 find_package(spdlog REQUIRED )
-find_package(ihex-parser REQUIRED)
+find_package(ihex-parser "0.2.0" REQUIRED)
 find_package(gdb-server REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
