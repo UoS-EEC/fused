@@ -27,5 +27,5 @@ class PowerModelEventBase {
 
   /* Public constants */
   const std::string name;
-  const int id;
+  int id;  // TODO find a way to make this const
 };
