@@ -5,12 +5,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
+#include <memory>
 #include <systemc>
 #include <tlm>
 #include "libs/make_unique.hpp"
 #include "mcu/GenericMemory.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "ps/EventLog.hpp"
+#include "utilities/Config.hpp"
+#include "utilities/make_unique.h"
 
 using namespace sc_core;
 
@@ -20,10 +25,20 @@ GenericMemory::GenericMemory(sc_module_name name, unsigned startAddress,
       mem(std::make_unique<uint8_t[]>(endAddress - startAddress + 1)),
       m_capacity(endAddress - startAddress + 1) {
   // Register events to be logged
-  m_nBytesReadEventId = EventLog::getInstance().registerEvent(
+  m_nBytesReadEventId_old = EventLog::getInstance().registerEvent(
       std::string(this->name()) + " bytes read");
-  m_nBytesWrittenEventId = EventLog::getInstance().registerEvent(
+  m_nBytesWrittenEventId_old = EventLog::getInstance().registerEvent(
       std::string(this->name()) + " bytes written");
+}
+
+void GenericMemory::end_of_elaboration() {
+  // Register events for power model
+  m_nBytesWrittenEventId =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          fmt::format(FMT_STRING("{:s} bytes written"), this->name())));
+  m_nBytesReadEventId =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          fmt::format(FMT_STRING("{:s} bytes read"), this->name())));
 }
 
 void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
@@ -36,12 +51,14 @@ void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
     std::memcpy(&mem[addr], data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
     m_elog.increment(m_writeEventId);
-    m_elog.increment(m_nBytesWrittenEventId, len);
+    m_elog.increment(m_nBytesWrittenEventId_old, len);
+    powerModelEventPort->write(m_nBytesWrittenEventId, len);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     std::memcpy(data, &mem[addr], len);
     m_readEvent.notify(delay + systemClk->getPeriod());
     m_elog.increment(m_readEventId);
-    m_elog.increment(m_nBytesReadEventId, len);
+    m_elog.increment(m_nBytesReadEventId_old, len);
+    powerModelEventPort->write(m_nBytesReadEventId, len);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }

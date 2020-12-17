@@ -30,10 +30,5 @@ class PowerModelEventChannelInIf : public virtual sc_core::sc_interface {
 };
 
 // Typedef of ports for convenience
-typedef sc_core::sc_port<PowerModelEventChannelOutIf, 0,
-                         sc_core::SC_ONE_OR_MORE_BOUND>
-    PowerModelEventOutPort;
-
-typedef sc_core::sc_port<PowerModelEventChannelInIf, 0,
-                         sc_core::SC_ONE_OR_MORE_BOUND>
-    PowerModelEventInPort;
+typedef sc_core::sc_port<PowerModelEventChannelOutIf> PowerModelEventOutPort;
+typedef sc_core::sc_port<PowerModelEventChannelInIf> PowerModelEventInPort;

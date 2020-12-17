@@ -50,9 +50,14 @@ class GenericMemory : public BusTarget {
    */
   virtual unsigned int transport_dbg(tlm::tlm_generic_payload &trans) override;
 
+  virtual void end_of_elaboration() override;
+
  protected:
   std::unique_ptr<uint8_t[]> mem;  // Pointer to emulated memory
   const size_t m_capacity;         // Memory capacity (bytes)
-  EventLog::eventId m_nBytesReadEventId;
-  EventLog::eventId m_nBytesWrittenEventId;
+  EventLog::eventId m_nBytesReadEventId_old;
+  EventLog::eventId m_nBytesWrittenEventId_old;
+
+  int m_nBytesWrittenEventId;
+  int m_nBytesReadEventId;
 };

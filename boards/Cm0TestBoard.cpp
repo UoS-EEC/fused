@@ -22,7 +22,12 @@
 
 using namespace sc_core;
 
-Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
+Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
+    : Board(name),
+      powerModelEventChannel(
+          "powerModelEventChannel", /*logfile=*/
+          Config::get().getString("OutputDirectory") + "/eventlognew.vcd",
+          sc_time::from_seconds(Config::get().getDouble("EventLogTimeStep"))) {
   /* ------ Bind ------ */
   // Reset
   resetCtrl.vcc.bind(vcc);
@@ -46,6 +51,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name) : Board(name) {
   EventLog::getInstance().staticPower.bind(staticConsumption);
 
   // Combine static current + dynamic energy into single current
+  mcu.powerModelEventPort.bind(powerModelEventChannel);
   pwrCombinator.staticConsumers[0].bind(staticConsumption);
   pwrCombinator.staticConsumers[1].bind(staticConsumptionBoot);
   pwrCombinator.dynamicConsumers[0].bind(dynamicConsumption);

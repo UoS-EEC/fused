@@ -112,6 +112,12 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
     s->pwrOn.bind(nReset);
   }
 
+  // Events for power model
+  // m_cpu.powerModelEventPort.bind(powerModelEventPort);
+  for (const auto &s : slaves) {
+    s->powerModelEventPort.bind(powerModelEventPort);
+  }
+
   // Miscellaneous
   invm->waitStates.bind(nvmWaitStates);
   dnvm->waitStates.bind(nvmWaitStates);

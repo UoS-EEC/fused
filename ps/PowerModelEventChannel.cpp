@@ -29,13 +29,14 @@ PowerModelEventChannel::PowerModelEventChannel(const sc_module_name name,
         this->name(),
         fmt::format("Can't open eventLog file at {}", logFileName).c_str());
   }
+  SC_HAS_PROCESS(PowerModelEventChannel);
+  SC_THREAD(logLoop);
 }
 
 PowerModelEventChannel::~PowerModelEventChannel() { dumpCsv(); }
 
 int PowerModelEventChannel::registerEvent(
     std::unique_ptr<PowerModelEventBase> eventPtr) {
-  SC_HAS_PROCESS(PowerModelEventChannel);
   // Check if already running
   if (sc_is_running()) {
     throw std::runtime_error(

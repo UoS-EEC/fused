@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include "ps/PowerModelEventBase.hpp"
+#include "utilities/Config.hpp"
 
 /**
  * Power model event for events that have a constant energy consumption
@@ -21,6 +22,11 @@ class ConstantEnergyEvent : public PowerModelEventBase {
   //! Constructor
   ConstantEnergyEvent(const std::string name, double energy_)
       : PowerModelEventBase(name, -1), energy(energy_) {}
+
+  ConstantEnergyEvent(const std::string name)
+      : PowerModelEventBase(name, -1),
+        energy(Config::get().contains(name) ? Config::get().getDouble(name)
+                                            : 0.0) {}
 
   virtual double calculateEnergy([
       [maybe_unused]] const double supplyVoltage) const override {

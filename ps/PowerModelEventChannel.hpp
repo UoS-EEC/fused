@@ -21,7 +21,7 @@
  */
 class PowerModelEventChannel : public virtual PowerModelEventChannelOutIf,
                                public virtual PowerModelEventChannelInIf,
-                               public virtual sc_core::sc_module {
+                               public sc_core::sc_module {
  public:
   PowerModelEventChannel(
       const sc_core::sc_module_name name, const std::string logfile = "",

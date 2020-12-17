@@ -13,14 +13,23 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
 #include "ps/EventLog.hpp"
+#include "ps/PowerModelEventChannelIf.hpp"
 
 class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
  public:
   /* ------ Ports ------ */
-  sc_core::sc_port<ClockSourceConsumerIf> systemClk{"systemClk"};  //! Bus clock
-  tlm::tlm_target_socket<> tSocket;    //! TLM socket
-  sc_core::sc_in<bool> pwrOn{"pwrOn"}; /*! Indicate if power to this
-                                  target is on */
+  //! Bus clock
+  sc_core::sc_port<ClockSourceConsumerIf> systemClk{"systemClk"};
+
+  //! TLM bus socket
+  tlm::tlm_target_socket<> tSocket;
+
+  //! Indicates if power to this target is on
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};
+
+  //! Event-port for logging and reporting dynamic power consumption
+  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
+
   /* ------ Public methods ------ */
   BusTarget(const sc_core::sc_module_name name, const unsigned startAddress,
             const unsigned endAddress);
