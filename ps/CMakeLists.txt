@@ -7,6 +7,7 @@
 
 add_library(
     PowerSystem
+    ConstantEnergyEvent.hpp
     DynamicEnergyChannel.hpp
     DynamicEnergyIf.hpp
     EnergyConsumer.cpp
@@ -18,6 +19,10 @@ add_library(
     PowerCalculator.cpp
     PowerCalculator.hpp
     PowerCombine.hpp
+    PowerModelEventBase.hpp
+    PowerModelEventChannelIf.hpp
+    PowerModelEventChannel.hpp
+    PowerModelEventChannel.cpp
     )
 
 target_link_libraries(

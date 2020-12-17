@@ -19,8 +19,8 @@
 class ConstantEnergyEvent : public PowerModelEventBase {
  public:
   //! Constructor
-  ConstantEnergyEvent(const std::string name, const int id, double energy_)
-      : PowerModelEventBase(name, id), energy(energy_) {}
+  ConstantEnergyEvent(const std::string name, double energy_)
+      : PowerModelEventBase(name, -1), energy(energy_) {}
 
   virtual double calculateEnergy([
       [maybe_unused]] const double supplyVoltage) const override {

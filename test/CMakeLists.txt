@@ -11,7 +11,19 @@ add_executable(testClockSourceChannel
 target_link_libraries(testClockSourceChannel
   PRIVATE
     systemc
-    Cm0Microcontroller)
+    Cm0Microcontroller
+    )
+
+add_executable(testPowerModelEventChannel
+  test_PowerModelEventChannel.cpp
+  )
+
+target_link_libraries(testPowerModelEventChannel
+  PRIVATE
+    systemc
+    PowerSystem
+    )
+
 
 # ------ Cache ------
 add_executable(testMsp430Cache

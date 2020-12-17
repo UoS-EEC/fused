@@ -5,8 +5,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/fmt/fmt.h>
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 #include <systemc>
 #include <vector>
 #include "ps/PowerModelEventBase.hpp"
@@ -16,12 +18,23 @@ using namespace sc_core;
 
 int PowerModelEventChannel::registerEvent(
     std::unique_ptr<PowerModelEventBase> eventPtr) {
-  eventPtr->id = m_events.size();
-  // TODO check if event name already exists in m_events
+  // check if event name already present in m_events
+  const auto name = eventPtr->name;
+  if (std::any_of(m_events.begin(), m_events.end(),
+                  [name](const std::unique_ptr<PowerModelEventBase> &e) {
+                    return e->name == name;
+                  })) {
+    throw std::invalid_argument(fmt::format(
+        FMT_STRING("PowerModelEventChannel::registerEvent event name {:s} "
+                   "already registered"),
+        name));
+  }
+
+  eventPtr->id = m_events.size();  // Set ID
   m_events.push_back(std::move(eventPtr));
   m_eventRates.push_back(0);
   sc_assert(m_events.size() == m_eventRates.size());
-  return m_events.size() - 1;
+  return m_events.back()->id;
 }
 
 void PowerModelEventChannel::write(const int eventId, const int n) {
@@ -42,7 +55,7 @@ double PowerModelEventChannel::popEnergy(const int eventId,
 double PowerModelEventChannel::popEnergy(const double supplyVoltage) {
   double result = 0.0;
   for (int i = 0; i < m_events.size(); ++i) {
-    popEnergy(i, supplyVoltage);
+    result += popEnergy(i, supplyVoltage);
   }
   return result;
 }

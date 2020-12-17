@@ -11,12 +11,13 @@
 #include "ps/PowerModelEventBase.hpp"
 #include "ps/PowerModelEventChannelIf.hpp"
 
+/**
+ * class PowerModelEventChannel implementation of event energy channel.  See
+ * interface PowerModelEventChannelIf.hpp for description.
+ */
 class PowerModelEventChannel : public virtual PowerModelEventChannelOutIf,
                                public virtual PowerModelEventChannelInIf {
  public:
-  //! Constructor
-  PowerModelEventChannel();
-
   virtual int registerEvent(
       std::unique_ptr<PowerModelEventBase> eventPtr) override;
 
