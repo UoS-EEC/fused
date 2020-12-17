@@ -19,7 +19,8 @@ SC_MODULE(dut) {
  public:
   PowerModelEventInPort inport{"inport"};
   PowerModelEventOutPort outport{"outport"};
-  PowerModelEventChannel ch;
+  PowerModelEventChannel ch{"ch", "/tmp/testPowerModelChannel.csv",
+                            sc_time(1, SC_US)};
   SC_CTOR(dut) {
     inport(ch);
     outport(ch);
@@ -28,18 +29,19 @@ SC_MODULE(dut) {
 
 SC_MODULE(tester) {
  public:
-  SC_CTOR(tester) { SC_THREAD(runtests); }
+  SC_CTOR(tester) {
+    registerEvents();
+    SC_THREAD(runtests);
+  }
 
-  void runtests() {
+  void registerEvents() {
     spdlog::info("------ TEST: register some events");
     sc_assert(test.inport->size() == 0);
-    auto eid1 =
-        test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
-            new ConstantEnergyEvent("event1", 1.0e-12)));
+    eid1 = test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
+        new ConstantEnergyEvent("event1", 1.0e-12)));
     sc_assert(test.inport->size() == 1);
-    auto eid2 =
-        test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
-            new ConstantEnergyEvent("event2", 2.0e-12)));
+    eid2 = test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
+        new ConstantEnergyEvent("event2", 2.0e-12)));
     sc_assert(test.inport->size() == 2);
 
     spdlog::info(
@@ -52,6 +54,19 @@ SC_MODULE(tester) {
       success = true;
     }
     sc_assert(success);
+  }
+
+  void runtests() {
+    spdlog::info(
+        "------ TEST: Registering an event after simulation start causes "
+        "exception");
+    try {
+      test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
+          new ConstantEnergyEvent("event1", 1.0e-12)));
+      sc_assert(false);  // Fail
+    } catch (std::runtime_error &e) {
+      // Success
+    }
 
     spdlog::info("------ TEST: Event counts add up");
     test.outport->write(eid1, 1);
@@ -82,11 +97,15 @@ SC_MODULE(tester) {
     sc_stop();
   }
 
+  int eid1;
+  int eid2;
+
   dut test{"dut"};
 };
 
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   tester t("tester");
+
   sc_start();
   return false;
 }
