@@ -23,12 +23,18 @@ class PowerModelEventChannel : public virtual PowerModelEventChannelOutIf,
                                public virtual PowerModelEventChannelInIf,
                                public sc_core::sc_module {
  public:
+  /* ------ Public methods ------ */
+
+  //! Constructor
   PowerModelEventChannel(
       const sc_core::sc_module_name name, const std::string logfile = "",
       const sc_core::sc_time logTimestep = sc_core::SC_ZERO_TIME);
 
+  //! Destructor
   ~PowerModelEventChannel();
 
+  // See PowerModelEventChannelIf.hpp for description of the following virtual
+  // methods.
   virtual int registerEvent(
       std::unique_ptr<PowerModelEventBase> eventPtr) override;
 
@@ -42,6 +48,10 @@ class PowerModelEventChannel : public virtual PowerModelEventChannelOutIf,
 
   virtual double popEnergy(double supplyVoltage) override;
 
+  /**
+   * @brief start_of_simulation systemc callback. Used here to initialize the
+   * internal event log.
+   */
   virtual void start_of_simulation() override;
 
  private:
@@ -60,16 +70,23 @@ class PowerModelEventChannel : public virtual PowerModelEventChannelOutIf,
   sc_core::sc_time m_logTimestep;
 
   //! Keeps log of event counts in the form:
-  // count0 count1 ... countN TIME0(microseconds)
-  // count0 count1 ... countN TIME1(microseconds)
-  // ...
-  // count0 count1 ... countN TIMEM(microseconds)
+  //! count0 count1 ... countN TIME0(microseconds)
+  //! count0 count1 ... countN TIME1(microseconds)
+  //! ...
+  //! count0 count1 ... countN TIMEM(microseconds)
   std::vector<std::vector<int>> m_log;
 
   //! How many log entries to save in memory before dumping to file
   const int m_logDumpThreshold = 100E3;
 
+  /**
+   * @brief dumpCsv a method that writes the event log to a csv.
+   */
   void dumpCsv();
 
+  /**
+   * @brief logLoop systemc thread that records event counts at a specified
+   * timestep. The event counts are not reset by pop's by the channel's reader.
+   */
   void logLoop();
 };
