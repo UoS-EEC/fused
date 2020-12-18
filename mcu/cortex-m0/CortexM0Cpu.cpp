@@ -11,8 +11,10 @@
 #include <thread>
 #include <tlm>
 #include "include/cm0-fused.h"
+#include "libs/make_unique.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -46,13 +48,6 @@ CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
         "Invalid config for CortexM0Version, must be one of {cm0, cm0+}.");
   }
 
-  // Register eventlog events
-  m_idleCyclesEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " idle cycles");
-
-  m_nInstructionsEventId = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " n instructions");
-
   EventLog::getInstance().reportState(this->name(), "off");
 
   // Construct & init cpu
@@ -60,6 +55,16 @@ CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
 }
 
 void CortexM0Cpu::end_of_elaboration() {
+  // Register events
+  m_idleCyclesEvent =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " idle cycles"));
+
+  m_nInstructionsEventId =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " n instructions"));
+
+  // Register methods
   SC_THREAD(process);
   SC_METHOD(powerOffChecks);
   sensitive << pwrOn.negedge_event();
@@ -119,7 +124,7 @@ void CortexM0Cpu::process() {
         auto exCycles = exwbmem(insn);
         if (exCycles > 0) {
           // Extra cycles spent for special instructions.
-          EventLog::getInstance().increment(m_ctx->m_idleCyclesEvent, exCycles);
+          m_ctx->powerModelEventPort->write(m_ctx->m_idleCyclesEvent, exCycles);
           wait(clk->getPeriod() * exCycles);
         }
 
@@ -141,7 +146,7 @@ void CortexM0Cpu::process() {
           cpu_set_pc(cpu_get_pc() + 0x2);
         }
 
-        EventLog::getInstance().increment(m_nInstructionsEventId);
+        powerModelEventPort->write(m_nInstructionsEventId);
 
         if (m_doStep && (m_bubbles == 0)) {
           m_run = false;

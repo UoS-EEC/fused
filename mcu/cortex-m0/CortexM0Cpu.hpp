@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
+#include "ps/PowerModelEventChannelIf.hpp"
 
 extern "C" {
 #include "mcu/cortex-m0/decode.h"
@@ -29,6 +30,9 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! CPU clock
   tlm::tlm_initiator_socket<> iSocket;                 //! TLM initiator socket
   sc_core::sc_in<bool> pwrOn{"pwrOn"};                 //! "power-good" signal
+
+  //! Output port for power model events
+  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
 
   // -- Interrupts
   // SysTick
@@ -263,9 +267,9 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   InstructionBuffer m_instructionBuffer;
   std::unordered_set<unsigned> m_breakpoints;  // Set of breakpoint addresses
   std::unordered_set<unsigned> m_watchpoints;  // Set of watchpoint addresses
-  EventLog::eventId m_idleCyclesEvent;       //! Event used to track idle cycles
-  EventLog::eventId m_nInstructionsEventId;  //! Event used to track number of
-                                             //! executed instructions
+  int m_idleCyclesEvent;       //! Event used to track idle cycles
+  int m_nInstructionsEventId;  //! Event used to track number of
+                               //! executed instructions
   std::array<unsigned, 17> m_regsAtExceptEnter{{0}};  //! Used for checking
 
   /* ------ Private methods ------ */
