@@ -15,7 +15,6 @@
 #include "ps/ConstantEnergyEvent.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
-#include "utilities/make_unique.h"
 
 using namespace sc_core;
 
