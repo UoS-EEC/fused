@@ -15,6 +15,7 @@
 #include "mcu/GenericMemory.hpp"
 #include "mcu/msp430fr5xx/Dma.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelEventChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -36,6 +37,9 @@ SC_MODULE(dut) {
   std::array<sc_signal<bool>, 30> trigger;
   GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
+  PowerModelEventChannel powerModelEventChannel{
+      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(nreset);
@@ -50,6 +54,8 @@ SC_MODULE(dut) {
     for (auto i = 0; i < trigger.size(); i++) {
       m_dut.trigger[i].bind(trigger[i]);
     }
+    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    mem.powerModelEventPort.bind(powerModelEventChannel);
   }
 
   Dma m_dut{"dut"};

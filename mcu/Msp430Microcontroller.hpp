@@ -40,9 +40,6 @@ class Msp430Microcontroller : public Microcontroller {
   SC_HAS_PROCESS(Msp430Microcontroller);
 
  public:
-  /* ------ Ports ------ */
-  sc_core::sc_in<bool> nReset{"nReset"};
-
   /* ------ Signals ------ */
   sc_core::sc_signal<bool> dma_dummy{"dma_dummy"};
 

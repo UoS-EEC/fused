@@ -63,6 +63,7 @@ Adc12::Adc12(const sc_module_name name)
 }
 
 void Adc12::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
   // Register SC_METHODs here (after construction)
   SC_METHOD(process);
   sensitive << samplingClock;
@@ -140,7 +141,7 @@ void Adc12::process() {
         static_cast<double>(resolution) *
         (vcc.read() / 4.0));  // Assumes 2v ref and meas vcc/2
     m_regs.write(OFS_ADC12MEM0, sample);
-    EventLog::getInstance().increment(m_sampleEvent);
+    powerModelEventPort->write(m_sampleEvent);
 
     // Window comparator low interrupt
     if (m_regs.testBitMask(OFS_ADC12IER2, ADC12LOIE) &&

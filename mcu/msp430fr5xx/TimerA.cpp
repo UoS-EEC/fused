@@ -63,6 +63,7 @@ TimerA::TimerA(sc_module_name name, unsigned startAddress)
 }
 
 void TimerA::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
   // Register SC_METHODS here (after events have been constructed)
   SC_METHOD(process);
   sensitive << timerClock << ira;
@@ -95,7 +96,7 @@ void TimerA::process(void) {
         } else {
           m_regs.setBit(OFS_TA1CTL, 0);  // Set IFG
           m_regs.write(OFS_TA1R, 0);     // Clear count
-          EventLog::getInstance().increment(m_triggerEvent);
+          powerModelEventPort->write(m_triggerEvent);
         }
         break;
       case 2:  // Continuous mode: timer counts up to 0xffff
@@ -106,7 +107,7 @@ void TimerA::process(void) {
         } else {
           m_regs.setBitMask(OFS_TA1CTL, TAIFG);
           m_regs.write(OFS_TA1R, 0);  // Clear count
-          EventLog::getInstance().increment(m_triggerEvent);
+          powerModelEventPort->write(m_triggerEvent);
         }
         break;
       case 3:  // Up/down mode: timer counts up to TAxCCR0 then down to 0
@@ -123,7 +124,7 @@ void TimerA::process(void) {
 
         if (crntCnt == 0) {
           m_regs.setBitMask(OFS_TA1CTL, TAIFG);
-          EventLog::getInstance().increment(m_triggerEvent);
+          powerModelEventPort->write(m_triggerEvent);
         }
         break;
     }

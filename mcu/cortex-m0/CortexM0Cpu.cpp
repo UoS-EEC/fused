@@ -365,7 +365,7 @@ void CortexM0Cpu::write_cb(const uint32_t addr, uint8_t *const data,
 void CortexM0Cpu::consume_cycles_cb(const size_t n) {
   sc_time delay = n * m_ctx->clk->getPeriod();
   m_ctx->wait(delay);
-  EventLog::getInstance().increment(m_ctx->m_idleCyclesEvent);
+  m_ctx->powerModelEventPort->write(m_ctx->m_idleCyclesEvent);
 }
 
 void CortexM0Cpu::exception_return_cb(const uint32_t EXC_RETURN) {
@@ -380,7 +380,7 @@ uint16_t CortexM0Cpu::getNextPipelineInstr() {
   uint16_t result = m_instructionQueue.front();
   m_instructionQueue.pop_front();
   wait(clk->getPeriod());
-  EventLog::getInstance().increment(m_idleCyclesEvent);
+  powerModelEventPort->write(m_idleCyclesEvent);
   return result;
 }
 
@@ -396,7 +396,7 @@ unsigned CortexM0Cpu::fetch(const unsigned address) {
   } else {
     // Consume a cycle regardless
     wait(clk->getPeriod());
-    EventLog::getInstance().increment(m_idleCyclesEvent);
+    powerModelEventPort->write(m_idleCyclesEvent);
   }
 
   // Read buffered val

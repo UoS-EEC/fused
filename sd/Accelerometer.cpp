@@ -8,7 +8,9 @@
 #include <systemc>
 #include <tuple>
 #include <vector>
+#include "libs/make_unique.hpp"
 #include "libs/strtk.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "ps/EventLog.hpp"
 #include "sd/Accelerometer.hpp"
 #include "utilities/Config.hpp"
@@ -25,10 +27,6 @@ Accelerometer::Accelerometer(const sc_module_name name)
                      /*resetValue=*/BitMasks::STATUS_BUSY);
   m_regs.addRegister(RegisterAddress::DATA);
   m_regs.addRegister(RegisterAddress::FIFO_THR);
-
-  // Get event IDs
-  m_sampleEventId =
-      EventLog::getInstance().registerEvent("Accelerometer sample");
 
   reportState();  // report initial (sleep) state
 
@@ -64,6 +62,11 @@ Accelerometer::Accelerometer(const sc_module_name name)
 }
 
 void Accelerometer::end_of_elaboration() {
+  // Get event IDs
+  m_sampleEventId = powerModelEventPort->registerEvent(
+      std::make_unique<ConstantEnergyEvent>("Accelerometer sample"));
+
+  // Register methods
   SC_METHOD(spiInterface);
   sensitive << m_transactionEvent << chipSelect.posedge_event();
   dont_initialize();
@@ -280,7 +283,7 @@ void Accelerometer::measurementLoop() {
           sampleTrace(input.acc_y), sampleTrace(input.acc_z), m_fifo.size());
 
       // Report sample event
-      EventLog::getInstance().increment(m_sampleEventId);
+      powerModelEventPort->write(m_sampleEventId);
 
       // Go back to standby after single measurement
       if (m_measurementState == MeasurementState::SingleMeasurement) {

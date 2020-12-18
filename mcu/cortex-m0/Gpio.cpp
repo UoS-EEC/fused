@@ -77,11 +77,11 @@ void Gpio::process(void) {
       if (dir & mask) {  // If output mode
         // Count edges
         if (!current && (data & mask)) {  // Posedge
-          EventLog::getInstance().increment(m_pinPosEdge);
+          powerModelEventPort->write(m_pinPosEdge);
           spdlog::info("{:s}: @{:s} posedge on pin {:d}", this->name(),
                        sc_time_stamp().to_string(), i);
         } else if (current && !(data & mask)) {  // Negedge
-          EventLog::getInstance().increment(m_pinNegEdge);
+          powerModelEventPort->write(m_pinNegEdge);
           spdlog::info("{:s}: @{:s} negedge on pin {:d}", this->name(),
                        sc_time_stamp().to_string(), i);
         }

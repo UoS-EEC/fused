@@ -161,11 +161,20 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
 
   // Power
   pmm->staticPower.bind(staticPower);
+
+  // Reset
   m_cpu.pwrOn.bind(nReset);
   for (const auto &s : slaves) {
     s->pwrOn.bind(nReset);
   }
   fram->pwrOn.bind(nReset);
+
+  // Events for power model
+  m_cpu.powerModelEventPort.bind(powerModelEventPort);
+  fram->powerModelEventPort.bind(powerModelEventPort);
+  for (const auto &s : slaves) {
+    s->powerModelEventPort.bind(powerModelEventPort);
+  }
 
   // Analog signals
   adc->vcc.bind(vcc);
@@ -179,14 +188,13 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   fram_ctl->waitStates.bind(framWaitStates);
   fram->waitStates.bind(framWaitStates);
   m_cpu.busStall.bind(cpuStall);
-  dma->stallCpu.bind(cpuStall);
 
+  // DMA
+  dma->stallCpu.bind(cpuStall);
+  tima->dmaTrigger.bind(dmaTrigger[1]);
   for (size_t i = 0; i < dmaTrigger.size(); ++i) {
     dma->trigger[i].bind(dmaTrigger[i]);
   }
-
-  // DMA triggers
-  tima->dmaTrigger.bind(dmaTrigger[1]);
 
   // Bus
   m_cpu.iSocket.bind(bus.tSocket);

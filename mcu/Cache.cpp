@@ -134,13 +134,13 @@ void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     m_writeEvent.notify(delay + systemClk->getPeriod());
-    m_elog.increment(m_writeEventId);
-    m_elog.increment(m_nBytesWrittenEvent, len);
+    powerModelEventPort->write(m_writeEventId);
+    powerModelEventPort->write(m_nBytesWrittenEvent, len);
 
     if (hit) {
-      m_elog.increment(m_writeHitEvent);
+      powerModelEventPort->write(m_writeHitEvent);
     } else {
-      m_elog.increment(m_writeMissEvent);
+      powerModelEventPort->write(m_writeMissEvent);
     }
 
     tlm::tlm_generic_payload outputTrans;
@@ -189,13 +189,13 @@ void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
     }
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     m_readEvent.notify(delay + systemClk->getPeriod());
-    m_elog.increment(m_readEventId);
-    m_elog.increment(m_nBytesReadEvent, trans.get_data_length());
+    powerModelEventPort->write(m_readEventId);
+    powerModelEventPort->write(m_nBytesReadEvent, trans.get_data_length());
 
     if (hit) {
-      m_elog.increment(m_readHitEvent);
+      powerModelEventPort->write(m_readHitEvent);
     } else {
-      m_elog.increment(m_readMissEvent);
+      powerModelEventPort->write(m_readMissEvent);
     }
 
     if (!hit) {

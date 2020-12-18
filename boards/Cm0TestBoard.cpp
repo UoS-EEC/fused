@@ -26,7 +26,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
     : Board(name),
       powerModelEventChannel(
           "powerModelEventChannel", /*logfile=*/
-          Config::get().getString("OutputDirectory") + "/eventlognew.vcd",
+          Config::get().getString("OutputDirectory") + "/eventLog.csv",
           sc_time::from_seconds(Config::get().getDouble("EventLogTimeStep"))) {
   /* ------ Bind ------ */
   // Reset
@@ -42,6 +42,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
   // off-chip serial devices
   spiLoopBack.nReset.bind(nReset);
   spiLoopBack.chipSelect.bind(chipSelectDummySpi);
+  spiLoopBack.powerModelEventPort.bind(powerModelEventChannel);
   mcu.spi->spiSocket.bind(spiLoopBack.tSocket);
 
   // Power circuitry

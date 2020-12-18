@@ -54,7 +54,8 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   CortexM0Cpu(const sc_core::sc_module_name nm);
 
   /**
-   * @brief end_of_elaboration set up threads and methods.
+   * @brief end_of_elaboration SystemC callback. Used here for registering power
+   * modelling events as well as setting up SC_THREADs and SC_METHODs.
    */
   virtual void end_of_elaboration() override;
 

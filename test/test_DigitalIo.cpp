@@ -14,6 +14,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelEventChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -31,6 +32,9 @@ SC_MODULE(dut) {
   sc_signal<bool> pwrGood{"pwrGood"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
+  PowerModelEventChannel powerModelEventChannel{
+      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     for (unsigned int i = 0; i < port.size(); i++) {
@@ -41,6 +45,7 @@ SC_MODULE(dut) {
     m_dut.irq[1].bind(irq1);
     m_dut.tSocket.bind(iSocket);
     m_dut.systemClk.bind(clk);
+    m_dut.powerModelEventPort.bind(powerModelEventChannel);
   }
 
   DigitalIo m_dut{"port", 0, 0x1f};

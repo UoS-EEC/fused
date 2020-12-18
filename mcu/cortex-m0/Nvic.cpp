@@ -40,6 +40,7 @@ Nvic::Nvic(const sc_module_name name) : BusTarget(name, NVIC_BASE, NVIC_END) {
 }
 
 void Nvic::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
   SC_METHOD(process);
   sensitive << m_writeEvent << active.value_changed_event()
             << returning.value_changed_event() << m_resetEvent;

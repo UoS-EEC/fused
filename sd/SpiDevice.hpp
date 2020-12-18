@@ -15,6 +15,7 @@
 #include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/EventLog.hpp"
+#include "ps/PowerModelEventChannelIf.hpp"
 
 /**
  * Base class for SPI devices.
@@ -28,6 +29,9 @@ class SpiDevice : public sc_core::sc_module {
   sc_core::sc_in_resolved chipSelect{"chipSelect"};
   sc_core::sc_in<bool> nReset{"nReset"};
   tlm_utils::simple_target_socket<SpiDevice> tSocket{"tSocket"};
+
+  //! Event-port for logging and reporting dynamic power consumption
+  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
 
   /* ------ Signals ------ */
 

@@ -23,7 +23,7 @@ EventLog::EventLog(sc_module_name nm) : sc_module(nm) {
   SC_THREAD(process)
 
   // create/overwrite log file
-  auto path = Config::get().getString("OutputDirectory") + "/eventLog.csv";
+  auto path = Config::get().getString("OutputDirectory") + "/eventLog_old.csv";
   std::ofstream f(path);
   if (!f.good()) {
     SC_REPORT_FATAL(
@@ -73,7 +73,7 @@ void EventLog::reportState(const std::string &reporter,
 }
 
 void EventLog::dumpCsv() {
-  auto path = Config::get().getString("OutputDirectory") + "/eventLog.csv";
+  auto path = Config::get().getString("OutputDirectory") + "/eventLog_old.csv";
   std::ofstream f(path, std::ios::out | std::ios::app);
   if (f.tellp() == 0) {
     // Header
@@ -129,8 +129,8 @@ void EventLog::process() {
     if (i != timeId) {
       std::get<EVENT_VALUES>(m_log[i]).back() = 0;  // Reset counters
     } else {
-      std::get<EVENT_VALUES>(m_log[i]).back() =
-          static_cast<unsigned int>(1E6 * (m_timestep + sc_time_stamp()).to_seconds());
+      std::get<EVENT_VALUES>(m_log[i]).back() = static_cast<unsigned int>(
+          1E6 * (m_timestep + sc_time_stamp()).to_seconds());
     }
   }
 
@@ -159,7 +159,7 @@ void EventLog::process() {
     for (auto &v : m_log) {
       std::get<EVENT_VALUES>(v).emplace_back(0);
     }
-    std::get<EVENT_VALUES>(m_log[timeId]).back() =
-        static_cast<unsigned int>(1E6 * (m_timestep + sc_time_stamp()).to_seconds());
+    std::get<EVENT_VALUES>(m_log[timeId]).back() = static_cast<unsigned int>(
+        1E6 * (m_timestep + sc_time_stamp()).to_seconds());
   }
 }

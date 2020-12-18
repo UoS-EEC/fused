@@ -17,6 +17,7 @@
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
+#include "ps/PowerModelEventChannelIf.hpp"
 #include "utilities/Utilities.hpp"
 
 class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
@@ -30,6 +31,9 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   sc_core::sc_in<bool> busStall{"busStall"};  //! indicate busy bus
   sc_core::sc_out<bool> ira{"ira_out"};       //! irq accepted
 
+  //! Output port for power model events
+  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
+
   //! Decides whether to wait for peripheral's ack of IRA asserted or
   //! just wait one cycle
   sc_core::sc_in<bool> iraConnected{"iraConnected"};
@@ -42,6 +46,12 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
 
   Msp430Cpu(const sc_core::sc_module_name name, const bool logOperation = false,
             const bool logInstruction = false);
+
+  /**
+   * @brief end_of_elaboration SystemC callback. Used here for registering power
+   * modelling events.
+   */
+  virtual void end_of_elaboration() override;
 
   /**
    * @brief writeMem: Callback function for write operations to memory by

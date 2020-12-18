@@ -35,6 +35,11 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
             const unsigned endAddress);
 
   /**
+   * @brief SystemC callback, used here to register power modelling events.
+   */
+  virtual void end_of_elaboration() override;
+
+  /**
    * @brief b_transport transaction.
    * Default implementation writes/reads to/from m_regs
    * @param trans
@@ -107,8 +112,8 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   const unsigned int m_startAddress;
   const unsigned int m_endAddress;
   RegisterFile m_regs;
-  EventLog::eventId m_readEventId;
-  EventLog::eventId m_writeEventId;
+  int m_readEventId{-1};
+  int m_writeEventId{-1};
   EventLog &m_elog;
 
   //! Events triggered on bus access via b_transport -- not transport_dbg!

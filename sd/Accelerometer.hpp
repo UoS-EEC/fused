@@ -88,7 +88,7 @@ class Accelerometer : public SpiDevice {
   virtual void reset(void) override;
 
   /**
-   * @brief set up methods & sensitivity
+   * @brief set up methods, sensitivity and register power model events
    */
   virtual void end_of_elaboration() override;
 
@@ -241,8 +241,7 @@ class Accelerometer : public SpiDevice {
   std::vector<InputTraceEntry> m_inputTrace;
   sc_core::sc_time m_inputTraceTimestep;
 
-  // Eventlog IDs for power model
-  EventLog::eventId m_sampleEventId;
+  int m_sampleEventId;
 
   /* ------ Private methods ------ */
 

@@ -8,6 +8,7 @@
 #pragma once
 #include <stdint.h>
 #include <systemc>
+#include "ps/PowerModelEventChannelIf.hpp"
 
 /**
  * Interface/abstract class for microcontrollers/SoCs.
@@ -17,8 +18,10 @@
 class Microcontroller : public sc_core::sc_module {
  public:
   /* ------ Ports ------ */
+  sc_core::sc_in<bool> nReset{"nReset"};
   sc_core::sc_in<double> vcc{"vcc"};  // Supply voltage
   sc_core::sc_out<double> staticPower{"staticPower"};
+  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
 
   /* ------ Signals ------ */
 

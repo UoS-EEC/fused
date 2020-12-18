@@ -15,6 +15,7 @@
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
+#include "ps/PowerModelEventChannel.hpp"
 #include "sd/SpiLoopBack.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
@@ -39,6 +40,7 @@ class Msp430TestBoard : public Board {
   virtual Microcontroller &getMicrocontroller() override;
 
   /* ------ Channels & signals ------ */
+  PowerModelEventChannel powerModelEventChannel;
   DynamicEnergyChannel dynamicConsumption{"dynamicConsumption"};
   sc_core::sc_signal<double> staticConsumption{"staticConsumption", 0.0};
   sc_core::sc_signal<double> staticConsumptionBoot{"staticConsumptionBoot",

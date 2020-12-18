@@ -26,16 +26,11 @@
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "mcu/cortex-m0/Spi.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
-#include "ps/PowerModelEventChannelIf.hpp"
 
 class Cm0Microcontroller : public Microcontroller {
   SC_HAS_PROCESS(Cm0Microcontroller);
 
  public:
-  /* ------ Ports ------ */
-  sc_core::sc_in<bool> nReset{"nReset"};
-  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
-
   /* ------ Signals ------ */
 
   /*------ Interrupt lines ------*/

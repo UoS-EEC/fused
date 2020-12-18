@@ -7,7 +7,6 @@
 
 #include <spdlog/spdlog.h>
 #include <stdint.h>
-
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -16,8 +15,9 @@
 #include <systemc>
 #include <thread>
 #include <tlm>
-
+#include "libs/make_unique.hpp"
 #include "mcu/msp430fr5xx/Msp430Cpu.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -38,27 +38,6 @@ Msp430Cpu::Msp430Cpu(const sc_module_name name, const bool logOperation,
 
   SC_THREAD(process);
 
-  m_idleCyclesEvent =
-      m_elog.registerEvent(std::string(this->name()) + " idle cycles");
-
-  std::string ops[] = {"ADD", "ADDC", "AND",  "BIC",  "BIS",  "BIT",  "CALL",
-                       "CMP", "DADD", "JC",   "JZ",   "JGE",  "JL",   "JMP",
-                       "JN",  "JNC",  "JNZ",  "MOV",  "PUSH", "RETI", "RRA",
-                       "RRC", "SUB",  "SUBC", "SWPB", "SXT",  "XOR"};
-
-  for (const auto &op : ops) {
-    instrEventIds[op] = m_elog.registerEvent(std::string("inst-") + op);
-  }
-
-  m_formatIEvent = m_elog.registerEvent(std::string(this->name()) + " formatI");
-  m_formatIIEvent =
-      m_elog.registerEvent(std::string(this->name()) + " formatII");
-  m_formatIIIEvent =
-      m_elog.registerEvent(std::string(this->name()) + " formatIII");
-  m_pcIsDestinationEvent =
-      m_elog.registerEvent(std::string(this->name()) + " pc-is-dest");
-  m_irqEvent = m_elog.registerEvent(std::string(this->name()) + " irq");
-
   std::string odir = Config::get().getString("OutputDirectory");
   if (logOperation) {
     m_opsLogFile.open(odir + "/cpu_op.log");
@@ -67,6 +46,39 @@ Msp430Cpu::Msp430Cpu(const sc_module_name name, const bool logOperation,
   if (logInstructions) {
     m_instrLogFile.open(odir + "/cpu_instructions.log");
   }
+}
+
+void Msp430Cpu::end_of_elaboration() {
+  // Register events
+  const std::string ops[] = {
+      "ADD",  "ADDC", "AND", "BIC", "BIS", "BIT",  "CALL", "CMP", "DADD",
+      "JC",   "JZ",   "JGE", "JL",  "JMP", "JN",   "JNC",  "JNZ", "MOV",
+      "PUSH", "RETI", "RRA", "RRC", "SUB", "SUBC", "SWPB", "SXT", "XOR"};
+
+  for (const auto &op : ops) {
+    powerModelEventPort->registerEvent(
+        std::make_unique<ConstantEnergyEvent>(std::string("inst-") + op));
+  }
+
+  m_formatIEvent =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " formatI"));
+  m_formatIIEvent =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " formatII"));
+  m_formatIIIEvent =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " formatIII"));
+  m_pcIsDestinationEvent =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " pc-is-dest"));
+  m_irqEvent =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " irq"));
+
+  m_idleCyclesEvent =
+      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " idle cycles"));
 }
 
 void Msp430Cpu::reset(void) {
@@ -84,7 +96,7 @@ void Msp430Cpu::process() {
     if (pwrOn.read() && m_run) {
       // Handle interrupts
       if (irq.read()) {
-        EventLog::getInstance().increment(m_irqEvent);
+        powerModelEventPort->write(m_irqEvent);
         processInterrupt();
       }
 
@@ -118,13 +130,13 @@ void Msp430Cpu::process() {
         uint8_t instructionFmt = (opcode & 0xe000) >> 13;
         if (instructionFmt == 0) {
           executeSingleOpInstruction(opcode);
-          m_elog.increment(m_formatIIEvent);
+          powerModelEventPort->write(m_formatIIEvent);
         } else if (instructionFmt == 1) {
           executeConditionalJump(opcode);
-          m_elog.increment(m_formatIIIEvent);
+          powerModelEventPort->write(m_formatIIIEvent);
         } else {
           executeDoubleOpInstruction(opcode);
-          m_elog.increment(m_formatIEvent);
+          powerModelEventPort->write(m_formatIEvent);
         }
         if (m_doStep) {  // end single step
           m_run = false;

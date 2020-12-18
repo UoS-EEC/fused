@@ -22,15 +22,11 @@ GenericMemory::GenericMemory(sc_module_name name, unsigned startAddress,
                              unsigned endAddress)
     : BusTarget(name, startAddress, endAddress),
       mem(std::make_unique<uint8_t[]>(endAddress - startAddress + 1)),
-      m_capacity(endAddress - startAddress + 1) {
-  // Register events to be logged
-  m_nBytesReadEventId_old = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " bytes read");
-  m_nBytesWrittenEventId_old = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " bytes written");
-}
+      m_capacity(endAddress - startAddress + 1) {}
 
 void GenericMemory::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
+
   // Register events for power model
   m_nBytesWrittenEventId =
       powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
@@ -49,14 +45,12 @@ void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     std::memcpy(&mem[addr], data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
-    m_elog.increment(m_writeEventId);
-    m_elog.increment(m_nBytesWrittenEventId_old, len);
+    powerModelEventPort->write(m_writeEventId);
     powerModelEventPort->write(m_nBytesWrittenEventId, len);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     std::memcpy(data, &mem[addr], len);
     m_readEvent.notify(delay + systemClk->getPeriod());
-    m_elog.increment(m_readEventId);
-    m_elog.increment(m_nBytesReadEventId_old, len);
+    powerModelEventPort->write(m_readEventId);
     powerModelEventPort->write(m_nBytesReadEventId, len);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
