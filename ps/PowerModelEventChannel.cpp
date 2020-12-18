@@ -23,7 +23,7 @@ PowerModelEventChannel::PowerModelEventChannel(const sc_module_name name,
                                                sc_time logTimestep)
     : sc_module(name), m_logFileName(logFileName), m_logTimestep(logTimestep) {
   // Create/overwrite log file
-  std::ofstream f(logFileName);
+  std::ofstream f(logFileName, std::ios::out | std::ios::trunc);
   if (!f.good()) {
     SC_REPORT_FATAL(
         this->name(),
@@ -65,6 +65,12 @@ int PowerModelEventChannel::registerEvent(
 }
 
 void PowerModelEventChannel::write(const int eventId, const int n) {
+  // Check if already running
+  if (!sc_is_running()) {
+    throw std::runtime_error(
+        "PowerModelEvent::write attempt to increment event counters before "
+        "simulation has started.");
+  }
   m_eventRates[eventId] += n;
   m_log.back()[eventId] += n;
 }
