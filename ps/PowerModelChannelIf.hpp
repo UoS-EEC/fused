@@ -108,6 +108,17 @@ class PowerModelChannelInIf : public virtual sc_core::sc_interface {
   virtual double popDynamicEnergy(double supplyVoltage) = 0;
 
   /**
+   * @brief getStaticCurrent get the static current in this timestep as a sum of
+   * all module-states.
+   * @param supplyVoltage supply voltage in the current time step. Used by some
+   * module states to determine current consumption.
+   * @param clockFrequency clock frequency in the current time step. Used by
+   * some module states to determine current consumption.
+   * */
+  virtual double getStaticCurrent(double supplyVoltage,
+                                  double clockFrequency) = 0;
+
+  /**
    * @brief size returns the number of registered events.
    * @retval the number of registered events.
    */

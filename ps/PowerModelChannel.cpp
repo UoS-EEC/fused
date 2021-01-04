@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <systemc>
 #include <vector>
@@ -86,6 +87,7 @@ int PowerModelChannel::registerState(
     // This is the first state registration for this module
     moduleId = m_moduleNames.size();
     m_moduleNames.push_back(moduleName);
+    m_currentStates.push_back(m_states.size());
   } else {
     // This is *not* the first state registration for this module
     // Check if state name already registered for the specified module name
@@ -137,6 +139,16 @@ double PowerModelChannel::popDynamicEnergy(const double supplyVoltage) {
     result += popEventEnergy(i, supplyVoltage);
   }
   return result;
+}
+
+double PowerModelChannel::getStaticCurrent(const double supplyVoltage,
+                                           const double clockFrequency) {
+  return std::accumulate(m_currentStates.begin(), m_currentStates.end(), 0.0,
+                         [=](const double &sum, const int &stateId) {
+                           return sum +
+                                  m_states[stateId].state->calculateCurrent(
+                                      supplyVoltage, clockFrequency);
+                         });
 }
 
 size_t PowerModelChannel::size() const { return m_events.size(); }

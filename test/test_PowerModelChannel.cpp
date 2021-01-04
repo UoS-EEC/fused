@@ -61,16 +61,16 @@ SC_MODULE(tester) {
   void registerStates() {
     spdlog::info("------ TEST: register some states");
     sid1 = test.outport->registerState(
-        "module0", std::make_unique<ConstantCurrentState>("on", 1.0e-6));
+        "module0", std::make_unique<ConstantCurrentState>("off", 0.0));
     sc_assert(sid1 == 0);
     sid2 = test.outport->registerState(
-        "module0", std::make_unique<ConstantCurrentState>("off", 0.0));
+        "module0", std::make_unique<ConstantCurrentState>("on", 1.0e-6));
     sc_assert(sid2 == 1);
     sid3 = test.outport->registerState(
-        "module1", std::make_unique<ConstantCurrentState>("on", 2.0e-6));
+        "module1", std::make_unique<ConstantCurrentState>("off", 0.0));
     sc_assert(sid3 == 2);
     sid4 = test.outport->registerState(
-        "module1", std::make_unique<ConstantCurrentState>("off", 0.0));
+        "module1", std::make_unique<ConstantCurrentState>("on", 2.0e-6));
     sc_assert(sid4 == 3);
 
     spdlog::info(
@@ -123,6 +123,16 @@ SC_MODULE(tester) {
 
     spdlog::info("------ TEST: Multi-channel event energy resets after pop");
     sc_assert(test.inport->popDynamicEnergy(0.0) == 0.0);
+
+    spdlog::info("------ TEST: Static current sums up");
+    test.outport->reportState(sid2);
+    test.outport->reportState(sid4);
+    sc_assert(test.inport->getStaticCurrent(/*unused*/ 0.0, /*unused*/ 0.0) ==
+              3.0e-6);
+    test.outport->reportState(sid1);
+    test.outport->reportState(sid3);
+    sc_assert(test.inport->getStaticCurrent(/*unused*/ 0.0, /*unused*/ 0.0) ==
+              0.0);
 
     sc_stop();
   }

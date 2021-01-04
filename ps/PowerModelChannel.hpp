@@ -57,6 +57,9 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
 
   virtual double popDynamicEnergy(double supplyVoltage) override;
 
+  virtual double getStaticCurrent(double supplyVoltage,
+                                  double clockFrequency) override;
+
   /**
    * @brief start_of_simulation systemc callback. Used here to initialize the
    * internal event log.
