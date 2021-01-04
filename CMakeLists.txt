@@ -82,6 +82,7 @@ IF(ENABLE_TESTS)
 
   # ---- "unit-tests" ------
   add_subdirectory(test)
+  add_test(NAME PowerModelChannel COMMAND testPowerModelChannel)
   add_test(NAME ClockSourceChannel COMMAND testClockSourceChannel)
   add_test(NAME Cm0RegisterFile COMMAND testCm0RegisterFile)
   add_test(NAME Msp430RegisterFile COMMAND testMsp430RegisterFile)
