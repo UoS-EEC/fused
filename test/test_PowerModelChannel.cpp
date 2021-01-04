@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <string>
 #include <systemc>
+#include "libs/make_unique.hpp"
+#include "ps/ConstantCurrentState.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "ps/PowerModelChannelIf.hpp"
@@ -19,8 +21,7 @@ SC_MODULE(dut) {
  public:
   PowerModelEventInPort inport{"inport"};
   PowerModelEventOutPort outport{"outport"};
-  PowerModelChannel ch{"ch", "/tmp/testPowerModelChannel.csv",
-                       sc_time(1, SC_US)};
+  PowerModelChannel ch{"ch", "/tmp", sc_time(1, SC_US)};
   SC_CTOR(dut) {
     inport(ch);
     outport(ch);
@@ -31,25 +32,54 @@ SC_MODULE(tester) {
  public:
   SC_CTOR(tester) {
     registerEvents();
+    registerStates();
     SC_THREAD(runtests);
   }
 
   void registerEvents() {
     spdlog::info("------ TEST: register some events");
     sc_assert(test.inport->size() == 0);
-    eid1 = test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
-        new ConstantEnergyEvent("event1", 1.0e-12)));
+    eid1 = test.outport->registerEvent(
+        std::make_unique<ConstantEnergyEvent>("event1", 1.0e-12));
     sc_assert(test.inport->size() == 1);
-    eid2 = test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
-        new ConstantEnergyEvent("event2", 2.0e-12)));
+    eid2 = test.outport->registerEvent(
+        std::make_unique<ConstantEnergyEvent>("event2", 2.0e-12));
     sc_assert(test.inport->size() == 2);
 
     spdlog::info(
-        "------ TEST: registering the same name twice throws exception");
+        "------ TEST: registering the same event twice throws exception");
     auto success = false;
     try {
-      test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
-          new ConstantEnergyEvent("event1", 1.0e-12)));
+      test.outport->registerEvent(
+          std::make_unique<ConstantEnergyEvent>("event1", 1.0e-12));
+    } catch (std::invalid_argument &e) {
+      success = true;
+    }
+    sc_assert(success);
+  }
+
+  void registerStates() {
+    spdlog::info("------ TEST: register some states");
+    sid1 = test.outport->registerState(
+        "module0", std::make_unique<ConstantCurrentState>("on", 1.0e-6));
+    sc_assert(sid1 == 0);
+    sid2 = test.outport->registerState(
+        "module0", std::make_unique<ConstantCurrentState>("off", 0.0));
+    sc_assert(sid2 == 1);
+    sid3 = test.outport->registerState(
+        "module1", std::make_unique<ConstantCurrentState>("on", 2.0e-6));
+    sc_assert(sid3 == 2);
+    sid4 = test.outport->registerState(
+        "module1", std::make_unique<ConstantCurrentState>("off", 0.0));
+    sc_assert(sid4 == 3);
+
+    spdlog::info(
+        "------ TEST: registering the same state for the same module twice "
+        "throws exception");
+    auto success = false;
+    try {
+      sid1 = test.outport->registerState(
+          "module0", std::make_unique<ConstantCurrentState>("on", 1.0e-6));
     } catch (std::invalid_argument &e) {
       success = true;
     }
@@ -99,6 +129,10 @@ SC_MODULE(tester) {
 
   int eid1;
   int eid2;
+  int sid1;
+  int sid2;
+  int sid3;
+  int sid4;
 
   dut test{"dut"};
 };

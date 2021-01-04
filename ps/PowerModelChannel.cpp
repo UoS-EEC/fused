@@ -19,15 +19,19 @@
 using namespace sc_core;
 
 PowerModelChannel::PowerModelChannel(const sc_module_name name,
-                                     const std::string logFileName,
+                                     const std::string logFilePath,
                                      sc_time logTimestep)
-    : sc_module(name), m_logFileName(logFileName), m_logTimestep(logTimestep) {
-  // Create/overwrite log file
-  std::ofstream f(logFileName, std::ios::out | std::ios::trunc);
-  if (!f.good()) {
-    SC_REPORT_FATAL(
-        this->name(),
-        fmt::format("Can't open eventLog file at {}", logFileName).c_str());
+    : sc_module(name), m_logFilePath(logFilePath), m_logTimestep(logTimestep) {
+  if (logFilePath != "none") {
+    // Create/overwrite log files
+    std::ofstream f(logFilePath + "/eventLog.csv",
+                    std::ios::out | std::ios::trunc);
+    if (!f.good()) {
+      SC_REPORT_FATAL(this->name(),
+                      fmt::format("Can't open eventLog file at {}/eventLog.csv",
+                                  logFilePath)
+                          .c_str());
+    }
   }
   SC_HAS_PROCESS(PowerModelChannel);
   SC_THREAD(logLoop);
@@ -52,7 +56,7 @@ int PowerModelChannel::registerEvent(
                     return e->name == name;
                   })) {
     throw std::invalid_argument(fmt::format(
-        FMT_STRING("PowerModelChannel::registerEvent event name {:s} "
+        FMT_STRING("PowerModelChannel::registerEvent event name '{:s}' "
                    "already registered"),
         name));
   }
@@ -64,15 +68,55 @@ int PowerModelChannel::registerEvent(
   return m_events.back()->id;
 }
 
-void PowerModelChannel::reportEvent(const int eventId, const int n) {
+int PowerModelChannel::registerState(
+    const std::string moduleName,
+    std::unique_ptr<PowerModelStateBase> statePtr) {
   // Check if already running
-  if (!sc_is_running()) {
+  if (sc_is_running()) {
     throw std::runtime_error(
-        "PowerModelEvent::write attempt to increment event counters before "
-        "simulation has started.");
+        "PowerModelEvent::registerState states can not be registered after "
+        "simulation has started. States shall only be registered during "
+        "construction/elaboration.");
   }
+
+  const auto it =
+      std::find(m_moduleNames.begin(), m_moduleNames.end(), moduleName);
+  int moduleId = -1;
+  if (it == m_moduleNames.end()) {
+    // This is the first state registration for this module
+    moduleId = m_moduleNames.size();
+    m_moduleNames.push_back(moduleName);
+  } else {
+    // This is *not* the first state registration for this module
+    // Check if state name already registered for the specified module name
+    const auto name = statePtr->name;
+    moduleId = it - m_moduleNames.begin();
+    if (std::any_of(m_states.begin(), m_states.end(),
+                    [name, moduleId](const ModuleStateEntry &s) {
+                      return s.state->name == name && s.moduleId == moduleId;
+                    })) {
+      throw std::invalid_argument(fmt::format(
+          FMT_STRING("PowerModelChannel::registerState state '{:s}' already "
+                     "registered with module '{:s}'"),
+          name, moduleName));
+    }
+  }
+
+  // Add state to m_states
+  statePtr->id = m_states.size();
+  m_states.push_back(ModuleStateEntry(std::move(statePtr), moduleId));
+
+  return m_states.back().state->id;
+}
+
+void PowerModelChannel::reportEvent(const int eventId, const int n) {
   m_eventRates[eventId] += n;
   m_log.back()[eventId] += n;
+}
+
+void PowerModelChannel::reportState(const int stateId) {
+  const auto mid = m_states[stateId].moduleId;
+  m_currentStates[mid] = stateId;
 }
 
 int PowerModelChannel::popEventCount(const int eventId) {
@@ -105,7 +149,7 @@ void PowerModelChannel::start_of_simulation() {
 }
 
 void PowerModelChannel::logLoop() {
-  if (m_logFileName == "" || m_logTimestep == SC_ZERO_TIME) {
+  if (m_logFilePath == "none" || m_logTimestep == SC_ZERO_TIME) {
     SC_REPORT_INFO(this->name(), "Logging disabled.");
     return;
   }
@@ -128,7 +172,8 @@ void PowerModelChannel::logLoop() {
 }
 
 void PowerModelChannel::dumpEventCsv() {
-  std::ofstream f(m_logFileName, std::ios::out | std::ios::app);
+  std::ofstream f(m_logFilePath + "eventLog.csv",
+                  std::ios::out | std::ios::app);
   if (f.tellp() == 0) {
     // Header
     for (unsigned int i = 0; i < m_events.size() + 1; ++i) {

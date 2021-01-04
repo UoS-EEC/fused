@@ -40,7 +40,13 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   virtual int registerEvent(
       std::unique_ptr<PowerModelEventBase> eventPtr) override;
 
+  virtual int registerState(
+      const std::string moduleName,
+      std::unique_ptr<PowerModelStateBase> statePtr) override;
+
   virtual void reportEvent(const int eventId, const int n = 1) override;
+
+  virtual void reportState(const int stateId) override;
 
   virtual int popEventCount(const int eventId) override;
 
@@ -58,18 +64,40 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   virtual void start_of_simulation() override;
 
  private:
+  // ------ Events ------
   //! Stores registered events. The index corresponds to the event id
   std::vector<std::unique_ptr<PowerModelEventBase>> m_events;
 
   //! Keeps track of event counts since the last pop
   std::vector<int> m_eventRates;
 
+  // ------ States ------
+  //! Struct for storing state objects and their module ids
+  struct ModuleStateEntry {
+    std::unique_ptr<PowerModelStateBase> state;
+    const int moduleId;
+    ModuleStateEntry(std::unique_ptr<PowerModelStateBase>&& state_,
+                     const int id)
+        : state(std::move(state_)), moduleId(id) {}
+  };
+
+  //! Vector for storing state objects and their corresponding module ids. The
+  //! index of this vector corresponds to state ids.
+  std::vector<ModuleStateEntry> m_states;
+
+  //! Vector of module names that use state reporting. The  index corresponds to
+  //! the module id, and is only used internally.
+  std::vector<std::string> m_moduleNames;
+
+  //! Current state of modules. Defaults to the first registered state for each
+  //! module. The index is the module id and the value is the state id.
+  std::vector<int> m_currentStates;
+
   // ------ Logging ------
+  //! Log file path
+  std::string m_logFilePath;
 
-  //! Event log file
-  std::string m_logFileName;
-
-  //! Event log timestep
+  //! Log file timestep
   sc_core::sc_time m_logTimestep;
 
   //! Keeps log of event counts in the form:
