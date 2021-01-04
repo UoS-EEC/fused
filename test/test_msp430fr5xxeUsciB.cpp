@@ -17,7 +17,7 @@
 #include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -40,8 +40,8 @@ SC_MODULE(dut) {
   ClockSourceChannel smclk{"smclk", sc_time(1, SC_US)};
   ClockSourceChannel aclk{"aclk", sc_time(1, SC_US)};
   ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
@@ -54,7 +54,7 @@ SC_MODULE(dut) {
     m_dut.ira.bind(ira);
     m_dut.dmaTrigger.bind(dmaTrigger);
     m_dut.systemClk.bind(mclk);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
 
     tEusciSocket.register_b_transport(this, &dut::b_transport);
   }

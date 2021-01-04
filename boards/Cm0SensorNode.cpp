@@ -24,8 +24,8 @@ using namespace sc_core;
 
 Cm0SensorNode::Cm0SensorNode(const sc_module_name name)
     : Board(name),
-      powerModelEventChannel(
-          "powerModelEventChannel", /*logfile=*/
+      powerModelChannel(
+          "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory") + "/eventLog.csv",
           sc_time::from_seconds(Config::get().getDouble("EventLogTimeStep"))) {
   /* ------ Bind ------ */
@@ -42,14 +42,14 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name)
   // off-chip serial devices
   bme280.nReset.bind(nReset);
   bme280.chipSelect.bind(gpioPins[GpioPinAssignment::BME280_CHIP_SELECT]);
-  bme280.powerModelEventPort.bind(powerModelEventChannel);
+  bme280.powerModelEventPort.bind(powerModelChannel);
   mcu.spi->spiSocket.bind(bme280.tSocket);
 
   accelerometer.nReset.bind(nReset);
   accelerometer.chipSelect.bind(
       gpioPins[GpioPinAssignment::ACCELEROMETER_CHIP_SELECT]);
   accelerometer.irq.bind(gpioPins[GpioPinAssignment::ACCELEROMETER_IRQ]);
-  accelerometer.powerModelEventPort.bind(powerModelEventChannel);
+  accelerometer.powerModelEventPort.bind(powerModelChannel);
   mcu.spi->spiSocket.bind(accelerometer.tSocket);
 
   // Power circuitry
@@ -59,7 +59,7 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name)
   EventLog::getInstance().staticPower.bind(staticConsumption);
 
   // Combine static current + dynamic energy into single current
-  mcu.powerModelEventPort.bind(powerModelEventChannel);
+  mcu.powerModelEventPort.bind(powerModelChannel);
   pwrCombinator.staticConsumers[0].bind(staticConsumption);
   pwrCombinator.staticConsumers[1].bind(staticConsumptionBoot);
   pwrCombinator.dynamicConsumers[0].bind(dynamicConsumption);

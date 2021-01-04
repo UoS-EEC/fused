@@ -10,8 +10,8 @@
 #include <string>
 #include <systemc>
 #include "ps/ConstantEnergyEvent.hpp"
-#include "ps/PowerModelEventChannel.hpp"
-#include "ps/PowerModelEventChannelIf.hpp"
+#include "ps/PowerModelChannel.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 
 using namespace sc_core;
 
@@ -19,8 +19,8 @@ SC_MODULE(dut) {
  public:
   PowerModelEventInPort inport{"inport"};
   PowerModelEventOutPort outport{"outport"};
-  PowerModelEventChannel ch{"ch", "/tmp/testPowerModelChannel.csv",
-                            sc_time(1, SC_US)};
+  PowerModelChannel ch{"ch", "/tmp/testPowerModelChannel.csv",
+                       sc_time(1, SC_US)};
   SC_CTOR(dut) {
     inport(ch);
     outport(ch);
@@ -69,30 +69,30 @@ SC_MODULE(tester) {
     }
 
     spdlog::info("------ TEST: Event counts add up");
-    test.outport->write(eid1, 1);
-    test.outport->write(eid1, 1);
-    test.outport->write(eid1, 1);
-    sc_assert(test.inport->pop(eid1) == 3);
+    test.outport->reportEvent(eid1, 1);
+    test.outport->reportEvent(eid1, 1);
+    test.outport->reportEvent(eid1, 1);
+    sc_assert(test.inport->popEventCount(eid1) == 3);
 
     spdlog::info("------ TEST: Event counts reset after pop");
-    sc_assert(test.inport->pop(eid1) == 0);
+    sc_assert(test.inport->popEventCount(eid1) == 0);
 
     spdlog::info("------ TEST: Single-channel event energy adds up");
-    test.outport->write(eid1, 1);
-    test.outport->write(eid1, 1);
-    test.outport->write(eid1, 3);
-    sc_assert(test.inport->popEnergy(eid1, 0.0) == 5 * 1.0e-12);
+    test.outport->reportEvent(eid1, 1);
+    test.outport->reportEvent(eid1, 1);
+    test.outport->reportEvent(eid1, 3);
+    sc_assert(test.inport->popEventEnergy(eid1, 0.0) == 5 * 1.0e-12);
 
     spdlog::info("------ TEST: Single-channel event energy resets after pop");
-    sc_assert(test.inport->popEnergy(eid1) == 0.0);
+    sc_assert(test.inport->popEventEnergy(eid1, 0.0) == 0.0);
 
     spdlog::info("------ TEST: Multi-channel event energy adds up");
-    test.outport->write(eid1, 1);
-    test.outport->write(eid2, 1);
-    sc_assert(test.inport->popEnergy(0.0) == 1 * 1.0e-12 + 1 * 2.0e-12);
+    test.outport->reportEvent(eid1, 1);
+    test.outport->reportEvent(eid2, 1);
+    sc_assert(test.inport->popDynamicEnergy(0.0) == 1 * 1.0e-12 + 1 * 2.0e-12);
 
     spdlog::info("------ TEST: Multi-channel event energy resets after pop");
-    sc_assert(test.inport->popEnergy(eid1) == 0.0);
+    sc_assert(test.inport->popDynamicEnergy(0.0) == 0.0);
 
     sc_stop();
   }

@@ -141,7 +141,7 @@ void Adc12::process() {
         static_cast<double>(resolution) *
         (vcc.read() / 4.0));  // Assumes 2v ref and meas vcc/2
     m_regs.write(OFS_ADC12MEM0, sample);
-    powerModelEventPort->write(m_sampleEvent);
+    powerModelEventPort->reportEvent(m_sampleEvent);
 
     // Window comparator low interrupt
     if (m_regs.testBitMask(OFS_ADC12IER2, ADC12LOIE) &&

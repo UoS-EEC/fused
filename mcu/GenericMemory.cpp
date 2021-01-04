@@ -45,13 +45,13 @@ void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     std::memcpy(&mem[addr], data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->write(m_writeEventId);
-    powerModelEventPort->write(m_nBytesWrittenEventId, len);
+    powerModelEventPort->reportEvent(m_writeEventId);
+    powerModelEventPort->reportEvent(m_nBytesWrittenEventId, len);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     std::memcpy(data, &mem[addr], len);
     m_readEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->write(m_readEventId);
-    powerModelEventPort->write(m_nBytesReadEventId, len);
+    powerModelEventPort->reportEvent(m_readEventId);
+    powerModelEventPort->reportEvent(m_nBytesReadEventId, len);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }

@@ -14,11 +14,11 @@ target_link_libraries(testClockSourceChannel
     Cm0Microcontroller
     )
 
-add_executable(testPowerModelEventChannel
-  test_PowerModelEventChannel.cpp
+add_executable(testPowerModelChannel
+  test_PowerModelChannel.cpp
   )
 
-target_link_libraries(testPowerModelEventChannel
+target_link_libraries(testPowerModelChannel
   PRIVATE
     systemc
     PowerSystem

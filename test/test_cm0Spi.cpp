@@ -18,7 +18,7 @@
 #include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/cortex-m0/Spi.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -35,8 +35,8 @@ SC_MODULE(dut) {
   sc_signal<bool> irq{"irq"};
   ClockSourceChannel spiclk{"spiclk", sc_time(1, SC_US)};
   ClockSourceChannel sysclk{"sysclk", sc_time(1, SC_NS)};
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
@@ -48,7 +48,7 @@ SC_MODULE(dut) {
     m_dut.irq.bind(irq);
     m_dut.active_exception.bind(active_exception);
     spiSocket.register_b_transport(this, &dut::b_transport);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
   }
 
   virtual void b_transport(tlm::tlm_generic_payload & trans, sc_time & delay) {

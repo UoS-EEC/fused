@@ -11,44 +11,45 @@
 #include <string>
 #include <systemc>
 #include <vector>
+#include "ps/PowerModelChannelIf.hpp"
 #include "ps/PowerModelEventBase.hpp"
-#include "ps/PowerModelEventChannelIf.hpp"
 
 /**
- * class PowerModelEventChannel implementation of event energy channel.  See
- * interface PowerModelEventChannelIf.hpp for description.
+ * class PowerModelChannel implementation of power model channel.  See
+ * interface PowerModelChannelIf.hpp for description.
  *
  * Logging: This implementation optionally writes a csv-formatted log of event
- * rates at a specified time step.
+ * rates and module states at a specified time step.
  */
-class PowerModelEventChannel : public virtual PowerModelEventChannelOutIf,
-                               public virtual PowerModelEventChannelInIf,
-                               public sc_core::sc_module {
+class PowerModelChannel : public virtual PowerModelChannelOutIf,
+                          public virtual PowerModelChannelInIf,
+                          public sc_core::sc_module {
  public:
   /* ------ Public methods ------ */
 
   //! Constructor
-  PowerModelEventChannel(
-      const sc_core::sc_module_name name, const std::string logfile = "",
-      const sc_core::sc_time logTimestep = sc_core::SC_ZERO_TIME);
+  PowerModelChannel(const sc_core::sc_module_name name,
+                    const std::string logfile = "",
+                    const sc_core::sc_time logTimestep = sc_core::SC_ZERO_TIME);
 
   //! Destructor
-  ~PowerModelEventChannel();
+  ~PowerModelChannel();
 
-  // See PowerModelEventChannelIf.hpp for description of the following virtual
+  // See PowerModelChannelIf.hpp for description of the following virtual
   // methods.
   virtual int registerEvent(
       std::unique_ptr<PowerModelEventBase> eventPtr) override;
 
-  virtual void write(const int eventId, const int n = 1) override;
+  virtual void reportEvent(const int eventId, const int n = 1) override;
 
-  virtual int pop(const int eventId) override;
+  virtual int popEventCount(const int eventId) override;
 
   virtual size_t size() const override;
 
-  virtual double popEnergy(const int eventId, double supplyVoltage) override;
+  virtual double popEventEnergy(const int eventId,
+                                double supplyVoltage) override;
 
-  virtual double popEnergy(double supplyVoltage) override;
+  virtual double popDynamicEnergy(double supplyVoltage) override;
 
   /**
    * @brief start_of_simulation systemc callback. Used here to initialize the
@@ -82,13 +83,14 @@ class PowerModelEventChannel : public virtual PowerModelEventChannelOutIf,
   const int m_logDumpThreshold = 100E3;
 
   /**
-   * @brief dumpCsv a method that writes the event log to a csv.
+   * @brief dumpEventCsv a method that writes the event log to a csv.
    */
-  void dumpCsv();
+  void dumpEventCsv();
 
   /**
    * @brief logLoop systemc thread that records event counts at a specified
-   * timestep. The event counts are not reset by pop's by the channel's reader.
+   * timestep. The event counts for logging are unaffected reset by the
+   * channel's reader.
    */
   void logLoop();
 };

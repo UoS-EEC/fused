@@ -13,7 +13,7 @@
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "sd/Bme280.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -30,8 +30,8 @@ SC_MODULE(dut) {
   // Signals
   sc_signal<bool> nReset{"nReset"};
   sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
       sc_time(1, SC_US)};
 
   // Sockets
@@ -41,7 +41,7 @@ SC_MODULE(dut) {
     m_dut.nReset.bind(nReset);
     m_dut.chipSelect.bind(chipSelect);
     m_dut.tSocket.bind(iSpiSocket);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
   }
 
   Bme280 m_dut{"dut"};

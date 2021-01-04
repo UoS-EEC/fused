@@ -18,8 +18,8 @@ using namespace sc_core;
 
 Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
     : Board(name),
-      powerModelEventChannel(
-          "powerModelEventChannel", /*logfile=*/
+      powerModelChannel(
+          "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory") + "/eventLog.csv",
           sc_time::from_seconds(Config::get().getDouble("EventLogTimeStep"))) {
   /* ------ Bind ------ */
@@ -39,7 +39,7 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
   spiLoopBack.nReset.bind(nReset);
   spiLoopBack.chipSelect.bind(chipSelectSpiWire);
   spiLoopBack.tSocket.bind(mcu.euscib->iEusciSocket);
-  spiLoopBack.powerModelEventPort.bind(powerModelEventChannel);
+  spiLoopBack.powerModelEventPort.bind(powerModelChannel);
 
   // Power circuitry
   mcu.vcc.bind(vcc);
@@ -48,7 +48,7 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
   EventLog::getInstance().staticPower.bind(staticConsumption);
 
   // Combine static current + dynamic energy into single current
-  mcu.powerModelEventPort.bind(powerModelEventChannel);
+  mcu.powerModelEventPort.bind(powerModelChannel);
   pwrCombinator.staticConsumers[0].bind(staticConsumption);
   pwrCombinator.staticConsumers[1].bind(staticConsumptionBoot);
   pwrCombinator.dynamicConsumers[0].bind(dynamicConsumption);

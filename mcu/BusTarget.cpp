@@ -44,11 +44,11 @@ void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     m_regs.write(addr, data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->write(m_writeEventId);
+    powerModelEventPort->reportEvent(m_writeEventId);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     m_regs.read(addr, data, len);
     m_readEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->write(m_readEventId);
+    powerModelEventPort->reportEvent(m_readEventId);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }

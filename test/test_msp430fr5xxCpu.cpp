@@ -15,7 +15,7 @@
 #include "mcu/GenericMemory.hpp"
 #include "mcu/msp430fr5xx/Msp430Cpu.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -37,15 +37,14 @@ SC_MODULE(dut) {
   sc_signal<bool> iraConnected{"iraConnected"};
   GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
   ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
-      sc_time(1, SC_US)};
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv", sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     mem.pwrOn.bind(nreset);
     mem.tSocket.bind(m_dut.iSocket);
     mem.systemClk.bind(mclk);
-    mem.powerModelEventPort.bind(powerModelEventChannel);
+    mem.powerModelEventPort.bind(powerModelChannel);
     m_dut.mclk.bind(mclk);
     m_dut.pwrOn.bind(nreset);
     m_dut.irq.bind(irq);
@@ -53,7 +52,7 @@ SC_MODULE(dut) {
     m_dut.irqIdx.bind(irqIdx);
     m_dut.iraConnected.bind(iraConnected);
     m_dut.busStall.bind(stallCpu);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
   }
 
   void reset() {

@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
-#include "ps/PowerModelEventChannelIf.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 
 extern "C" {
 #include "mcu/cortex-m0/decode.h"

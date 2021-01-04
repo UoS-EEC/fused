@@ -85,10 +85,10 @@ void DigitalIo::process(void) {
       if ((ren | dir) & mask) {  // If output or Pull-up mode
         // Count edges
         if (!current && (out & mask)) {
-          powerModelEventPort->write(m_pinPosEdge);
+          powerModelEventPort->reportEvent(m_pinPosEdge);
           // std::cerr << "Posedge on pin " << i << '\n';;
         } else if (current && !(out & mask)) {
-          powerModelEventPort->write(m_pinNegEdge);
+          powerModelEventPort->reportEvent(m_pinNegEdge);
           // std::cerr << "Negedge on pin " << i << '\n';;
         }
 

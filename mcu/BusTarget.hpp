@@ -13,7 +13,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
 #include "ps/EventLog.hpp"
-#include "ps/PowerModelEventChannelIf.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 
 class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
  public:

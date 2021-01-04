@@ -283,7 +283,7 @@ void Accelerometer::measurementLoop() {
           sampleTrace(input.acc_y), sampleTrace(input.acc_z), m_fifo.size());
 
       // Report sample event
-      powerModelEventPort->write(m_sampleEventId);
+      powerModelEventPort->reportEvent(m_sampleEventId);
 
       // Go back to standby after single measurement
       if (m_measurementState == MeasurementState::SingleMeasurement) {

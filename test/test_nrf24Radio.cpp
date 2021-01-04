@@ -13,7 +13,7 @@
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "sd/Nrf24Radio.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -34,8 +34,8 @@ SC_MODULE(dut) {
   sc_signal_resolved interruptRequest{"interruptRequest"};  // Active low
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
@@ -44,7 +44,7 @@ SC_MODULE(dut) {
     m_dut.chipEnable.bind(chipEnable);
     m_dut.interruptRequest.bind(interruptRequest);
     m_dut.tSocket.bind(iSpiSocket);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
   }
 
   Nrf24Radio m_dut{"Nrf24Radio"};

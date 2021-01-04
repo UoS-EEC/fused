@@ -15,7 +15,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -32,8 +32,8 @@ SC_MODULE(dut) {
   std::array<sc_signal<bool>, 32> irq;
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_US)};
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
@@ -47,7 +47,7 @@ SC_MODULE(dut) {
     m_dut.pending.bind(pending);
     m_dut.returning.bind(returning);
     m_dut.active.bind(active);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
   }
 
   Nvic m_dut{"dut"};

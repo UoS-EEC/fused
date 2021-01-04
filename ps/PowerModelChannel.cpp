@@ -13,14 +13,14 @@
 #include <stdexcept>
 #include <systemc>
 #include <vector>
+#include "ps/PowerModelChannel.hpp"
 #include "ps/PowerModelEventBase.hpp"
-#include "ps/PowerModelEventChannel.hpp"
 
 using namespace sc_core;
 
-PowerModelEventChannel::PowerModelEventChannel(const sc_module_name name,
-                                               const std::string logFileName,
-                                               sc_time logTimestep)
+PowerModelChannel::PowerModelChannel(const sc_module_name name,
+                                     const std::string logFileName,
+                                     sc_time logTimestep)
     : sc_module(name), m_logFileName(logFileName), m_logTimestep(logTimestep) {
   // Create/overwrite log file
   std::ofstream f(logFileName, std::ios::out | std::ios::trunc);
@@ -29,13 +29,13 @@ PowerModelEventChannel::PowerModelEventChannel(const sc_module_name name,
         this->name(),
         fmt::format("Can't open eventLog file at {}", logFileName).c_str());
   }
-  SC_HAS_PROCESS(PowerModelEventChannel);
+  SC_HAS_PROCESS(PowerModelChannel);
   SC_THREAD(logLoop);
 }
 
-PowerModelEventChannel::~PowerModelEventChannel() { dumpCsv(); }
+PowerModelChannel::~PowerModelChannel() { dumpEventCsv(); }
 
-int PowerModelEventChannel::registerEvent(
+int PowerModelChannel::registerEvent(
     std::unique_ptr<PowerModelEventBase> eventPtr) {
   // Check if already running
   if (sc_is_running()) {
@@ -52,7 +52,7 @@ int PowerModelEventChannel::registerEvent(
                     return e->name == name;
                   })) {
     throw std::invalid_argument(fmt::format(
-        FMT_STRING("PowerModelEventChannel::registerEvent event name {:s} "
+        FMT_STRING("PowerModelChannel::registerEvent event name {:s} "
                    "already registered"),
         name));
   }
@@ -64,7 +64,7 @@ int PowerModelEventChannel::registerEvent(
   return m_events.back()->id;
 }
 
-void PowerModelEventChannel::write(const int eventId, const int n) {
+void PowerModelChannel::reportEvent(const int eventId, const int n) {
   // Check if already running
   if (!sc_is_running()) {
     throw std::runtime_error(
@@ -75,35 +75,36 @@ void PowerModelEventChannel::write(const int eventId, const int n) {
   m_log.back()[eventId] += n;
 }
 
-int PowerModelEventChannel::pop(const int eventId) {
+int PowerModelChannel::popEventCount(const int eventId) {
   const auto tmp = m_eventRates[eventId];
   m_eventRates[eventId] = 0;
   return tmp;
 }
 
-double PowerModelEventChannel::popEnergy(const int eventId,
+double PowerModelChannel::popEventEnergy(const int eventId,
                                          const double supplyVoltage) {
-  return m_events[eventId]->calculateEnergy(supplyVoltage) * pop(eventId);
+  return m_events[eventId]->calculateEnergy(supplyVoltage) *
+         popEventCount(eventId);
 }
 
-double PowerModelEventChannel::popEnergy(const double supplyVoltage) {
+double PowerModelChannel::popDynamicEnergy(const double supplyVoltage) {
   double result = 0.0;
   for (int i = 0; i < m_events.size(); ++i) {
-    result += popEnergy(i, supplyVoltage);
+    result += popEventEnergy(i, supplyVoltage);
   }
   return result;
 }
 
-size_t PowerModelEventChannel::size() const { return m_events.size(); }
+size_t PowerModelChannel::size() const { return m_events.size(); }
 
-void PowerModelEventChannel::start_of_simulation() {
+void PowerModelChannel::start_of_simulation() {
   // Initialize event log
   m_log.push_back(std::vector<int>(m_events.size() + 1, 0));
   // Fist entry is at t = timestep
   m_log.back().back() = static_cast<int>(m_logTimestep.to_seconds() * 1.0e6);
 }
 
-void PowerModelEventChannel::logLoop() {
+void PowerModelChannel::logLoop() {
   if (m_logFileName == "" || m_logTimestep == SC_ZERO_TIME) {
     SC_REPORT_INFO(this->name(), "Logging disabled.");
     return;
@@ -120,13 +121,13 @@ void PowerModelEventChannel::logLoop() {
 
     // Dump file when log exceeds threshold
     if (m_log.size() > m_logDumpThreshold) {
-      dumpCsv();
+      dumpEventCsv();
       m_log.clear();
     }
   }
 }
 
-void PowerModelEventChannel::dumpCsv() {
+void PowerModelChannel::dumpEventCsv() {
   std::ofstream f(m_logFileName, std::ios::out | std::ios::app);
   if (f.tellp() == 0) {
     // Header

@@ -96,7 +96,7 @@ void Msp430Cpu::process() {
     if (pwrOn.read() && m_run) {
       // Handle interrupts
       if (irq.read()) {
-        powerModelEventPort->write(m_irqEvent);
+        powerModelEventPort->reportEvent(m_irqEvent);
         processInterrupt();
       }
 
@@ -130,13 +130,13 @@ void Msp430Cpu::process() {
         uint8_t instructionFmt = (opcode & 0xe000) >> 13;
         if (instructionFmt == 0) {
           executeSingleOpInstruction(opcode);
-          powerModelEventPort->write(m_formatIIEvent);
+          powerModelEventPort->reportEvent(m_formatIIEvent);
         } else if (instructionFmt == 1) {
           executeConditionalJump(opcode);
-          powerModelEventPort->write(m_formatIIIEvent);
+          powerModelEventPort->reportEvent(m_formatIIIEvent);
         } else {
           executeDoubleOpInstruction(opcode);
-          powerModelEventPort->write(m_formatIEvent);
+          powerModelEventPort->reportEvent(m_formatIEvent);
         }
         if (m_doStep) {  // end single step
           m_run = false;

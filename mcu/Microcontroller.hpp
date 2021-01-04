@@ -8,7 +8,7 @@
 #pragma once
 #include <stdint.h>
 #include <systemc>
-#include "ps/PowerModelEventChannelIf.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 
 /**
  * Interface/abstract class for microcontrollers/SoCs.

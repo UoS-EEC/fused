@@ -15,7 +15,7 @@
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
 #include "ps/PowerCombine.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "sd/Accelerometer.hpp"
 #include "sd/Bme280.hpp"
 #include "utilities/BoolLogicConverter.hpp"
@@ -68,7 +68,7 @@ class Cm0SensorNode : public Board {
   };
 
   /* ------ Channels & signals ------ */
-  PowerModelEventChannel powerModelEventChannel;
+  PowerModelChannel powerModelChannel;
   DynamicEnergyChannel dynamicConsumption{"dynamicConsumption"};
   sc_core::sc_signal<double> staticConsumption{"staticConsumption", 0.0};
   sc_core::sc_signal<double> staticConsumptionBoot{"staticConsumptionBoot",

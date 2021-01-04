@@ -17,7 +17,7 @@
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
 #include "ps/EventLog.hpp"
-#include "ps/PowerModelEventChannelIf.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 #include "utilities/Utilities.hpp"
 
 class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {

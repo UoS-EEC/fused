@@ -15,7 +15,7 @@
 #include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/EventLog.hpp"
-#include "ps/PowerModelEventChannelIf.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 
 /**
  * Base class for SPI devices.

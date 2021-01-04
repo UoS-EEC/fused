@@ -13,7 +13,7 @@
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
 #include "ps/EventLog.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "sd/Accelerometer.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -31,8 +31,8 @@ SC_MODULE(dut) {
   sc_signal<bool> nReset{"nReset"};
   sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
   sc_signal_resolved irq{"irq"};                //! Accelerometer irq output
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
       sc_time(1, SC_US)};
 
   // Sockets
@@ -43,7 +43,7 @@ SC_MODULE(dut) {
     m_dut.chipSelect.bind(chipSelect);
     m_dut.tSocket.bind(iSpiSocket);
     m_dut.irq.bind(irq);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
   }
 
   Accelerometer m_dut{"dut"};

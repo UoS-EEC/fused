@@ -20,9 +20,9 @@ add_library(
     PowerCalculator.hpp
     PowerCombine.hpp
     PowerModelEventBase.hpp
-    PowerModelEventChannelIf.hpp
-    PowerModelEventChannel.hpp
-    PowerModelEventChannel.cpp
+    PowerModelChannelIf.hpp
+    PowerModelChannel.hpp
+    PowerModelChannel.cpp
     )
 
 target_link_libraries(

@@ -14,7 +14,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
-#include "ps/PowerModelEventChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -30,8 +30,8 @@ SC_MODULE(dut) {
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel sysclk{"sysclk", sc_time(1, SC_NS)};
   ClockSourceChannel clk{"clk", sc_time(1, SC_US)};
-  PowerModelEventChannel powerModelEventChannel{
-      "powerModelEventChannel", "/tmp/testPowerModelChannel.csv",
+  PowerModelChannel powerModelChannel{
+      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
@@ -41,7 +41,7 @@ SC_MODULE(dut) {
     m_dut.clk.bind(clk);
     m_dut.irq.bind(irq);
     m_dut.returning_exception.bind(returning_exception);
-    m_dut.powerModelEventPort.bind(powerModelEventChannel);
+    m_dut.powerModelEventPort.bind(powerModelChannel);
   }
 
   SysTick m_dut{"dut"};
