@@ -21,7 +21,7 @@ class Microcontroller : public sc_core::sc_module {
   sc_core::sc_in<bool> nReset{"nReset"};
   sc_core::sc_in<double> vcc{"vcc"};  // Supply voltage
   sc_core::sc_out<double> staticPower{"staticPower"};
-  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
   /* ------ Signals ------ */
 

@@ -28,7 +28,7 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   sc_core::sc_in<bool> pwrOn{"pwrOn"};
 
   //! Event-port for logging and reporting dynamic power consumption
-  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
   /* ------ Public methods ------ */
   BusTarget(const sc_core::sc_module_name name, const unsigned startAddress,

@@ -31,7 +31,7 @@ class SpiDevice : public sc_core::sc_module {
   tlm_utils::simple_target_socket<SpiDevice> tSocket{"tSocket"};
 
   //! Event-port for logging and reporting dynamic power consumption
-  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
   /* ------ Signals ------ */
 

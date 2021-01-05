@@ -47,7 +47,7 @@ SC_MODULE(dut) {
     m_dut.pending.bind(pending);
     m_dut.returning.bind(returning);
     m_dut.active.bind(active);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   Nvic m_dut{"dut"};

@@ -29,10 +29,10 @@ void GenericMemory::end_of_elaboration() {
 
   // Register events for power model
   m_nBytesWrittenEventId =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           fmt::format(FMT_STRING("{:s} bytes written"), this->name())));
   m_nBytesReadEventId =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           fmt::format(FMT_STRING("{:s} bytes read"), this->name())));
 }
 
@@ -45,13 +45,13 @@ void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     std::memcpy(&mem[addr], data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->reportEvent(m_writeEventId);
-    powerModelEventPort->reportEvent(m_nBytesWrittenEventId, len);
+    powerModelPort->reportEvent(m_writeEventId);
+    powerModelPort->reportEvent(m_nBytesWrittenEventId, len);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     std::memcpy(data, &mem[addr], len);
     m_readEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->reportEvent(m_readEventId);
-    powerModelEventPort->reportEvent(m_nBytesReadEventId, len);
+    powerModelPort->reportEvent(m_readEventId);
+    powerModelPort->reportEvent(m_nBytesReadEventId, len);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }

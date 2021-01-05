@@ -63,7 +63,7 @@ Accelerometer::Accelerometer(const sc_module_name name)
 
 void Accelerometer::end_of_elaboration() {
   // Get event IDs
-  m_sampleEventId = powerModelEventPort->registerEvent(
+  m_sampleEventId = powerModelPort->registerEvent(
       std::make_unique<ConstantEnergyEvent>("Accelerometer sample"));
 
   // Register methods
@@ -283,7 +283,7 @@ void Accelerometer::measurementLoop() {
           sampleTrace(input.acc_y), sampleTrace(input.acc_z), m_fifo.size());
 
       // Report sample event
-      powerModelEventPort->reportEvent(m_sampleEventId);
+      powerModelPort->reportEvent(m_sampleEventId);
 
       // Go back to standby after single measurement
       if (m_measurementState == MeasurementState::SingleMeasurement) {

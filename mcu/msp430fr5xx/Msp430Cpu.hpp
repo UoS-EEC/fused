@@ -32,7 +32,7 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   sc_core::sc_out<bool> ira{"ira_out"};       //! irq accepted
 
   //! Output port for power model events
-  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
   //! Decides whether to wait for peripheral's ack of IRA asserted or
   //! just wait one cycle

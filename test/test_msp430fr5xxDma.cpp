@@ -54,8 +54,8 @@ SC_MODULE(dut) {
     for (auto i = 0; i < trigger.size(); i++) {
       m_dut.trigger[i].bind(trigger[i]);
     }
-    m_dut.powerModelEventPort.bind(powerModelChannel);
-    mem.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
+    mem.powerModelPort.bind(powerModelChannel);
   }
 
   Dma m_dut{"dut"};

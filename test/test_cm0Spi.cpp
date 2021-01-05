@@ -48,7 +48,7 @@ SC_MODULE(dut) {
     m_dut.irq.bind(irq);
     m_dut.active_exception.bind(active_exception);
     spiSocket.register_b_transport(this, &dut::b_transport);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   virtual void b_transport(tlm::tlm_generic_payload & trans, sc_time & delay) {

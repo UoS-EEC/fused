@@ -57,11 +57,11 @@ CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
 void CortexM0Cpu::end_of_elaboration() {
   // Register events
   m_idleCyclesEvent =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " idle cycles"));
 
   m_nInstructionsEventId =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " n instructions"));
 
   // Register methods
@@ -124,7 +124,7 @@ void CortexM0Cpu::process() {
         auto exCycles = exwbmem(insn);
         if (exCycles > 0) {
           // Extra cycles spent for special instructions.
-          m_ctx->powerModelEventPort->reportEvent(m_ctx->m_idleCyclesEvent, exCycles);
+          m_ctx->powerModelPort->reportEvent(m_ctx->m_idleCyclesEvent, exCycles);
           wait(clk->getPeriod() * exCycles);
         }
 
@@ -146,7 +146,7 @@ void CortexM0Cpu::process() {
           cpu_set_pc(cpu_get_pc() + 0x2);
         }
 
-        powerModelEventPort->reportEvent(m_nInstructionsEventId);
+        powerModelPort->reportEvent(m_nInstructionsEventId);
 
         if (m_doStep && (m_bubbles == 0)) {
           m_run = false;
@@ -365,7 +365,7 @@ void CortexM0Cpu::write_cb(const uint32_t addr, uint8_t *const data,
 void CortexM0Cpu::consume_cycles_cb(const size_t n) {
   sc_time delay = n * m_ctx->clk->getPeriod();
   m_ctx->wait(delay);
-  m_ctx->powerModelEventPort->reportEvent(m_ctx->m_idleCyclesEvent);
+  m_ctx->powerModelPort->reportEvent(m_ctx->m_idleCyclesEvent);
 }
 
 void CortexM0Cpu::exception_return_cb(const uint32_t EXC_RETURN) {
@@ -380,7 +380,7 @@ uint16_t CortexM0Cpu::getNextPipelineInstr() {
   uint16_t result = m_instructionQueue.front();
   m_instructionQueue.pop_front();
   wait(clk->getPeriod());
-  powerModelEventPort->reportEvent(m_idleCyclesEvent);
+  powerModelPort->reportEvent(m_idleCyclesEvent);
   return result;
 }
 
@@ -396,7 +396,7 @@ unsigned CortexM0Cpu::fetch(const unsigned address) {
   } else {
     // Consume a cycle regardless
     wait(clk->getPeriod());
-    powerModelEventPort->reportEvent(m_idleCyclesEvent);
+    powerModelPort->reportEvent(m_idleCyclesEvent);
   }
 
   // Read buffered val

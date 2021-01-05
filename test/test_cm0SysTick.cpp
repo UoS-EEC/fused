@@ -41,7 +41,7 @@ SC_MODULE(dut) {
     m_dut.clk.bind(clk);
     m_dut.irq.bind(irq);
     m_dut.returning_exception.bind(returning_exception);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   SysTick m_dut{"dut"};

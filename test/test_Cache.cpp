@@ -45,8 +45,8 @@ SC_MODULE(dut) {
     m_dut.tSocket.bind(cacheSocket);
     m_dut.iSocket.bind(nvm.tSocket);
     nvm.waitStates.bind(framWaitStates);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
-    nvm.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
+    nvm.powerModelPort.bind(powerModelChannel);
   }
 
   Cache m_dut{"dut", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1};

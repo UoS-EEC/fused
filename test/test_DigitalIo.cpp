@@ -45,7 +45,7 @@ SC_MODULE(dut) {
     m_dut.irq[1].bind(irq1);
     m_dut.tSocket.bind(iSocket);
     m_dut.systemClk.bind(clk);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   DigitalIo m_dut{"port", 0, 0x1f};

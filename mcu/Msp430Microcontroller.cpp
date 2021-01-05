@@ -170,10 +170,10 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   fram->pwrOn.bind(nReset);
 
   // Events for power model
-  m_cpu.powerModelEventPort.bind(powerModelEventPort);
-  fram->powerModelEventPort.bind(powerModelEventPort);
+  m_cpu.powerModelPort.bind(powerModelPort);
+  fram->powerModelPort.bind(powerModelPort);
   for (const auto &s : slaves) {
-    s->powerModelEventPort.bind(powerModelEventPort);
+    s->powerModelPort.bind(powerModelPort);
   }
 
   // Analog signals

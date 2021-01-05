@@ -47,7 +47,7 @@ SC_MODULE(dut) {
     m_dut.vloclk.bind(vloclk_sig);
     m_dut.modclk.bind(modclk_sig);
     m_dut.systemClk.bind(sysClk);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   ClockSystem m_dut{"dut", 0};

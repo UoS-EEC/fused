@@ -28,10 +28,10 @@ BusTarget::BusTarget(const sc_module_name name, const unsigned startAddress,
 
 void BusTarget::end_of_elaboration() {
   m_readEventId =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " read"));
   m_writeEventId =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " write"));
 }
 
@@ -44,11 +44,11 @@ void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     m_regs.write(addr, data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->reportEvent(m_writeEventId);
+    powerModelPort->reportEvent(m_writeEventId);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     m_regs.read(addr, data, len);
     m_readEvent.notify(delay + systemClk->getPeriod());
-    powerModelEventPort->reportEvent(m_readEventId);
+    powerModelPort->reportEvent(m_readEventId);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }

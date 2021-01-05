@@ -44,7 +44,7 @@ SC_MODULE(dut) {
     mem.pwrOn.bind(nreset);
     mem.tSocket.bind(m_dut.iSocket);
     mem.systemClk.bind(mclk);
-    mem.powerModelEventPort.bind(powerModelChannel);
+    mem.powerModelPort.bind(powerModelChannel);
     m_dut.mclk.bind(mclk);
     m_dut.pwrOn.bind(nreset);
     m_dut.irq.bind(irq);
@@ -52,7 +52,7 @@ SC_MODULE(dut) {
     m_dut.irqIdx.bind(irqIdx);
     m_dut.iraConnected.bind(iraConnected);
     m_dut.busStall.bind(stallCpu);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   void reset() {

@@ -54,7 +54,7 @@ SC_MODULE(dut) {
     m_dut.ira.bind(ira);
     m_dut.dmaTrigger.bind(dmaTrigger);
     m_dut.systemClk.bind(mclk);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
 
     tEusciSocket.register_b_transport(this, &dut::b_transport);
   }

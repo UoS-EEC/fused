@@ -42,7 +42,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
   // off-chip serial devices
   spiLoopBack.nReset.bind(nReset);
   spiLoopBack.chipSelect.bind(chipSelectDummySpi);
-  spiLoopBack.powerModelEventPort.bind(powerModelChannel);
+  spiLoopBack.powerModelPort.bind(powerModelChannel);
   mcu.spi->spiSocket.bind(spiLoopBack.tSocket);
 
   // Power circuitry
@@ -52,7 +52,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
   EventLog::getInstance().staticPower.bind(staticConsumption);
 
   // Combine static current + dynamic energy into single current
-  mcu.powerModelEventPort.bind(powerModelChannel);
+  mcu.powerModelPort.bind(powerModelChannel);
   pwrCombinator.staticConsumers[0].bind(staticConsumption);
   pwrCombinator.staticConsumers[1].bind(staticConsumptionBoot);
   pwrCombinator.dynamicConsumers[0].bind(dynamicConsumption);

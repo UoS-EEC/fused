@@ -56,28 +56,28 @@ void Msp430Cpu::end_of_elaboration() {
       "PUSH", "RETI", "RRA", "RRC", "SUB", "SUBC", "SWPB", "SXT", "XOR"};
 
   for (const auto &op : ops) {
-    powerModelEventPort->registerEvent(
+    powerModelPort->registerEvent(
         std::make_unique<ConstantEnergyEvent>(std::string("inst-") + op));
   }
 
   m_formatIEvent =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " formatI"));
   m_formatIIEvent =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " formatII"));
   m_formatIIIEvent =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " formatIII"));
   m_pcIsDestinationEvent =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " pc-is-dest"));
   m_irqEvent =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " irq"));
 
   m_idleCyclesEvent =
-      powerModelEventPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
           std::string(this->name()) + " idle cycles"));
 }
 
@@ -96,7 +96,7 @@ void Msp430Cpu::process() {
     if (pwrOn.read() && m_run) {
       // Handle interrupts
       if (irq.read()) {
-        powerModelEventPort->reportEvent(m_irqEvent);
+        powerModelPort->reportEvent(m_irqEvent);
         processInterrupt();
       }
 
@@ -130,13 +130,13 @@ void Msp430Cpu::process() {
         uint8_t instructionFmt = (opcode & 0xe000) >> 13;
         if (instructionFmt == 0) {
           executeSingleOpInstruction(opcode);
-          powerModelEventPort->reportEvent(m_formatIIEvent);
+          powerModelPort->reportEvent(m_formatIIEvent);
         } else if (instructionFmt == 1) {
           executeConditionalJump(opcode);
-          powerModelEventPort->reportEvent(m_formatIIIEvent);
+          powerModelPort->reportEvent(m_formatIIIEvent);
         } else {
           executeDoubleOpInstruction(opcode);
-          powerModelEventPort->reportEvent(m_formatIEvent);
+          powerModelPort->reportEvent(m_formatIEvent);
         }
         if (m_doStep) {  // end single step
           m_run = false;

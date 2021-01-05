@@ -113,9 +113,9 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   }
 
   // Events for power model
-  m_cpu.powerModelEventPort.bind(powerModelEventPort);
+  m_cpu.powerModelPort.bind(powerModelPort);
   for (const auto &s : slaves) {
-    s->powerModelEventPort.bind(powerModelEventPort);
+    s->powerModelPort.bind(powerModelPort);
   }
 
   // Miscellaneous

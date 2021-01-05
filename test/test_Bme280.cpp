@@ -41,7 +41,7 @@ SC_MODULE(dut) {
     m_dut.nReset.bind(nReset);
     m_dut.chipSelect.bind(chipSelect);
     m_dut.tSocket.bind(iSpiSocket);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   Bme280 m_dut{"dut"};

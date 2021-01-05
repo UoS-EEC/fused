@@ -44,7 +44,7 @@ SC_MODULE(dut) {
     m_dut.chipEnable.bind(chipEnable);
     m_dut.interruptRequest.bind(interruptRequest);
     m_dut.tSocket.bind(iSpiSocket);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   Nrf24Radio m_dut{"Nrf24Radio"};

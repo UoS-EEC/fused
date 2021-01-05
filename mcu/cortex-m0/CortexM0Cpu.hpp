@@ -32,7 +32,7 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   sc_core::sc_in<bool> pwrOn{"pwrOn"};                 //! "power-good" signal
 
   //! Output port for power model events
-  PowerModelEventOutPort powerModelEventPort{"powerModelEventPort"};
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
   // -- Interrupts
   // SysTick

@@ -43,7 +43,7 @@ SC_MODULE(dut) {
     m_dut.chipSelect.bind(chipSelect);
     m_dut.tSocket.bind(iSpiSocket);
     m_dut.irq.bind(irq);
-    m_dut.powerModelEventPort.bind(powerModelChannel);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   Accelerometer m_dut{"dut"};
