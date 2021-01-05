@@ -31,7 +31,7 @@ SC_MODULE(dut) {
   sc_signal<bool> nReset{"nReset"};
   sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
   PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
+      "powerModelChannel", "/tmp",
       sc_time(1, SC_US)};
 
   // Sockets

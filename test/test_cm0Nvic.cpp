@@ -33,7 +33,7 @@ SC_MODULE(dut) {
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_US)};
   PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
+      "powerModelChannel", "/tmp",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {

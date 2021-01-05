@@ -26,7 +26,7 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name)
     : Board(name),
       powerModelChannel(
           "powerModelChannel", /*logfile=*/
-          Config::get().getString("OutputDirectory") + "/eventLog.csv",
+          Config::get().getString("OutputDirectory"),
           sc_time::from_seconds(Config::get().getDouble("EventLogTimeStep"))) {
   /* ------ Bind ------ */
   // Reset

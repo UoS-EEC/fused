@@ -31,9 +31,8 @@ SC_MODULE(dut) {
   sc_signal<bool> nReset{"nReset"};
   sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
   sc_signal_resolved irq{"irq"};                //! Accelerometer irq output
-  PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
-      sc_time(1, SC_US)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};

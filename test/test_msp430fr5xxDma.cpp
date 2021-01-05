@@ -38,7 +38,7 @@ SC_MODULE(dut) {
   GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
+      "powerModelChannel", "/tmp",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {

@@ -35,7 +35,7 @@ SC_MODULE(dut) {
   ClockSourceChannel modclk_sig{"modclk_sig"};
   ClockSourceChannel sysClk{"sysClk", sc_time(1, SC_NS)};
   PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp/testPowerModelChannel.csv",
+      "powerModelChannel", "/tmp",
       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {

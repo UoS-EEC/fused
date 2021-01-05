@@ -38,7 +38,7 @@ SC_MODULE(dut) {
   GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
   ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
   PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp/testPowerModelChannel.csv", sc_time(1, SC_US)};
+      "powerModelChannel", "/tmp", sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     mem.pwrOn.bind(nreset);
