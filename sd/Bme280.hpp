@@ -133,6 +133,15 @@ class Bme280 : public SpiDevice {
   std::vector<InputTraceEntry> m_inputTrace;
   sc_core::sc_time m_inputTraceTimestep;
 
+  /* Event and state ids */
+  int m_offStateId;
+  int m_sleepStateId;
+  int m_standbyStateId;
+  int m_measureTemperatureStateId;
+  int m_measurePressureStateId;
+  int m_measureHumidityStateId;
+  ;
+
   /* ------ Private methods ------ */
 
   /**

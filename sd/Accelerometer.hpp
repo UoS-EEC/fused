@@ -88,7 +88,8 @@ class Accelerometer : public SpiDevice {
   virtual void reset(void) override;
 
   /**
-   * @brief set up methods, sensitivity and register power model events
+   * @brief set up methods, sensitivity, and register power model events and
+   * states
    */
   virtual void end_of_elaboration() override;
 
@@ -241,7 +242,10 @@ class Accelerometer : public SpiDevice {
   std::vector<InputTraceEntry> m_inputTrace;
   sc_core::sc_time m_inputTraceTimestep;
 
+  /* Event & state ids */
   int m_sampleEventId;
+  int m_sleepStateId;
+  int m_activeStateId;
 
   /* ------ Private methods ------ */
 
@@ -278,5 +282,5 @@ class Accelerometer : public SpiDevice {
    * @brief reportState utility function for reporting the current measurement
    * state to the global event log.
    */
-  void reportState() const;
+  void reportState();
 };

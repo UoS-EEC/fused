@@ -10,6 +10,7 @@
 #include <vector>
 #include "libs/make_unique.hpp"
 #include "libs/strtk.hpp"
+#include "ps/ConstantCurrentState.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
 #include "ps/EventLog.hpp"
 #include "sd/Accelerometer.hpp"
@@ -28,10 +29,7 @@ Accelerometer::Accelerometer(const sc_module_name name)
   m_regs.addRegister(RegisterAddress::DATA);
   m_regs.addRegister(RegisterAddress::FIFO_THR);
 
-  reportState();  // report initial (sleep) state
-
   // Load sensor input trace
-  // Load sensor input tracerace
   const bool validTraceFile =
       Config::get().contains("AccelerometerTraceFile")
           ? Config::get().getString("AccelerometerTraceFile") != "none"
@@ -62,9 +60,13 @@ Accelerometer::Accelerometer(const sc_module_name name)
 }
 
 void Accelerometer::end_of_elaboration() {
-  // Get event IDs
+  // Get event & state IDs
   m_sampleEventId = powerModelPort->registerEvent(
       std::make_unique<ConstantEnergyEvent>("Accelerometer sample"));
+  m_sleepStateId = powerModelPort->registerState(
+      "Accelerometer", std::make_unique<ConstantCurrentState>("sleep"));
+  m_activeStateId = powerModelPort->registerState(
+      "Accelerometer", std::make_unique<ConstantCurrentState>("active"));
 
   // Register methods
   SC_METHOD(spiInterface);
@@ -316,10 +318,10 @@ void Accelerometer::popOldestframe() {
   }
 }
 
-void Accelerometer::reportState() const {
+void Accelerometer::reportState() {
   if (m_measurementState == MeasurementState::Sleep) {
-    EventLog::getInstance().reportState("Accelerometer", "sleep");
+    powerModelPort->reportState(m_sleepStateId);
   } else {
-    EventLog::getInstance().reportState("Accelerometer", "active");
+    powerModelPort->reportState(m_activeStateId);
   }
 }

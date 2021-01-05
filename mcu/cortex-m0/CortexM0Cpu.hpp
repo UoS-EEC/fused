@@ -12,7 +12,6 @@
 #include <tlm>
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannelIf.hpp"
 
 extern "C" {
@@ -268,10 +267,15 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   InstructionBuffer m_instructionBuffer;
   std::unordered_set<unsigned> m_breakpoints;  // Set of breakpoint addresses
   std::unordered_set<unsigned> m_watchpoints;  // Set of watchpoint addresses
-  int m_idleCyclesEvent;       //! Event used to track idle cycles
+  std::array<unsigned, 17> m_regsAtExceptEnter{{0}};  //! Used for checking
+
+  /* Power model event & state ids */
+  int m_idleCyclesEventId;     //! Event used to track idle cycles
   int m_nInstructionsEventId;  //! Event used to track number of
                                //! executed instructions
-  std::array<unsigned, 17> m_regsAtExceptEnter{{0}};  //! Used for checking
+  int m_offStateId;
+  int m_onStateId;
+  int m_sleepStateId;
 
   /* ------ Private methods ------ */
 

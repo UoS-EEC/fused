@@ -16,7 +16,6 @@
 #include <tlm>
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannelIf.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -189,14 +188,18 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   bool m_sleeping{false};    //! Indicate whether cpu is sleeping
   bool m_doStep{false};      //! Set to 1 to single-step, cleared automatically.
   uint64_t m_idleCycles{0};  //! Total number of idle cycles (for logging)
-  EventLog &m_elog;
-  EventLog::eventId m_idleCyclesEvent;
-  EventLog::eventId m_formatIEvent;
-  EventLog::eventId m_formatIIEvent;
-  EventLog::eventId m_formatIIIEvent;
-  EventLog::eventId m_pcIsDestinationEvent;  // Blanket for all branches/jumps
-  EventLog::eventId m_irqEvent;
-  std::map<std::string, EventLog::eventId> instrEventIds;
+
+  /* Event and state ids for power modelling */
+  int m_idleCyclesEventId;
+  int m_formatIEventId;
+  int m_formatIIEventId;
+  int m_formatIIIEventId;
+  int m_pcIsDestinationEventId;  // Blanket for all branches/jumps
+  int m_irqEventId;
+  std::map<std::string, int> instrEventIds;
+  int m_offStateId;
+  int m_onStateId;
+  int m_sleepStateId;
 
   std::array<uint32_t, 16> m_cpuRegs;
 

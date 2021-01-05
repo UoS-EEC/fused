@@ -218,10 +218,10 @@ class Nrf24Radio : public SpiDevice {
   Nrf24Radio(const sc_core::sc_module_name nm);
 
   /**
-   * @brief end_of_elaboration used to register SC_METHODs and build
-   * sensitivity list.
+   * @brief end_of_elaboration used to register SC_METHODs, register power
+   * modelling states, and build sensitivity list.
    */
-  void end_of_elaboration();
+  void end_of_elaboration() override;
 
   /**
    * @brief reset Restore registers to power on default,
@@ -257,4 +257,15 @@ class Nrf24Radio : public SpiDevice {
   sc_core::sc_event m_stateChangeEvent{"m_stateChangeEvent"};
   sc_core::sc_event m_txEvent{"m_txEvent"};
   sc_core::sc_event m_irqEvent{"m_irqEvent"};
+
+  /* Event & state ids */
+  int m_porStateId;
+  int m_powerDownStateId;
+  int m_startUpStateId;
+  int m_standbyOneStateId;
+  int m_standbyTwoStateId;
+  int m_rxSettlingStateId;
+  int m_txSettlingStateId;
+  int m_rxModeStateId;
+  int m_txModeStateId;
 };
