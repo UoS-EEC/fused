@@ -58,6 +58,6 @@ class GenericMemory : public BusTarget {
   std::unique_ptr<uint8_t[]> mem;  // Pointer to emulated memory
   const size_t m_capacity;         // Memory capacity (bytes)
 
-  int m_nBytesWrittenEventId;
-  int m_nBytesReadEventId;
+  int m_nBytesWrittenEventId{-1};
+  int m_nBytesReadEventId{-1};
 };

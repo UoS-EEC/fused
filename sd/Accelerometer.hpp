@@ -242,9 +242,9 @@ class Accelerometer : public SpiDevice {
   sc_core::sc_time m_inputTraceTimestep;
 
   /* Event & state ids */
-  int m_sampleEventId;
-  int m_sleepStateId;
-  int m_activeStateId;
+  int m_sampleEventId{-1};
+  int m_sleepStateId{-1};
+  int m_activeStateId{-1};
 
   /* ------ Private methods ------ */
 

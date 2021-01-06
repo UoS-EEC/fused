@@ -270,12 +270,12 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   std::array<unsigned, 17> m_regsAtExceptEnter{{0}};  //! Used for checking
 
   /* Power model event & state ids */
-  int m_idleCyclesEventId;     //! Event used to track idle cycles
-  int m_nInstructionsEventId;  //! Event used to track number of
+  int m_idleCyclesEventId{-1};     //! Event used to track idle cycles
+  int m_nInstructionsEventId{-1};  //! Event used to track number of
                                //! executed instructions
-  int m_offStateId;
-  int m_onStateId;
-  int m_sleepStateId;
+  int m_offStateId{-1};
+  int m_onStateId{-1};
+  int m_sleepStateId{-1};
 
   /* ------ Private methods ------ */
 

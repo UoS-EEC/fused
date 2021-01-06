@@ -47,8 +47,8 @@ class DigitalIo : public BusTarget {
 
  private:
   /* ------ Private variables ------ */
-  int m_pinPosEdgeId;
-  int m_pinNegEdgeId;
+  int m_pinPosEdgeId{-1};
+  int m_pinNegEdgeId{-1};
 
   unsigned int m_lastState{0};  // Used to detect input edges
 

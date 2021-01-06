@@ -190,16 +190,16 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   uint64_t m_idleCycles{0};  //! Total number of idle cycles (for logging)
 
   /* Event and state ids for power modelling */
-  int m_idleCyclesEventId;
-  int m_formatIEventId;
-  int m_formatIIEventId;
-  int m_formatIIIEventId;
-  int m_pcIsDestinationEventId;  // Blanket for all branches/jumps
-  int m_irqEventId;
+  int m_idleCyclesEventId{-1};
+  int m_formatIEventId{-1};
+  int m_formatIIEventId{-1};
+  int m_formatIIIEventId{-1};
+  int m_pcIsDestinationEventId{-1};  // Blanket for all branches/jumps
+  int m_irqEventId{-1};
   std::map<std::string, int> instrEventIds;
-  int m_offStateId;
-  int m_onStateId;
-  int m_sleepStateId;
+  int m_offStateId{-1};
+  int m_onStateId{-1};
+  int m_sleepStateId{-1};
 
   std::array<uint32_t, 16> m_cpuRegs;
 

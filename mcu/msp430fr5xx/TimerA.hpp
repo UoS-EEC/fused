@@ -78,7 +78,7 @@ class TimerA : public BusTarget {
   sc_core::sc_event
       sourceChangeEvent;  //! Triggered when clock source is changed.
 
-  int m_triggerEventId;
+  int m_triggerEventId{-1};
 
   /* ------ Private methods ------ */
   /**

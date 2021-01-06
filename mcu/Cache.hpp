@@ -111,12 +111,12 @@ class Cache : public BusTarget, public tlm::tlm_bw_transport_if<> {
     WP_WRITE_BACK
   } m_writePolicy;
 
-  int m_readMissEventId;
-  int m_readHitEventId;
-  int m_writeMissEventId;
-  int m_writeHitEventId;
-  int m_nBytesReadEventId;
-  int m_nBytesWrittenEventId;
+  int m_readMissEventId{-1};
+  int m_readHitEventId{-1};
+  int m_writeMissEventId{-1};
+  int m_writeHitEventId{-1};
+  int m_nBytesReadEventId{-1};
+  int m_nBytesWrittenEventId{-1};
 
   /* ------- Private methods ------ */
 

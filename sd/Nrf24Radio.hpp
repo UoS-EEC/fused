@@ -259,13 +259,13 @@ class Nrf24Radio : public SpiDevice {
   sc_core::sc_event m_irqEvent{"m_irqEvent"};
 
   /* Event & state ids */
-  int m_porStateId;
-  int m_powerDownStateId;
-  int m_startUpStateId;
-  int m_standbyOneStateId;
-  int m_standbyTwoStateId;
-  int m_rxSettlingStateId;
-  int m_txSettlingStateId;
-  int m_rxModeStateId;
-  int m_txModeStateId;
+  int m_porStateId{-1};
+  int m_powerDownStateId{-1};
+  int m_startUpStateId{-1};
+  int m_standbyOneStateId{-1};
+  int m_standbyTwoStateId{-1};
+  int m_rxSettlingStateId{-1};
+  int m_txSettlingStateId{-1};
+  int m_rxModeStateId{-1};
+  int m_txModeStateId{-1};
 };

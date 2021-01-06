@@ -57,8 +57,8 @@ class Gpio : public BusTarget {
   bool m_setIrq{false};     //! 1 if irq should be set
   unsigned m_lastState{0};  //! Last pin state, used to check for edges
   sc_core::sc_event m_updateIrqEvent{"updateIrqEvent"};
-  int m_pinPosEdgeId;
-  int m_pinNegEdgeId;
+  int m_pinPosEdgeId{-1};
+  int m_pinNegEdgeId{-1};
 
   /* ------ Private methods ------ */
   /**
