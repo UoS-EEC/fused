@@ -33,7 +33,6 @@
 #include "mcu/msp430fr5xx/PowerManagementModule.hpp"
 #include "mcu/msp430fr5xx/TimerA.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/SimpleMonitor.hpp"
 
 class Msp430Microcontroller : public Microcontroller {

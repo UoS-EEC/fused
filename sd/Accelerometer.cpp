@@ -12,7 +12,6 @@
 #include "libs/strtk.hpp"
 #include "ps/ConstantCurrentState.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
-#include "ps/EventLog.hpp"
 #include "sd/Accelerometer.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"

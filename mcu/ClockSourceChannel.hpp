@@ -33,7 +33,7 @@ class ClockSourceChannel : public ClockSourceDriverIf,
     return m_period;
   }
 
-  virtual void setPeriod(const sc_core::sc_time &period) {
+  virtual void setPeriod(const sc_core::sc_time &period) override {
     if (period == getPeriod()) {
       return;  // Do nothing, period hasn't changed
     }

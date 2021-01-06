@@ -14,6 +14,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/msp430fr5xx/ClockSystem.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
+#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 
@@ -34,9 +35,8 @@ SC_MODULE(dut) {
   ClockSourceChannel vloclk_sig{"vloclk_sig"};
   ClockSourceChannel modclk_sig{"modclk_sig"};
   ClockSourceChannel sysClk{"sysClk", sc_time(1, SC_NS)};
-  PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp",
-      sc_time(1, SC_US)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);

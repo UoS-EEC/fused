@@ -11,8 +11,10 @@
 #include <string>
 #include <systemc>
 #include <tlm>
+#include "libs/make_unique.hpp"
 #include "mcu/Cache.hpp"
 #include "mcu/CacheReplacementPolicies.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "utilities/Config.hpp"
 
 using namespace sc_core;
@@ -84,25 +86,33 @@ Cache::Cache(const sc_module_name name, const unsigned startAddress,
       SC_REPORT_ERROR("FRAM Cache set", "Invalid replacement policy.");
     }
   }
+};
 
+void Cache::end_of_elaboration() {
   // Register events
-  m_readMissEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " read miss");
-  m_readHitEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " read hit");
-  m_writeMissEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " write miss");
-  m_writeHitEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " write hit");
-  m_nBytesReadEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " bytes read");
-  m_nBytesWrittenEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " bytes written");
+  m_readMissEventId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " read miss"));
+  m_readHitEventId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " read hit"));
+  m_writeMissEventId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " write miss"));
+  m_writeHitEventId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " write hit"));
+  m_nBytesReadEventId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " bytes read"));
+  m_nBytesWrittenEventId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " bytes written"));
 
   // Methods & threads
   SC_METHOD(reset);
   sensitive << pwrOn;
-};
+}
 
 void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   auto addr = trans.get_address();
@@ -135,12 +145,12 @@ void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     m_writeEvent.notify(delay + systemClk->getPeriod());
     powerModelPort->reportEvent(m_writeEventId);
-    powerModelPort->reportEvent(m_nBytesWrittenEvent, len);
+    powerModelPort->reportEvent(m_nBytesWrittenEventId, len);
 
     if (hit) {
-      powerModelPort->reportEvent(m_writeHitEvent);
+      powerModelPort->reportEvent(m_writeHitEventId);
     } else {
-      powerModelPort->reportEvent(m_writeMissEvent);
+      powerModelPort->reportEvent(m_writeMissEventId);
     }
 
     tlm::tlm_generic_payload outputTrans;
@@ -190,12 +200,12 @@ void Cache::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     m_readEvent.notify(delay + systemClk->getPeriod());
     powerModelPort->reportEvent(m_readEventId);
-    powerModelPort->reportEvent(m_nBytesReadEvent, trans.get_data_length());
+    powerModelPort->reportEvent(m_nBytesReadEventId, trans.get_data_length());
 
     if (hit) {
-      powerModelPort->reportEvent(m_readHitEvent);
+      powerModelPort->reportEvent(m_readHitEventId);
     } else {
-      powerModelPort->reportEvent(m_readMissEvent);
+      powerModelPort->reportEvent(m_readMissEventId);
     }
 
     if (!hit) {

@@ -16,7 +16,6 @@
 #include <vector>
 #include "mcu/BusTarget.hpp"
 #include "mcu/CacheReplacementPolicies.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 
 /* Cache line */
@@ -77,6 +76,11 @@ class Cache : public BusTarget, public tlm::tlm_bw_transport_if<> {
   virtual void b_transport(tlm::tlm_generic_payload &trans,
                            sc_core::sc_time &delay) override;
   /**
+   * @brief set up methods, sensitivity, and register power model events and
+   * states
+   */
+  virtual void end_of_elaboration() override;
+  /**
    * @brief transport_dbg forward directly to memory
    * @param trans
    */
@@ -107,12 +111,12 @@ class Cache : public BusTarget, public tlm::tlm_bw_transport_if<> {
     WP_WRITE_BACK
   } m_writePolicy;
 
-  EventLog::eventId m_readMissEvent;
-  EventLog::eventId m_readHitEvent;
-  EventLog::eventId m_writeMissEvent;
-  EventLog::eventId m_writeHitEvent;
-  EventLog::eventId m_nBytesReadEvent;
-  EventLog::eventId m_nBytesWrittenEvent;
+  int m_readMissEventId;
+  int m_readHitEventId;
+  int m_writeMissEventId;
+  int m_writeHitEventId;
+  int m_nBytesReadEventId;
+  int m_nBytesWrittenEventId;
 
   /* ------- Private methods ------ */
 

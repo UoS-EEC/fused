@@ -12,7 +12,6 @@
 #include <tlm>
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannelIf.hpp"
 
 class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
@@ -114,7 +113,6 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   RegisterFile m_regs;
   int m_readEventId{-1};
   int m_writeEventId{-1};
-  EventLog &m_elog;
 
   //! Events triggered on bus access via b_transport -- not transport_dbg!
   sc_core::sc_event m_readEvent{"readEvent"};    //! Triggered on read access

@@ -13,7 +13,6 @@
 #include "libs/make_unique.hpp"
 #include "mcu/GenericMemory.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 
 using namespace sc_core;

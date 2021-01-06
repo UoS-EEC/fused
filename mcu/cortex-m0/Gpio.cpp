@@ -9,7 +9,9 @@
 #include <spdlog/spdlog.h>
 #include <systemc>
 #include "include/cm0-fused.h"
+#include "libs/make_unique.hpp"
 #include "mcu/cortex-m0/Gpio.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 
 using namespace sc_core;
 
@@ -20,15 +22,16 @@ Gpio::Gpio(const sc_core::sc_module_name name)
   m_regs.addRegister(OFS_GPIO_DIR);
   m_regs.addRegister(OFS_GPIO_IE);
   m_regs.addRegister(OFS_GPIO_IFG, 0, RegisterFile::AccessMode::READ);
-
-  // Get event IDs
-  m_pinPosEdge = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " negedge");
-  m_pinNegEdge = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " posedge");
 };
 
-void Gpio::before_end_of_elaboration() {
+void Gpio::end_of_elaboration() {
+  // Register power modelling events
+  m_pinPosEdgeId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " negedge"));
+  m_pinNegEdgeId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " posedge"));
   // Set up methods
   SC_METHOD(reset);
   sensitive << pwrOn;
@@ -77,11 +80,11 @@ void Gpio::process(void) {
       if (dir & mask) {  // If output mode
         // Count edges
         if (!current && (data & mask)) {  // Posedge
-          powerModelPort->reportEvent(m_pinPosEdge);
+          powerModelPort->reportEvent(m_pinPosEdgeId);
           spdlog::info("{:s}: @{:s} posedge on pin {:d}", this->name(),
                        sc_time_stamp().to_string(), i);
         } else if (current && !(data & mask)) {  // Negedge
-          powerModelPort->reportEvent(m_pinNegEdge);
+          powerModelPort->reportEvent(m_pinNegEdgeId);
           spdlog::info("{:s}: @{:s} negedge on pin {:d}", this->name(),
                        sc_time_stamp().to_string(), i);
         }

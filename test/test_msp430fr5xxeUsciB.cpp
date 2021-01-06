@@ -17,6 +17,7 @@
 #include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
+#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -40,9 +41,8 @@ SC_MODULE(dut) {
   ClockSourceChannel smclk{"smclk", sc_time(1, SC_US)};
   ClockSourceChannel aclk{"aclk", sc_time(1, SC_US)};
   ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
-  PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp",
-      sc_time(1, SC_US)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);

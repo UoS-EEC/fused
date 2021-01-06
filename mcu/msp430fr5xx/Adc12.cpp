@@ -16,7 +16,6 @@
 #include "mcu/msp430fr5xx/Adc12.hpp"
 #include "ps/ConstantCurrentState.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Utilities.hpp"
 
 extern "C" {

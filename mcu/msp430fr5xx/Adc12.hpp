@@ -14,7 +14,6 @@
 #include "mcu/ClockMux.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 
 /**
  * @brief The Adc12 class Modelling specific mode of ADC12 module

@@ -15,7 +15,6 @@
 #include <tlm>
 #include "mcu/BusTarget.hpp"
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Utilities.hpp"
 
 #define NVIC_BASE 0xE000E100

@@ -15,7 +15,6 @@
 #include "mcu/BusTarget.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 
 /**
  * @brief The eUSCI_B class Modelling operation of eUSCI_Bn

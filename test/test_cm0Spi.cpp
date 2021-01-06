@@ -18,6 +18,7 @@
 #include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/cortex-m0/Spi.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
+#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -35,9 +36,8 @@ SC_MODULE(dut) {
   sc_signal<bool> irq{"irq"};
   ClockSourceChannel spiclk{"spiclk", sc_time(1, SC_US)};
   ClockSourceChannel sysclk{"sysclk", sc_time(1, SC_NS)};
-  PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp",
-      sc_time(1, SC_US)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);

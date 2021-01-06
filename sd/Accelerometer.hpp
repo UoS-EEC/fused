@@ -8,7 +8,6 @@
 #include <deque>
 #include <systemc>
 #include <vector>
-#include "ps/EventLog.hpp"
 #include "sd/SpiDevice.hpp"
 
 /**

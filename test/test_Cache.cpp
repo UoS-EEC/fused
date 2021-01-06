@@ -19,6 +19,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/NonvolatileMemory.hpp"
 #include "ps/DynamicEnergyChannel.hpp"
+#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -33,9 +34,8 @@ SC_MODULE(dut) {
   sc_signal<unsigned> framWaitStates{"framWaitStates", 1};
   tlm_utils::simple_initiator_socket<dut> cacheSocket{"cacheSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
-  PowerModelChannel powerModelChannel{
-      "powerModelChannel", "/tmp",
-      sc_time(1, SC_US)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);

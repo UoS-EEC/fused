@@ -9,9 +9,10 @@
 #include <string>
 #include <systemc>
 #include <tlm>
+#include "libs/make_unique.hpp"
 #include "mcu/RegisterFile.hpp"
 #include "mcu/msp430fr5xx/TimerA.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -56,14 +57,16 @@ TimerA::TimerA(sc_module_name name, unsigned startAddress)
   // m_regs.addRegister(OFS_TA1CCR6, 0); // Not implemented in hw
   m_regs.addRegister(OFS_TA1IV, 0, RegisterFile::AccessMode::READ);
   m_regs.addRegister(OFS_TA1EX0, 0);
-
-  // Register events
-  m_triggerEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " triggered");
 }
 
 void TimerA::end_of_elaboration() {
   BusTarget::end_of_elaboration();
+
+  // Register events
+  m_triggerEventId =
+      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
+          std::string(this->name()) + " triggered"));
+
   // Register SC_METHODS here (after events have been constructed)
   SC_METHOD(process);
   sensitive << timerClock << ira;
@@ -96,7 +99,7 @@ void TimerA::process(void) {
         } else {
           m_regs.setBit(OFS_TA1CTL, 0);  // Set IFG
           m_regs.write(OFS_TA1R, 0);     // Clear count
-          powerModelPort->reportEvent(m_triggerEvent);
+          powerModelPort->reportEvent(m_triggerEventId);
         }
         break;
       case 2:  // Continuous mode: timer counts up to 0xffff
@@ -107,7 +110,7 @@ void TimerA::process(void) {
         } else {
           m_regs.setBitMask(OFS_TA1CTL, TAIFG);
           m_regs.write(OFS_TA1R, 0);  // Clear count
-          powerModelPort->reportEvent(m_triggerEvent);
+          powerModelPort->reportEvent(m_triggerEventId);
         }
         break;
       case 3:  // Up/down mode: timer counts up to TAxCCR0 then down to 0
@@ -124,7 +127,7 @@ void TimerA::process(void) {
 
         if (crntCnt == 0) {
           m_regs.setBitMask(OFS_TA1CTL, TAIFG);
-          powerModelPort->reportEvent(m_triggerEvent);
+          powerModelPort->reportEvent(m_triggerEventId);
         }
         break;
     }

@@ -20,7 +20,6 @@ BusTarget::BusTarget(const sc_module_name name, const unsigned startAddress,
     : tSocket("tSocket"),
       m_startAddress(startAddress),
       m_endAddress(endAddress),
-      m_elog(EventLog::getInstance()),
       sc_module(name) {
   sc_assert(startAddress <= endAddress);
   tSocket.bind(*this);

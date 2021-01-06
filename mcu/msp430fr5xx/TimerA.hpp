@@ -13,7 +13,6 @@
 #include "mcu/ClockMux.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
 
 class TimerA : public BusTarget {
   SC_HAS_PROCESS(TimerA);
@@ -50,8 +49,8 @@ class TimerA : public BusTarget {
                            sc_core::sc_time &delay) override;
 
   /**
-   * @brief end_of_elaboration used to register SC_METHODs and build sensitivity
-   * list.
+   * @brief set up methods, sensitivity, and register power model events and
+   * states
    */
   virtual void end_of_elaboration() override;
 
@@ -78,7 +77,8 @@ class TimerA : public BusTarget {
   bool direction;  //! Counting direction
   sc_core::sc_event
       sourceChangeEvent;  //! Triggered when clock source is changed.
-  EventLog::eventId m_triggerEvent;
+
+  int m_triggerEventId;
 
   /* ------ Private methods ------ */
   /**

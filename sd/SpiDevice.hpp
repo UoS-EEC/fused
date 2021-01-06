@@ -14,7 +14,6 @@
 #include <vector>
 #include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
-#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannelIf.hpp"
 
 /**

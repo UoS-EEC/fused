@@ -6,6 +6,7 @@
  */
 
 #include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -106,22 +107,25 @@ int PowerModelChannel::registerState(
 
   // Add state to m_states
   statePtr->id = m_states.size();
-  m_states.push_back(ModuleStateEntry(std::move(statePtr), moduleId));
+  m_states.emplace_back(std::move(statePtr), moduleId);
 
   return m_states.back().state->id;
 }
 
 void PowerModelChannel::reportEvent(const int eventId, const int n) {
+  sc_assert(eventId >= 0 && eventId < m_log.back().size());
   m_eventRates[eventId] += n;
   m_log.back()[eventId] += n;
 }
 
 void PowerModelChannel::reportState(const int stateId) {
+  sc_assert(stateId >= 0 && stateId < m_states.size());
   const auto mid = m_states[stateId].moduleId;
   m_currentStates[mid] = stateId;
 }
 
 int PowerModelChannel::popEventCount(const int eventId) {
+  sc_assert(eventId >= 0 && eventId < m_log.back().size());
   const auto tmp = m_eventRates[eventId];
   m_eventRates[eventId] = 0;
   return tmp;
@@ -129,6 +133,7 @@ int PowerModelChannel::popEventCount(const int eventId) {
 
 double PowerModelChannel::popEventEnergy(const int eventId,
                                          const double supplyVoltage) {
+  sc_assert(eventId >= 0 && eventId < m_log.back().size());
   return m_events[eventId]->calculateEnergy(supplyVoltage) *
          popEventCount(eventId);
 }
@@ -155,7 +160,7 @@ size_t PowerModelChannel::size() const { return m_events.size(); }
 
 void PowerModelChannel::start_of_simulation() {
   // Initialize event log
-  m_log.push_back(std::vector<int>(m_events.size() + 1, 0));
+  m_log.emplace_back(m_events.size() + 1, 0);
   // Fist entry is at t = timestep
   m_log.back().back() = static_cast<int>(m_logTimestep.to_seconds() * 1.0e6);
 }
@@ -171,7 +176,11 @@ void PowerModelChannel::logLoop() {
     wait(m_logTimestep);
 
     // Push new timestep
-    m_log.push_back(std::vector<int>(m_events.size() + 1, 0));
+    spdlog::info(FMT_STRING("PowerModelChannel:: Pushing new timestep, "
+                            "m_events.size={:d}, m_log.size={:d}"),
+                 m_events.size(), m_log.size());
+    m_log.emplace_back(m_events.size() + 1, 0);  // New row of all 0s
+    // Last column in the new row is the current time step
     m_log.back().back() = static_cast<int>(
         (m_logTimestep + sc_time_stamp()).to_seconds() * 1.0e6);
 

@@ -13,7 +13,6 @@
 #include "include/cm0-fused.h"
 #include "mcu/BusTarget.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 
 /**
  * @brief The OutputPort class : simple unidirectional output-only "IO" port.

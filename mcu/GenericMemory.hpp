@@ -11,7 +11,6 @@
 #include <systemc>
 #include <tlm>
 #include "mcu/BusTarget.hpp"
-#include "ps/EventLog.hpp"
 
 class GenericMemory : public BusTarget {
   SC_HAS_PROCESS(GenericMemory);
