@@ -97,8 +97,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   std::vector<int> m_currentStates;
 
   // ------ Logging ------
-  //! Log file path
-  std::string m_logFilePath;
+  std::string m_eventlogFileName;
 
   //! Log file timestep
   sc_core::sc_time m_logTimestep;

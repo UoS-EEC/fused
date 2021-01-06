@@ -23,16 +23,20 @@ using namespace sc_core;
 PowerModelChannel::PowerModelChannel(const sc_module_name name,
                                      const std::string logFilePath,
                                      sc_time logTimestep)
-    : sc_module(name), m_logFilePath(logFilePath), m_logTimestep(logTimestep) {
+    : sc_module(name),
+      m_eventlogFileName(logFilePath == "none"
+                             ? "none"
+                             : logFilePath + "/" + std::string(name) +
+                                   "_eventlog.csv"),
+      m_logTimestep(logTimestep) {
   if (logFilePath != "none") {
     // Create/overwrite log files
-    std::ofstream f(logFilePath + "/eventLog.csv",
-                    std::ios::out | std::ios::trunc);
+    std::ofstream f(m_eventlogFileName, std::ios::out | std::ios::trunc);
     if (!f.good()) {
-      SC_REPORT_FATAL(this->name(),
-                      fmt::format("Can't open eventLog file at {}/eventLog.csv",
-                                  logFilePath)
-                          .c_str());
+      SC_REPORT_FATAL(
+          this->name(),
+          fmt::format("Can't open eventlog file at {}", m_eventlogFileName)
+              .c_str());
     }
   }
   SC_HAS_PROCESS(PowerModelChannel);
@@ -179,7 +183,7 @@ void PowerModelChannel::start_of_simulation() {
 }
 
 void PowerModelChannel::logLoop() {
-  if (m_logFilePath == "none" || m_logTimestep == SC_ZERO_TIME) {
+  if (m_eventlogFileName == "none" || m_logTimestep == SC_ZERO_TIME) {
     SC_REPORT_INFO(this->name(), "Logging disabled.");
     return;
   }
@@ -206,8 +210,7 @@ void PowerModelChannel::logLoop() {
 }
 
 void PowerModelChannel::dumpEventCsv() {
-  std::ofstream f(m_logFilePath + "eventLog.csv",
-                  std::ios::out | std::ios::app);
+  std::ofstream f(m_eventlogFileName, std::ios::out | std::ios::app);
   if (f.tellp() == 0) {
     // Header
     for (unsigned int i = 0; i < m_events.size() + 1; ++i) {
