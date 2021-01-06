@@ -113,12 +113,25 @@ int PowerModelChannel::registerState(
 }
 
 void PowerModelChannel::reportEvent(const int eventId, const int n) {
+  if (!sc_is_running()) {
+    throw std::runtime_error(
+        "PowerModelEvent::reportEvent events can not be reported before"
+        "simulation has started. Events shall only be reported during "
+        "simulation");
+  }
   sc_assert(eventId >= 0 && eventId < m_log.back().size());
+
   m_eventRates[eventId] += n;
   m_log.back()[eventId] += n;
 }
 
 void PowerModelChannel::reportState(const int stateId) {
+  if (!sc_is_running()) {
+    throw std::runtime_error(
+        "PowerModelState::reportState states can not be reported before"
+        "simulation has started. States shall only be reported during "
+        "simulation");
+  }
   sc_assert(stateId >= 0 && stateId < m_states.size());
   const auto mid = m_states[stateId].moduleId;
   m_currentStates[mid] = stateId;
