@@ -36,6 +36,8 @@ void DigitalIo::reset(void) {
 }
 
 void DigitalIo::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
+
   // Register events & states
   m_pinPosEdgeId =
       powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(

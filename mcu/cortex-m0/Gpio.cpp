@@ -25,6 +25,8 @@ Gpio::Gpio(const sc_core::sc_module_name name)
 };
 
 void Gpio::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
+
   // Register power modelling events
   m_pinPosEdgeId =
       powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(

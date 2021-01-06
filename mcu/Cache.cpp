@@ -89,6 +89,8 @@ Cache::Cache(const sc_module_name name, const unsigned startAddress,
 };
 
 void Cache::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
+
   // Register events
   m_readMissEventId =
       powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
