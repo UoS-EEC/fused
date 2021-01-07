@@ -9,7 +9,6 @@
 #include <systemc-ams>
 #include <systemc>
 #include "boards/Msp430TestBoard.hpp"
-#include "ps/PowerCombine.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 
