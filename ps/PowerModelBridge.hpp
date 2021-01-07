@@ -27,9 +27,15 @@ SC_MODULE(PowerModelBridge) {
   }
 
   void process() {
-    // Calculate instantaneous current draw
-    double i = powerModelPort->getStaticCurrent() +
-               powerModelPort->popDynamicEnergy() / v_in.read();
+    const double timestep =
+        (sc_core::sc_time_stamp() - m_lastReadTime).to_seconds();
+
+    // Current = static_current + E/(v*ts)
+    const double i =
+        powerModelPort->getStaticCurrent() +
+        powerModelPort->popDynamicEnergy() / (v_in.read() * timestep);
     i_out.write(i);
+    m_lastReadTime = sc_core::sc_time_stamp();
   }
+  sc_core::sc_time m_lastReadTime{sc_core::SC_ZERO_TIME};
 };
