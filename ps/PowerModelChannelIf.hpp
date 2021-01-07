@@ -23,6 +23,9 @@
  * current consumption is then available via the PowerModelChannelInIf for power
  * modelling modules.
  *
+ * The channel also carries with it the supply voltage, to enable modelling of
+ * independent voltage domains with independent supply voltages.
+ *
  */
 
 /**
@@ -70,6 +73,19 @@ class PowerModelChannelOutIf : public virtual sc_core::sc_interface {
    * @param stateId id of the module state, as obtained from registerState
    */
   virtual void reportState(const int stateId) = 0;
+
+  /**
+   * @brief getSupplyVoltage get the current supply voltage.
+   * @retval current supply voltage in volts.
+   */
+  virtual double getSupplyVoltage() const = 0;
+
+  /**
+   * @brief supplyVoltageChangedEvent get supplyVoltageChanged event.
+   * @retval supplyVoltageChanged event, an event that triggers whenever the
+   * supply voltage has changed.
+   */
+  virtual const sc_core::sc_event& supplyVoltageChangedEvent() const = 0;
 };
 
 /**
@@ -91,32 +107,29 @@ class PowerModelChannelInIf : public virtual sc_core::sc_interface {
    * @brief popEventEnergy pop the event energy from an event. This returns the
    * cumulated energy and resets the internal event counter.
    * @param eventId id of the event, as obtained from registerEvent
-   * @param supplyVoltage current supply voltage. Needed by some events to
-   * calculate energy consumption.
    * @retval cumulated energy for the specified event
    */
-  virtual double popEventEnergy(const int eventId, double supplyVoltage) = 0;
+  virtual double popEventEnergy(const int eventId) = 0;
 
   /**
    * @brief popDynamicEnergy pop the event energy of all events. This returns
    * the cumulated energy and resets all internal event counters.
-   * @param supplyVoltage current supply voltage. Needed by some events to
-   * calculate energy consumption.
    * @retval Sum of energy consumption for all events, since the last time one
    * of the pop functions was called.
    */
-  virtual double popDynamicEnergy(double supplyVoltage) = 0;
+  virtual double popDynamicEnergy() = 0;
 
   /**
    * @brief getStaticCurrent get the static current in this timestep as a sum of
-   * all module-states.
-   * @param supplyVoltage supply voltage in the current time step. Used by some
-   * module states to determine current consumption.
-   * @param clockFrequency clock frequency in the current time step. Used by
-   * some module states to determine current consumption.
+   * all module-state currents.
    * */
-  virtual double getStaticCurrent(double supplyVoltage,
-                                  double clockFrequency) = 0;
+  virtual double getStaticCurrent() = 0;
+
+  /**
+   * @brief setSupplyVoltage set the current supply voltage.
+   * @param val current supply voltage in volts.
+   */
+  virtual void setSupplyVoltage(double val) = 0;
 
   /**
    * @brief size returns the number of registered events.

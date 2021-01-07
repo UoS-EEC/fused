@@ -15,7 +15,7 @@
 
 /**
  * Power model state for states that have a constant current consumption
- * regardless of supply voltage and clock frequency.
+ * regardless of supply voltage.
  */
 class ConstantCurrentState : public PowerModelStateBase {
  public:
@@ -28,9 +28,8 @@ class ConstantCurrentState : public PowerModelStateBase {
         current(Config::get().contains(name) ? Config::get().getDouble(name)
                                              : 0.0) {}
 
-  virtual double calculateCurrent(
-      [[maybe_unused]] const double supplyVoltage,
-      [[maybe_unused]] const double clockFrequency) const override {
+  virtual double calculateCurrent([
+      [maybe_unused]] const double supplyVoltage) const override {
     return current;
   }
 

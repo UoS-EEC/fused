@@ -111,28 +111,26 @@ SC_MODULE(tester) {
     test.outport->reportEvent(eid1, 1);
     test.outport->reportEvent(eid1, 1);
     test.outport->reportEvent(eid1, 3);
-    sc_assert(test.inport->popEventEnergy(eid1, 0.0) == 5 * 1.0e-12);
+    sc_assert(test.inport->popEventEnergy(eid1) == 5 * 1.0e-12);
 
     spdlog::info("------ TEST: Single-channel event energy resets after pop");
-    sc_assert(test.inport->popEventEnergy(eid1, 0.0) == 0.0);
+    sc_assert(test.inport->popEventEnergy(eid1) == 0.0);
 
     spdlog::info("------ TEST: Multi-channel event energy adds up");
     test.outport->reportEvent(eid1, 1);
     test.outport->reportEvent(eid2, 1);
-    sc_assert(test.inport->popDynamicEnergy(0.0) == 1 * 1.0e-12 + 1 * 2.0e-12);
+    sc_assert(test.inport->popDynamicEnergy() == 1 * 1.0e-12 + 1 * 2.0e-12);
 
     spdlog::info("------ TEST: Multi-channel event energy resets after pop");
-    sc_assert(test.inport->popDynamicEnergy(0.0) == 0.0);
+    sc_assert(test.inport->popDynamicEnergy() == 0.0);
 
     spdlog::info("------ TEST: Static current sums up");
     test.outport->reportState(sid2);
     test.outport->reportState(sid4);
-    sc_assert(test.inport->getStaticCurrent(/*unused*/ 0.0, /*unused*/ 0.0) ==
-              3.0e-6);
+    sc_assert(test.inport->getStaticCurrent() == 3.0e-6);
     test.outport->reportState(sid1);
     test.outport->reportState(sid3);
-    sc_assert(test.inport->getStaticCurrent(/*unused*/ 0.0, /*unused*/ 0.0) ==
-              0.0);
+    sc_assert(test.inport->getStaticCurrent() == 0.0);
 
     sc_stop();
   }

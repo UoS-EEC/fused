@@ -22,10 +22,9 @@ class PowerModelStateBase {
 
   /**
    * @brief calculateEnergy calculate state current , optionally adjusted for
-   * supply voltage and clock frequency.
+   * supply voltage.
    */
-  virtual double calculateCurrent(double supplyVoltage,
-                                  double clockFrequency) const = 0;
+  virtual double calculateCurrent(double supplyVoltage) const = 0;
 
   /* Public constants */
   const std::string name;

@@ -52,13 +52,19 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
 
   virtual size_t size() const override;
 
-  virtual double popEventEnergy(const int eventId,
-                                double supplyVoltage) override;
+  virtual double popEventEnergy(const int eventId) override;
 
-  virtual double popDynamicEnergy(double supplyVoltage) override;
+  virtual double popDynamicEnergy() override;
 
-  virtual double getStaticCurrent(double supplyVoltage,
-                                  double clockFrequency) override;
+  virtual double getStaticCurrent() override;
+
+  virtual const sc_core::sc_event& supplyVoltageChangedEvent() const override {
+    return m_supplyVoltageChangedEvent;
+  }
+
+  virtual double getSupplyVoltage() const override { return m_supplyVoltage; }
+
+  virtual void setSupplyVoltage(double val) override;
 
   /**
    * @brief start_of_simulation systemc callback. Used here to initialize the
@@ -67,6 +73,12 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   virtual void start_of_simulation() override;
 
  private:
+  //! Supply voltage associated with this channel
+  double m_supplyVoltage = 0.0;
+
+  //! SystemC event
+  sc_core::sc_event m_supplyVoltageChangedEvent{"supplyVoltageChangedEvent"};
+
   // ------ Events ------
   //! Stores registered events. The index corresponds to the event id
   std::vector<std::unique_ptr<PowerModelEventBase>> m_events;

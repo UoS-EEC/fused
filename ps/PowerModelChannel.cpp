@@ -148,29 +148,26 @@ int PowerModelChannel::popEventCount(const int eventId) {
   return tmp;
 }
 
-double PowerModelChannel::popEventEnergy(const int eventId,
-                                         const double supplyVoltage) {
+double PowerModelChannel::popEventEnergy(const int eventId) {
   sc_assert(eventId >= 0 && eventId < m_log.back().size());
-  return m_events[eventId]->calculateEnergy(supplyVoltage) *
+  return m_events[eventId]->calculateEnergy(m_supplyVoltage) *
          popEventCount(eventId);
 }
 
-double PowerModelChannel::popDynamicEnergy(const double supplyVoltage) {
+double PowerModelChannel::popDynamicEnergy() {
   double result = 0.0;
   for (int i = 0; i < m_events.size(); ++i) {
-    result += popEventEnergy(i, supplyVoltage);
+    result += popEventEnergy(i);
   }
   return result;
 }
 
-double PowerModelChannel::getStaticCurrent(const double supplyVoltage,
-                                           const double clockFrequency) {
-  return std::accumulate(m_currentStates.begin(), m_currentStates.end(), 0.0,
-                         [=](const double &sum, const int &stateId) {
-                           return sum +
-                                  m_states[stateId].state->calculateCurrent(
-                                      supplyVoltage, clockFrequency);
-                         });
+double PowerModelChannel::getStaticCurrent() {
+  return std::accumulate(
+      m_currentStates.begin(), m_currentStates.end(), 0.0,
+      [=](const double &sum, const int &stateId) {
+        return sum + m_states[stateId].state->calculateCurrent(m_supplyVoltage);
+      });
 }
 
 size_t PowerModelChannel::size() const { return m_events.size(); }
@@ -227,5 +224,12 @@ void PowerModelChannel::dumpEventCsv() {
     for (const auto &val : row) {
       f << val << (&val == &row.back() ? '\n' : ',');
     }
+  }
+}
+
+void PowerModelChannel::setSupplyVoltage(const double val) {
+  if (m_supplyVoltage != val) {
+    m_supplyVoltage = val;
+    m_supplyVoltageChangedEvent.notify(SC_ZERO_TIME);
   }
 }
