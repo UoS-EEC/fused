@@ -20,7 +20,6 @@ class Microcontroller : public sc_core::sc_module {
   /* ------ Ports ------ */
   sc_core::sc_in<bool> nReset{"nReset"};
   sc_core::sc_in<double> vcc{"vcc"};  // Supply voltage
-  sc_core::sc_out<double> staticPower{"staticPower"};
   PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
   /* ------ Signals ------ */

@@ -9,7 +9,6 @@
 #include <systemc-ams>
 #include <systemc>
 #include "boards/Msp430TestBoard.hpp"
-#include "ps/EventLog.hpp"
 #include "ps/PowerCombine.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
@@ -21,7 +20,7 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
       powerModelChannel(
           "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory"),
-          sc_time::from_seconds(Config::get().getDouble("EventLogTimeStep"))) {
+          sc_time::from_seconds(Config::get().getDouble("LogTimeStep"))) {
   /* ------ Bind ------ */
   // Reset
   mcu.pmm->pwrGood.bind(nReset);
@@ -42,22 +41,14 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
   spiLoopBack.powerModelPort.bind(powerModelChannel);
 
   // Power circuitry
-  mcu.vcc.bind(vcc);
-  mcu.staticPower.bind(staticConsumptionBoot);
-  EventLog::getInstance().dynamicEnergy.bind(dynamicConsumption);
-  EventLog::getInstance().staticPower.bind(staticConsumption);
-
-  // Combine static current + dynamic energy into single current
   mcu.powerModelPort.bind(powerModelChannel);
-  pwrCombinator.staticConsumers[0].bind(staticConsumption);
-  pwrCombinator.staticConsumers[1].bind(staticConsumptionBoot);
-  pwrCombinator.dynamicConsumers[0].bind(dynamicConsumption);
-  pwrCombinator.sum.bind(totMcuConsumption);
-  pwrCombinator.vcc.bind(vcc);
-  pwrCombinator.nReset.bind(nReset);
+  powerModelBridge.powerModelPort.bind(powerModelChannel);
+  powerModelBridge.i_out.bind(icc);
+  powerModelBridge.v_in.bind(vcc);
+  mcu.vcc.bind(vcc);
 
   // External circuits (capacitor + supply voltage supervisor etc.)
-  externalCircuitry.i_out.bind(totMcuConsumption);
+  externalCircuitry.i_out.bind(icc);
   externalCircuitry.vcc.bind(vcc);
   externalCircuitry.v_warn.bind(DIOBPins[0]);
 
@@ -97,13 +88,12 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
       (Config::get().getString("OutputDirectory") + "/ext.tab").c_str());
 
   sca_trace(tabfile, vcc, "vcc");
-  sca_trace(tabfile, totMcuConsumption, "icc");
+  sca_trace(tabfile, icc, "icc");
   sca_trace(tabfile, nReset, "nReset");
   sca_trace(tabfile, externalCircuitry.v_cap, "externalCircuitry.v_cap");
   sca_trace(tabfile, externalCircuitry.keepAlive,
             "externalCircuitry.keepAlive");
   sca_trace(tabfile, externalCircuitry.i_supply, "externalCircuitry.i_supply");
-  sca_trace(tabfile, totMcuConsumption, "icc");
 }
 
 Msp430TestBoard::~Msp430TestBoard() {

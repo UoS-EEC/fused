@@ -12,9 +12,8 @@
 #include "boards/Board.hpp"
 #include "mcu/Microcontroller.hpp"
 #include "mcu/Msp430Microcontroller.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
-#include "ps/PowerCombine.hpp"
+#include "ps/PowerModelBridge.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "sd/SpiLoopBack.hpp"
 #include "utilities/BoolLogicConverter.hpp"
@@ -41,12 +40,8 @@ class Msp430TestBoard : public Board {
 
   /* ------ Channels & signals ------ */
   PowerModelChannel powerModelChannel;
-  DynamicEnergyChannel dynamicConsumption{"dynamicConsumption"};
-  sc_core::sc_signal<double> staticConsumption{"staticConsumption", 0.0};
-  sc_core::sc_signal<double> staticConsumptionBoot{"staticConsumptionBoot",
-                                                   0.0};
-  sc_core::sc_signal<double> totMcuConsumption{"totMcuConsumption", 0.0};
   sc_core::sc_signal<double> vcc{"vcc", 0.0};
+  sc_core::sc_signal<double> icc{"icc", 0.0};
   sc_core::sc_signal<bool> nReset{"nReset"};
   sc_core::sc_signal_resolved chipSelectSpiWire{"chipSelectSpiWire",
                                                 sc_dt::SC_LOGIC_0};
@@ -61,10 +56,10 @@ class Msp430TestBoard : public Board {
   /* ------ Submodules ------ */
   Msp430Microcontroller mcu{"mcu"};
   SpiLoopBack spiLoopBack{"spiLoopBack"};
-  PowerCombine<2, 1> pwrCombinator{"PowerCombine"};
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
   IoSimulationStopper simStopper{"PA2Stopper"};
+  PowerModelBridge powerModelBridge{"powerModelBridge"};
 
   /* ------ Tracing ------ */
   sca_util::sca_trace_file *vcdfile;

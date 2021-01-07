@@ -21,7 +21,6 @@ class PowerManagementModule : public BusTarget {
   sc_core::sc_in<bool> ira{"ira"};      //! Interrupt acknowledge input
   sc_core::sc_in<double> vcc{"vcc"};    //! Supply voltage
   sc_core::sc_out<bool> pwrGood{"on"};  //! True if vcc>vmin, otherwise false
-  sc_core::sc_out<double> staticPower{"staticPower"};
 
   /* ------ Methods ------ */
   /**

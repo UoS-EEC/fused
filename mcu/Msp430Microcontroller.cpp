@@ -159,9 +159,6 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   interruptArbiter->irqIn[35].bind(port7_irq);
   interruptArbiter->irqIn[36].bind(port8_irq);
 
-  // Power
-  pmm->staticPower.bind(staticPower);
-
   // Reset
   m_cpu.pwrOn.bind(nReset);
   for (const auto &s : slaves) {

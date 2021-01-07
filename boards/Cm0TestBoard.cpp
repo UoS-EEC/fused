@@ -12,10 +12,7 @@
 #include "boards/Cm0TestBoard.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
-#include "ps/EventLog.hpp"
 #include "ps/ExternalCircuitry.hpp"
-#include "ps/PowerCombine.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 #include "utilities/SimulationController.hpp"
@@ -27,7 +24,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
       powerModelChannel(
           "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory"),
-          sc_time::from_seconds(Config::get().getDouble("EventLogTimeStep"))) {
+          sc_time::from_seconds(Config::get().getDouble("LogTimeStep"))) {
   /* ------ Bind ------ */
   // Reset
   resetCtrl.vcc.bind(vcc);
@@ -46,22 +43,14 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
   mcu.spi->spiSocket.bind(spiLoopBack.tSocket);
 
   // Power circuitry
-  mcu.vcc.bind(vcc);
-  mcu.staticPower.bind(staticConsumptionBoot);
-  EventLog::getInstance().dynamicEnergy.bind(dynamicConsumption);
-  EventLog::getInstance().staticPower.bind(staticConsumption);
-
-  // Combine static current + dynamic energy into single current
   mcu.powerModelPort.bind(powerModelChannel);
-  pwrCombinator.staticConsumers[0].bind(staticConsumption);
-  pwrCombinator.staticConsumers[1].bind(staticConsumptionBoot);
-  pwrCombinator.dynamicConsumers[0].bind(dynamicConsumption);
-  pwrCombinator.sum.bind(totMcuConsumption);
-  pwrCombinator.vcc.bind(vcc);
-  pwrCombinator.nReset.bind(nReset);
+  powerModelBridge.powerModelPort.bind(powerModelChannel);
+  powerModelBridge.i_out.bind(icc);
+  powerModelBridge.v_in.bind(vcc);
+  mcu.vcc.bind(vcc);
 
   // External circuits (capacitor + supply voltage supervisor etc.)
-  externalCircuitry.i_out.bind(totMcuConsumption);
+  externalCircuitry.i_out.bind(icc);
   externalCircuitry.vcc.bind(vcc);
   externalCircuitry.v_warn.bind(gpioPins[31]);
 
@@ -95,14 +84,13 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
   tabfile = sca_util::sca_create_tabular_trace_file(
       (Config::get().getString("OutputDirectory") + "/ext.tab").c_str());
 
-  sca_trace(tabfile, vcc, "vcc");
-  sca_trace(tabfile, totMcuConsumption, "icc");
+  sca_trace(tabfile, powerModelBridge.v_in, "vcc");
+  sca_trace(tabfile, powerModelBridge.i_out, "icc");
   sca_trace(tabfile, nReset, "nReset");
   sca_trace(tabfile, externalCircuitry.v_cap, "externalCircuitry.v_cap");
   sca_trace(tabfile, externalCircuitry.keepAlive,
             "externalCircuitry.keepAlive");
   sca_trace(tabfile, externalCircuitry.i_supply, "externalCircuitry.i_supply");
-  sca_trace(tabfile, totMcuConsumption, "icc");
 }
 
 Cm0TestBoard::~Cm0TestBoard() {

@@ -12,9 +12,8 @@
 #include "boards/Board.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
 #include "ps/ExternalCircuitry.hpp"
-#include "ps/PowerCombine.hpp"
+#include "ps/PowerModelBridge.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "sd/Accelerometer.hpp"
 #include "sd/Bme280.hpp"
@@ -69,12 +68,8 @@ class Cm0SensorNode : public Board {
 
   /* ------ Channels & signals ------ */
   PowerModelChannel powerModelChannel;
-  DynamicEnergyChannel dynamicConsumption{"dynamicConsumption"};
-  sc_core::sc_signal<double> staticConsumption{"staticConsumption", 0.0};
-  sc_core::sc_signal<double> staticConsumptionBoot{"staticConsumptionBoot",
-                                                   0.0};
-  sc_core::sc_signal<double> totMcuConsumption{"totMcuConsumption", 0.0};
   sc_core::sc_signal<double> vcc{"vcc", 0.0};
+  sc_core::sc_signal<double> icc{"icc", 0.0};
   sc_core::sc_signal<bool> nReset{"nReset"};
   sc_core::sc_signal<bool> keepAliveBool{"keepAliveBool"};
   std::array<sc_core::sc_signal_resolved, 32> gpioPins;
@@ -82,9 +77,9 @@ class Cm0SensorNode : public Board {
   /* ------ Submodules ------ */
   ResetCtrl resetCtrl{"resetCtrl"};
   Cm0Microcontroller mcu{"mcu"};
-  PowerCombine<2, 1> pwrCombinator{"PowerCombine"};
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
+  PowerModelBridge powerModelBridge{"powerModelBridge"};
 
   /* ------ External chips ------ */
   Accelerometer accelerometer{"accelerometer"};

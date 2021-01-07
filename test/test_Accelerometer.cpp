@@ -11,8 +11,6 @@
 #include <tlm>
 #include <vector>
 #include "mcu/SpiTransactionExtension.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
-#include "ps/EventLog.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "sd/Accelerometer.hpp"
 #include "utilities/Config.hpp"
@@ -414,14 +412,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

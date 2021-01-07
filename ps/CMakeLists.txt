@@ -8,17 +8,6 @@
 add_library(
     PowerSystem
     ConstantEnergyEvent.hpp
-    DynamicEnergyChannel.hpp
-    DynamicEnergyIf.hpp
-    EnergyConsumer.cpp
-    EnergyConsumer.hpp
-    EnergyProducer.cpp
-    EnergyProducer.hpp
-    EventLog.cpp
-    EventLog.hpp
-    PowerCalculator.cpp
-    PowerCalculator.hpp
-    PowerCombine.hpp
     PowerModelBridge.hpp
     PowerModelEventBase.hpp
     PowerModelChannelIf.hpp
