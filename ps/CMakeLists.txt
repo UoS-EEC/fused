@@ -19,6 +19,7 @@ add_library(
     PowerCalculator.cpp
     PowerCalculator.hpp
     PowerCombine.hpp
+    PowerModelBridge.hpp
     PowerModelEventBase.hpp
     PowerModelChannelIf.hpp
     PowerModelChannel.hpp
