@@ -19,7 +19,7 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
       powerModelChannel(
           "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory"),
-          sc_time::from_seconds(Config::get().getDouble("LogTimeStep"))) {
+          sc_time::from_seconds(Config::get().getDouble("LogTimestep"))) {
   /* ------ Bind ------ */
   // Reset
   mcu.pmm->pwrGood.bind(nReset);

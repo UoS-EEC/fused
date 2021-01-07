@@ -29,10 +29,8 @@ SimTimeLimit: 30.0 # Simulation time limit (seconds)
 IoSimulationStopperTarget: 3 # Simulation stops after X posedge of pin connected to simstopper
 
 # ------ Timesteps ------
-LogTimeStep: 10.0e-6 # Period over which to aggregate events
-MCUPowerTimestep: 10.1e-6 # Rate at which mcu current is computed
-ExtTimestep: 5.0E-6
-CapacitorTimeStep: 5.0e-6
+PowerModelTimestep: 10.0E-6
+LogTimestep: 10.0e-6 # Time step of the power model's csv files
 
 # ------ Cortex M0 Clocks ------
 MasterClockPeriod: 125.0e-9

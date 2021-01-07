@@ -122,8 +122,8 @@ SCA_TDF_MODULE(ConstantCurrentSupplyTDF) {
   SCA_CTOR(ConstantCurrentSupplyTDF) {
     m_currentSetpoint = Config::get().getDouble("SupplyCurrentLimit");
     m_voltageLimit = Config::get().getDouble("SupplyVoltageLimit");
-    m_timestep =
-        sc_core::sc_time::from_seconds(Config::get().getDouble("ExtTimestep"));
+    m_timestep = sc_core::sc_time::from_seconds(
+        Config::get().getDouble("PowerModelTimestep"));
     m_maxStepSize =
         m_timestep.to_seconds() *
         (m_currentSetpoint / Config::get().getDouble("CapacitorValue"));
