@@ -190,9 +190,6 @@ void PowerModelChannel::logLoop() {
     wait(m_logTimestep);
 
     // Push new timestep
-    spdlog::info(FMT_STRING("PowerModelChannel:: Pushing new timestep, "
-                            "m_events.size={:d}, m_log.size={:d}"),
-                 m_events.size(), m_log.size());
     m_log.emplace_back(m_events.size() + 1, 0);  // New row of all 0s
     // Last column in the new row is the current time step
     m_log.back().back() = static_cast<int>(
