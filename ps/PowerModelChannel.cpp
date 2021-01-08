@@ -46,7 +46,7 @@ PowerModelChannel::PowerModelChannel(const sc_module_name name,
 PowerModelChannel::~PowerModelChannel() { dumpEventCsv(); }
 
 int PowerModelChannel::registerEvent(
-    std::unique_ptr<PowerModelEventBase> eventPtr) {
+    std::shared_ptr<PowerModelEventBase> eventPtr) {
   // Check if already running
   if (sc_is_running()) {
     throw std::runtime_error(
@@ -58,7 +58,7 @@ int PowerModelChannel::registerEvent(
   // Check if event name already present in m_events
   const auto name = eventPtr->name;
   if (std::any_of(m_events.begin(), m_events.end(),
-                  [name](const std::unique_ptr<PowerModelEventBase> &e) {
+                  [name](const std::shared_ptr<PowerModelEventBase> &e) {
                     return e->name == name;
                   })) {
     throw std::invalid_argument(fmt::format(
@@ -76,7 +76,7 @@ int PowerModelChannel::registerEvent(
 
 int PowerModelChannel::registerState(
     const std::string moduleName,
-    std::unique_ptr<PowerModelStateBase> statePtr) {
+    std::shared_ptr<PowerModelStateBase> statePtr) {
   // Check if already running
   if (sc_is_running()) {
     throw std::runtime_error(

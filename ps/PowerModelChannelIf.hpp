@@ -41,21 +41,21 @@ class PowerModelChannelOutIf : public virtual sc_core::sc_interface {
    * simulation will result in an exception. The returned event id is used for
    * incrementing the count of occurrences of the specified event via
    * reportEvent.
-   * @param eventPtr unique pointer to an event derived from PowerModelEventBase
+   * @param eventPtr shared pointer to an event derived from PowerModelEventBase
    * @retval  assigned event id
    */
-  virtual int registerEvent(std::unique_ptr<PowerModelEventBase> eventPtr) = 0;
+  virtual int registerEvent(std::shared_ptr<PowerModelEventBase> eventPtr) = 0;
 
   /**
    * @brief registerState register a new power model state. All states must be
    * registered before simulation starts. Trying to register a state during
    * simulation will result in an exception. The returned state id is used for
    * reporting via reportState
-   * @param statePtr unique pointer to a state derived from PowerModelStateBase
+   * @param statePtr shared pointer to a state derived from PowerModelStateBase
    * @retval  assigned state id
    */
   virtual int registerState(const std::string moduleName,
-                            std::unique_ptr<PowerModelStateBase> statePtr) = 0;
+                            std::shared_ptr<PowerModelStateBase> statePtr) = 0;
 
   /**
    * @brief reportEvent notify the channel of n occurrences of a specific event.

@@ -38,11 +38,11 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   // See PowerModelChannelIf.hpp for description of the following virtual
   // methods.
   virtual int registerEvent(
-      std::unique_ptr<PowerModelEventBase> eventPtr) override;
+      std::shared_ptr<PowerModelEventBase> eventPtr) override;
 
   virtual int registerState(
       const std::string moduleName,
-      std::unique_ptr<PowerModelStateBase> statePtr) override;
+      std::shared_ptr<PowerModelStateBase> statePtr) override;
 
   virtual void reportEvent(const int eventId, const int n = 1) override;
 
@@ -81,7 +81,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
 
   // ------ Events ------
   //! Stores registered events. The index corresponds to the event id
-  std::vector<std::unique_ptr<PowerModelEventBase>> m_events;
+  std::vector<std::shared_ptr<PowerModelEventBase>> m_events;
 
   //! Keeps track of event counts since the last pop
   std::vector<int> m_eventRates;
@@ -89,9 +89,9 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   // ------ States ------
   //! Struct for storing state objects and their module ids
   struct ModuleStateEntry {
-    std::unique_ptr<PowerModelStateBase> state;
+    std::shared_ptr<PowerModelStateBase> state;
     const int moduleId;
-    ModuleStateEntry(std::unique_ptr<PowerModelStateBase>&& state_,
+    ModuleStateEntry(std::shared_ptr<PowerModelStateBase>&& state_,
                      const int id)
         : state(std::move(state_)), moduleId(id) {}
   };
