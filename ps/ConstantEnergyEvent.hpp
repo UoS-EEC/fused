@@ -21,10 +21,10 @@ class ConstantEnergyEvent : public PowerModelEventBase {
  public:
   //! Constructor
   ConstantEnergyEvent(const std::string name, double energy_)
-      : PowerModelEventBase(name, -1), energy(energy_) {}
+      : PowerModelEventBase(name), energy(energy_) {}
 
   ConstantEnergyEvent(const std::string name)
-      : PowerModelEventBase(name, -1),
+      : PowerModelEventBase(name),
         energy(Config::get().contains(name) ? Config::get().getDouble(name)
                                             : 0.0) {}
 

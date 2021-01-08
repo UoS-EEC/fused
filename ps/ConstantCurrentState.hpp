@@ -21,10 +21,10 @@ class ConstantCurrentState : public PowerModelStateBase {
  public:
   //! Constructor
   ConstantCurrentState(const std::string name, double current_)
-      : PowerModelStateBase(name, -1), current(current_) {}
+      : PowerModelStateBase(name), current(current_) {}
 
   ConstantCurrentState(const std::string name)
-      : PowerModelStateBase(name, -1),
+      : PowerModelStateBase(name),
         current(Config::get().contains(name) ? Config::get().getDouble(name)
                                              : 0.0) {}
 

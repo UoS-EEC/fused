@@ -17,8 +17,7 @@
 class PowerModelStateBase {
  public:
   //! Constructor
-  PowerModelStateBase(const std::string name_, const int id_)
-      : name(name_), id(id_) {}
+  PowerModelStateBase(const std::string name_) : name(name_) {}
 
   /**
    * @brief calculateEnergy calculate state current , optionally adjusted for
@@ -28,5 +27,4 @@ class PowerModelStateBase {
 
   /* Public constants */
   const std::string name;
-  int id;  // TODO find a way to make this const
 };

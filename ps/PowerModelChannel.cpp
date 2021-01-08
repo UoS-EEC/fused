@@ -67,11 +67,11 @@ int PowerModelChannel::registerEvent(
         name));
   }
 
-  eventPtr->id = m_events.size();  // Set ID
+  const int id = m_events.size();
   m_events.push_back(std::move(eventPtr));
   m_eventRates.push_back(0);
   sc_assert(m_events.size() == m_eventRates.size());
-  return m_events.back()->id;
+  return id;
 }
 
 int PowerModelChannel::registerState(
@@ -110,10 +110,9 @@ int PowerModelChannel::registerState(
   }
 
   // Add state to m_states
-  statePtr->id = m_states.size();
+  const int id = m_states.size();
   m_states.emplace_back(std::move(statePtr), moduleId);
-
-  return m_states.back().state->id;
+  return id;
 }
 
 void PowerModelChannel::reportEvent(const int eventId, const int n) {

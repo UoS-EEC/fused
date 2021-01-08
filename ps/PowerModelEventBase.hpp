@@ -17,8 +17,7 @@
 class PowerModelEventBase {
  public:
   //! Constructor
-  PowerModelEventBase(const std::string name_, const int id_)
-      : name(name_), id(id_) {}
+  PowerModelEventBase(const std::string name_) : name(name_) {}
 
   /**
    * @brief calculateEnergy calculate event energy adjusted for supply voltage.
@@ -27,5 +26,4 @@ class PowerModelEventBase {
 
   /* Public constants */
   const std::string name;
-  int id;  // TODO find a way to make this const
 };
