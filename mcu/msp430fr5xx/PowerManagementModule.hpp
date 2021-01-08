@@ -12,6 +12,7 @@
 #include <vector>
 #include "mcu/BusTarget.hpp"
 #include "mcu/RegisterFile.hpp"
+#include "ps/PowerModelStateBase.hpp"
 
 class PowerManagementModule : public BusTarget {
  public:
@@ -37,7 +38,25 @@ class PowerManagementModule : public BusTarget {
                            sc_core::sc_time &delay) override;
 
  private:
-  /* ------ Internal signals ------ */
+  /* ------ Internal classes ------ */
+
+  /* Specialized power state for reporting boot current. */
+  class BootCurrentState : public PowerModelStateBase {
+   public:
+    BootCurrentState(const std::string name) : PowerModelStateBase(name) {}
+
+    void setCurrent(double current) { m_current = current; }
+
+    virtual double calculateCurrent([
+        [maybe_unused]] double supplyVoltage) const override {
+      return m_current;
+    }
+
+   private:
+    double m_current{0.0};
+  };
+
+  BootCurrentState m_bootCurrentState{"bootCurrentState"};
 
   /* ------ Private variables ------ */
   double m_vOn;   //! On voltage threshold
