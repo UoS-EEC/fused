@@ -12,7 +12,6 @@
 #include <vector>
 #include "mcu/BusTarget.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EnergyConsumer.hpp"
 
 class PowerManagementModule : public BusTarget {
  public:
