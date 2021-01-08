@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <memory>
 #include <string>
 #include <systemc>
 #include <tlm>
@@ -37,6 +38,12 @@ class PowerManagementModule : public BusTarget {
   virtual void b_transport(tlm::tlm_generic_payload &trans,
                            sc_core::sc_time &delay) override;
 
+  /**
+   * @brief set up methods, sensitivity, and register power model events and
+   * states
+   */
+  virtual void end_of_elaboration() override;
+
  private:
   /* ------ Internal classes ------ */
 
@@ -56,7 +63,7 @@ class PowerManagementModule : public BusTarget {
     double m_current{0.0};
   };
 
-  BootCurrentState m_bootCurrentState{"bootCurrentState"};
+  std::shared_ptr<BootCurrentState> m_bootCurrentState;
 
   /* ------ Private variables ------ */
   double m_vOn;   //! On voltage threshold
