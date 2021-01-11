@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <spdlog/fmt/fmt.h>
 #include <stdint.h>
 #include <iostream>
 #include <string>
@@ -31,6 +32,12 @@ class ConstantEnergyEvent : public PowerModelEventBase {
   virtual double calculateEnergy([
       [maybe_unused]] const double supplyVoltage) const override {
     return energy;
+  }
+
+  virtual std::string toString() const override {
+    return fmt::format(
+        FMT_STRING("{:s} <ConstantEnergyEvent> energy={:.6f} nJ"), name,
+        energy * 1e9);
   }
 
   /* Public constants */

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <spdlog/fmt/fmt.h>
 #include <stdint.h>
 #include <iostream>
 #include <string>
@@ -31,6 +32,12 @@ class ConstantCurrentState : public PowerModelStateBase {
   virtual double calculateCurrent([
       [maybe_unused]] const double supplyVoltage) const override {
     return current;
+  }
+
+  virtual std::string toString() const override {
+    return fmt::format(
+        FMT_STRING("{:s} <ConstantCurrentState> current={:.6} nA"), name,
+        current * 1e9);
   }
 
   /* Public constants */

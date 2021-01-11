@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/fmt/fmt.h>
 #include <memory>
 #include <string>
 #include <systemc>
@@ -57,6 +58,12 @@ class PowerManagementModule : public BusTarget {
     virtual double calculateCurrent([
         [maybe_unused]] double supplyVoltage) const override {
       return m_current;
+    }
+
+    virtual std::string toString() const override {
+      return fmt::format(
+          FMT_STRING("{:s} <BootCurrentState> current={:.6} nA (variable)"),
+          name, m_current * 1e9);
     }
 
    private:
