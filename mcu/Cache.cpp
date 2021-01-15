@@ -92,24 +92,18 @@ void Cache::end_of_elaboration() {
   BusTarget::end_of_elaboration();
 
   // Register events
-  m_readMissEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " read miss"));
-  m_readHitEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " read hit"));
-  m_writeMissEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " write miss"));
-  m_writeHitEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " write hit"));
-  m_nBytesReadEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " bytes read"));
-  m_nBytesWrittenEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " bytes written"));
+  m_readMissEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("read miss"));
+  m_readHitEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("read hit"));
+  m_writeMissEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("write miss"));
+  m_writeHitEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("write hit"));
+  m_nBytesReadEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("bytes read"));
+  m_nBytesWrittenEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("bytes written"));
 
   // Methods & threads
   SC_METHOD(reset);

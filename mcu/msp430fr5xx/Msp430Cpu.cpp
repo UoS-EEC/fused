@@ -55,28 +55,22 @@ void Msp430Cpu::end_of_elaboration() {
       "PUSH", "RETI", "RRA", "RRC", "SUB", "SUBC", "SWPB", "SXT", "XOR"};
 
   for (const auto &op : ops) {
-    powerModelPort->registerEvent(
-        std::make_unique<ConstantEnergyEvent>(std::string("inst-") + op));
+    powerModelPort->registerEvent("inst-",
+                                  std::make_unique<ConstantEnergyEvent>(op));
   }
 
-  m_formatIEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " formatI"));
-  m_formatIIEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " formatII"));
-  m_formatIIIEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " formatIII"));
-  m_pcIsDestinationEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " pc-is-dest"));
-  m_irqEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " irq"));
-  m_idleCyclesEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " idle cycles"));
+  m_formatIEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("formatI"));
+  m_formatIIEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("formatII"));
+  m_formatIIIEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("formatIII"));
+  m_pcIsDestinationEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("pc-is-dest"));
+  m_irqEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("irq"));
+  m_idleCyclesEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("idle cycles"));
 
   m_offStateId = powerModelPort->registerState(
       this->name(), std::make_unique<ConstantCurrentState>("off"));

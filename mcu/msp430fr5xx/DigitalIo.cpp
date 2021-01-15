@@ -39,12 +39,10 @@ void DigitalIo::end_of_elaboration() {
   BusTarget::end_of_elaboration();
 
   // Register events & states
-  m_pinPosEdgeId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " io_pin_pos"));
-  m_pinNegEdgeId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " io_pin_neg"));
+  m_pinPosEdgeId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("io_pin_pos"));
+  m_pinNegEdgeId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("io_pin_neg"));
 
   // Register SC_METHODs
   SC_METHOD(reset);

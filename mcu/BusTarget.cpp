@@ -17,21 +17,19 @@ using namespace sc_core;
 
 BusTarget::BusTarget(const sc_module_name name, const unsigned startAddress,
                      const unsigned endAddress)
-    : tSocket("tSocket"),
+    : sc_module(name),
+      tSocket("tSocket"),
       m_startAddress(startAddress),
-      m_endAddress(endAddress),
-      sc_module(name) {
+      m_endAddress(endAddress) {
   sc_assert(startAddress <= endAddress);
   tSocket.bind(*this);
 }
 
 void BusTarget::end_of_elaboration() {
-  m_readEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " read"));
-  m_writeEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " write"));
+  m_readEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("read"));
+  m_writeEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("write"));
 }
 
 void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {

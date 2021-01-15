@@ -61,7 +61,7 @@ Accelerometer::Accelerometer(const sc_module_name name)
 void Accelerometer::end_of_elaboration() {
   // Get event & state IDs
   m_sampleEventId = powerModelPort->registerEvent(
-      std::make_unique<ConstantEnergyEvent>("Accelerometer sample"));
+      "Accelerometer", std::make_unique<ConstantEnergyEvent>("sample"));
   m_sleepStateId = powerModelPort->registerState(
       "Accelerometer", std::make_unique<ConstantCurrentState>("sleep"));
   m_activeStateId = powerModelPort->registerState(

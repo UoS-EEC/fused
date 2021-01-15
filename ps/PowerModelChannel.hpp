@@ -38,6 +38,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   // See PowerModelChannelIf.hpp for description of the following virtual
   // methods.
   virtual int registerEvent(
+      const std::string moduleName,
       std::shared_ptr<PowerModelEventBase> eventPtr) override;
 
   virtual int registerState(
@@ -49,8 +50,6 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   virtual void reportState(const int stateId) override;
 
   virtual int popEventCount(const int eventId) override;
-
-  virtual size_t size() const override;
 
   virtual double popEventEnergy(const int eventId) override;
 
@@ -79,9 +78,22 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   //! SystemC event
   sc_core::sc_event m_supplyVoltageChangedEvent{"supplyVoltageChangedEvent"};
 
+  //! Vector of module names that use state/event reporting. The  index
+  //! corresponds to the module id, and is only used internally.
+  std::vector<std::string> m_moduleNames;
+
   // ------ Events ------
+  //! Struct for storing state objects and their module ids
+  struct ModuleEventEntry {
+    std::shared_ptr<PowerModelEventBase> event;
+    const int moduleId;
+    ModuleEventEntry(std::shared_ptr<PowerModelEventBase>&& event_,
+                     const int id)
+        : event(std::move(event_)), moduleId(id) {}
+  };
+
   //! Stores registered events. The index corresponds to the event id
-  std::vector<std::shared_ptr<PowerModelEventBase>> m_events;
+  std::vector<ModuleEventEntry> m_events;
 
   //! Keeps track of event counts since the last pop
   std::vector<int> m_eventRates;
@@ -99,10 +111,6 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   //! Vector for storing state objects and their corresponding module ids. The
   //! index of this vector corresponds to state ids.
   std::vector<ModuleStateEntry> m_states;
-
-  //! Vector of module names that use state reporting. The  index corresponds to
-  //! the module id, and is only used internally.
-  std::vector<std::string> m_moduleNames;
 
   //! Current state of modules. Defaults to the first registered state for each
   //! module. The index is the module id and the value is the state id.

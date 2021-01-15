@@ -38,20 +38,19 @@ SC_MODULE(tester) {
 
   void registerEvents() {
     spdlog::info("------ TEST: register some events");
-    sc_assert(test.inport->size() == 0);
     eid1 = test.outport->registerEvent(
-        std::make_unique<ConstantEnergyEvent>("event1", 1.0e-12));
-    sc_assert(test.inport->size() == 1);
+        "module0", std::make_unique<ConstantEnergyEvent>("event1", 1.0e-12));
+    sc_assert(eid1 == 0);
     eid2 = test.outport->registerEvent(
-        std::make_unique<ConstantEnergyEvent>("event2", 2.0e-12));
-    sc_assert(test.inport->size() == 2);
+        "module0", std::make_unique<ConstantEnergyEvent>("event2", 2.0e-12));
+    sc_assert(eid2 == 1);
 
     spdlog::info(
         "------ TEST: registering the same event twice throws exception");
     auto success = false;
     try {
       test.outport->registerEvent(
-          std::make_unique<ConstantEnergyEvent>("event1", 1.0e-12));
+          "module0", std::make_unique<ConstantEnergyEvent>("event1", 1.0e-12));
     } catch (std::invalid_argument &e) {
       success = true;
     }
@@ -91,8 +90,8 @@ SC_MODULE(tester) {
         "------ TEST: Registering an event after simulation start causes "
         "exception");
     try {
-      test.outport->registerEvent(std::unique_ptr<ConstantEnergyEvent>(
-          new ConstantEnergyEvent("event1", 1.0e-12)));
+      test.outport->registerEvent(
+          "module0", std::make_unique<ConstantEnergyEvent>("event1", 1.0e-12));
       sc_assert(false);  // Fail
     } catch (std::runtime_error &e) {
       // Success

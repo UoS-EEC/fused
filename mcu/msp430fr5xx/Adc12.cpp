@@ -68,9 +68,8 @@ void Adc12::end_of_elaboration() {
   m_onStateId = powerModelPort->registerState(
       this->name(), std::make_unique<ConstantCurrentState>("on"));
 
-  m_sampleEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          std::string(this->name()) + " sample"));
+  m_sampleEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("sample"));
 
   // Register SC_METHODs here (after construction)
   SC_METHOD(process);

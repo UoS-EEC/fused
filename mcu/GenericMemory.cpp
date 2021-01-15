@@ -27,12 +27,10 @@ void GenericMemory::end_of_elaboration() {
   BusTarget::end_of_elaboration();
 
   // Register events for power model
-  m_nBytesWrittenEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          fmt::format(FMT_STRING("{:s} bytes written"), this->name())));
-  m_nBytesReadEventId =
-      powerModelPort->registerEvent(std::make_unique<ConstantEnergyEvent>(
-          fmt::format(FMT_STRING("{:s} bytes read"), this->name())));
+  m_nBytesWrittenEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("bytes written"));
+  m_nBytesReadEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>("bytes read"));
 }
 
 void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,

@@ -41,16 +41,19 @@ class PowerModelChannelOutIf : public virtual sc_core::sc_interface {
    * simulation will result in an exception. The returned event id is used for
    * incrementing the count of occurrences of the specified event via
    * reportEvent.
+   * @param moduleName name of parent module
    * @param eventPtr shared pointer to an event derived from PowerModelEventBase
    * @retval  assigned event id
    */
-  virtual int registerEvent(std::shared_ptr<PowerModelEventBase> eventPtr) = 0;
+  virtual int registerEvent(const std::string moduleName,
+                            std::shared_ptr<PowerModelEventBase> eventPtr) = 0;
 
   /**
    * @brief registerState register a new power model state. All states must be
    * registered before simulation starts. Trying to register a state during
    * simulation will result in an exception. The returned state id is used for
    * reporting via reportState
+   * @param moduleName name of parent module
    * @param statePtr shared pointer to a state derived from PowerModelStateBase
    * @retval  assigned state id
    */
@@ -130,12 +133,6 @@ class PowerModelChannelInIf : public virtual sc_core::sc_interface {
    * @param val current supply voltage in volts.
    */
   virtual void setSupplyVoltage(double val) = 0;
-
-  /**
-   * @brief size returns the number of registered events.
-   * @retval the number of registered events.
-   */
-  virtual size_t size() const = 0;
 };
 
 // Typedef of ports for convenience

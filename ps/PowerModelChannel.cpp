@@ -46,6 +46,7 @@ PowerModelChannel::PowerModelChannel(const sc_module_name name,
 PowerModelChannel::~PowerModelChannel() { dumpEventCsv(); }
 
 int PowerModelChannel::registerEvent(
+    const std::string moduleName,
     std::shared_ptr<PowerModelEventBase> eventPtr) {
   // Check if already running
   if (sc_is_running()) {
@@ -55,20 +56,33 @@ int PowerModelChannel::registerEvent(
         "construction/elaboration.");
   }
 
-  // Check if event name already present in m_events
-  const auto name = eventPtr->name;
-  if (std::any_of(m_events.begin(), m_events.end(),
-                  [name](const std::shared_ptr<PowerModelEventBase> &e) {
-                    return e->name == name;
-                  })) {
-    throw std::invalid_argument(fmt::format(
-        FMT_STRING("PowerModelChannel::registerEvent event name '{:s}' "
-                   "already registered"),
-        name));
+  const auto it =
+      std::find(m_moduleNames.begin(), m_moduleNames.end(), moduleName);
+  int moduleId = -1;
+  if (it == m_moduleNames.end()) {
+    // This is the first registration for this module
+    moduleId = m_moduleNames.size();
+    m_moduleNames.push_back(moduleName);
+    m_currentStates.push_back(-1);
+  } else {
+    // This is *not* the first event registration for this module
+    // Check if event name already registered for the specified module name
+    const auto name = eventPtr->name;
+    moduleId = it - m_moduleNames.begin();
+    if (std::any_of(m_events.begin(), m_events.end(),
+                    [name, moduleId](const ModuleEventEntry &s) {
+                      return s.event->name == name && s.moduleId == moduleId;
+                    })) {
+      throw std::invalid_argument(fmt::format(
+          FMT_STRING("PowerModelChannel::registerEvent event '{:s}' already "
+                     "registered with module '{:s}'"),
+          name, moduleName));
+    }
   }
 
+  // Add event to m_events
   const int id = m_events.size();
-  m_events.push_back(std::move(eventPtr));
+  m_events.emplace_back(std::move(eventPtr), moduleId);
   m_eventRates.push_back(0);
   sc_assert(m_events.size() == m_eventRates.size());
   return id;
@@ -92,7 +106,7 @@ int PowerModelChannel::registerState(
     // This is the first state registration for this module
     moduleId = m_moduleNames.size();
     m_moduleNames.push_back(moduleName);
-    m_currentStates.push_back(m_states.size());
+    m_currentStates.push_back(-1);
   } else {
     // This is *not* the first state registration for this module
     // Check if state name already registered for the specified module name
@@ -112,6 +126,12 @@ int PowerModelChannel::registerState(
   // Add state to m_states
   const int id = m_states.size();
   m_states.emplace_back(std::move(statePtr), moduleId);
+
+  // Set default state to first state registered for this module
+  if (m_currentStates[moduleId] == -1) {
+    m_currentStates[moduleId] = id;
+  }
+
   return id;
 }
 
@@ -149,7 +169,7 @@ int PowerModelChannel::popEventCount(const int eventId) {
 
 double PowerModelChannel::popEventEnergy(const int eventId) {
   sc_assert(eventId >= 0 && eventId < m_log.back().size());
-  return m_events[eventId]->calculateEnergy(m_supplyVoltage) *
+  return m_events[eventId].event->calculateEnergy(m_supplyVoltage) *
          popEventCount(eventId);
 }
 
@@ -165,17 +185,35 @@ double PowerModelChannel::getStaticCurrent() {
   return std::accumulate(
       m_currentStates.begin(), m_currentStates.end(), 0.0,
       [=](const double &sum, const int &stateId) {
-        return sum + m_states[stateId].state->calculateCurrent(m_supplyVoltage);
+        // Ignore invalid (uninitialized) states
+        return stateId >= 0 ? sum + m_states[stateId].state->calculateCurrent(
+                                        m_supplyVoltage)
+                            : sum;
       });
 }
-
-size_t PowerModelChannel::size() const { return m_events.size(); }
 
 void PowerModelChannel::start_of_simulation() {
   // Initialize event log
   m_log.emplace_back(m_events.size() + 1, 0);
   // Fist entry is at t = timestep
   m_log.back().back() = static_cast<int>(m_logTimestep.to_seconds() * 1.0e6);
+
+  // Print list of events & states
+  spdlog::info("-- PowerModelChannel Registered Events & States ------");
+  for (int i = 0; i < m_moduleNames.size(); ++i) {
+    spdlog::info("\t<module> {:s}:", m_moduleNames[i]);
+    for (const auto &e : m_events) {
+      if (e.moduleId == i) {
+        spdlog::info("\t\t{:s}", e.event->toString());
+      }
+    }
+    for (const auto &s : m_states) {
+      if (s.moduleId == i) {
+        spdlog::info("\t\t{:s}", s.state->toString());
+      }
+    }
+  }
+  spdlog::info("----------------------------------------------");
 }
 
 void PowerModelChannel::logLoop() {
@@ -208,7 +246,8 @@ void PowerModelChannel::dumpEventCsv() {
     // Header
     for (unsigned int i = 0; i < m_events.size() + 1; ++i) {
       if (i < m_events.size()) {
-        f << m_events[i]->name << ',';
+        f << m_moduleNames[m_events[i].moduleId] << " "
+          << m_events[i].event->name << ',';
       } else {
         f << "time(us)\n";
       }
