@@ -24,10 +24,18 @@ class ConstantEnergyEvent : public PowerModelEventBase {
   ConstantEnergyEvent(const std::string name, double energy_)
       : PowerModelEventBase(name), energy(energy_) {}
 
-  ConstantEnergyEvent(const std::string name)
+  /**
+   * @brief alternative constructor which attempts to set the energy from the
+   * config item named "<moduleName> <name>". If the config does not contain
+   * that name, 0.0 is used.
+   * @param moduleName module name used for finding the energy from the config.
+   * @param name name of this event.
+   */
+  ConstantEnergyEvent(const std::string moduleName, const std::string name)
       : PowerModelEventBase(name),
-        energy(Config::get().contains(name) ? Config::get().getDouble(name)
-                                            : 0.0) {}
+        energy(Config::get().contains(moduleName + " " + name)
+                   ? Config::get().getDouble(moduleName + " " + name)
+                   : 0.0) {}
 
   virtual double calculateEnergy([
       [maybe_unused]] const double supplyVoltage) const override {
@@ -36,7 +44,7 @@ class ConstantEnergyEvent : public PowerModelEventBase {
 
   virtual std::string toString() const override {
     return fmt::format(
-        FMT_STRING("{:s} <ConstantEnergyEvent> energy={:.6f} nJ"), name,
+        FMT_STRING("<ConstantEnergyEvent> {:s}: energy={:.6f} nJ"), name,
         energy * 1e9);
   }
 

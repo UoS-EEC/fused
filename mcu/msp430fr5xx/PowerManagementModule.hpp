@@ -62,7 +62,7 @@ class PowerManagementModule : public BusTarget {
 
     virtual std::string toString() const override {
       return fmt::format(
-          FMT_STRING("{:s} <BootCurrentState> current={:.6} nA (variable)"),
+          FMT_STRING("<BootCurrentState> {:s}: current={:.6} nA (variable)"),
           name, m_current * 1e9);
     }
 

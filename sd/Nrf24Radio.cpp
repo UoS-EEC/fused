@@ -51,23 +51,32 @@ Nrf24Radio::Nrf24Radio(const sc_core::sc_module_name name) : SpiDevice(name) {
 void Nrf24Radio::end_of_elaboration() {
   // Register power modelling states
   m_porStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("por"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "por"));
   m_powerDownStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("power_down"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "power_down"));
   m_startUpStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("start_up"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "start_up"));
   m_standbyOneStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("standby_one"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "standby_one"));
   m_standbyTwoStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("standby_two"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "standby_two"));
   m_rxSettlingStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("rx_settling"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "rx_settling"));
   m_txSettlingStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("tx_settling"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "tx_settling"));
   m_rxModeStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("rx_mode"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "rx_mode"));
   m_txModeStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("tx_mode"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "tx_mode"));
 
   // Set up methods & threads
   SC_METHOD(payloadReceivedHandler);

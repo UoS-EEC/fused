@@ -55,17 +55,21 @@ CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
 void CortexM0Cpu::end_of_elaboration() {
   // Register events and states
   m_idleCyclesEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("idle cycles"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "idle cycles"));
 
   m_nInstructionsEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("n instructions"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "n instructions"));
 
   m_offStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("off"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "off"));
   m_onStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("on"));
+      this->name(), std::make_unique<ConstantCurrentState>(this->name(), "on"));
   m_sleepStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("sleep"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "sleep"));
 
   // Register methods
   SC_THREAD(process);

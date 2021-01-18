@@ -120,17 +120,21 @@ Bme280::Bme280(const sc_module_name name)
 void Bme280::end_of_elaboration() {
   // Register power modelling states and events
   m_offStateId = powerModelPort->registerState(
-      "BME280", std::make_unique<ConstantCurrentState>("off"));
+      "BME280", std::make_unique<ConstantCurrentState>(this->name(), "off"));
   m_sleepStateId = powerModelPort->registerState(
-      "BME280", std::make_unique<ConstantCurrentState>("sleep"));
+      "BME280", std::make_unique<ConstantCurrentState>(this->name(), "sleep"));
   m_standbyStateId = powerModelPort->registerState(
-      "BME280", std::make_unique<ConstantCurrentState>("standby"));
+      "BME280",
+      std::make_unique<ConstantCurrentState>(this->name(), "standby"));
   m_measureTemperatureStateId = powerModelPort->registerState(
-      "BME280", std::make_unique<ConstantCurrentState>("measure_temperature"));
+      "BME280", std::make_unique<ConstantCurrentState>(this->name(),
+                                                       "measure_temperature"));
   m_measurePressureStateId = powerModelPort->registerState(
-      "BME280", std::make_unique<ConstantCurrentState>("measure_humidity"));
+      "BME280",
+      std::make_unique<ConstantCurrentState>(this->name(), "measure_humidity"));
   m_measureHumidityStateId = powerModelPort->registerState(
-      "BME280", std::make_unique<ConstantCurrentState>("measure_pressure"));
+      "BME280",
+      std::make_unique<ConstantCurrentState>(this->name(), "measure_pressure"));
 
   // Register SC_METHODs
   SC_METHOD(spiInterface);

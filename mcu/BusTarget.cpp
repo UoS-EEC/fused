@@ -27,9 +27,11 @@ BusTarget::BusTarget(const sc_module_name name, const unsigned startAddress,
 
 void BusTarget::end_of_elaboration() {
   m_readEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("read"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "read"));
   m_writeEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("write"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "write"));
 }
 
 void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {

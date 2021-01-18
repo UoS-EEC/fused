@@ -93,17 +93,23 @@ void Cache::end_of_elaboration() {
 
   // Register events
   m_readMissEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("read miss"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "read miss"));
   m_readHitEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("read hit"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "read hit"));
   m_writeMissEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("write miss"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "write miss"));
   m_writeHitEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("write hit"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "write hit"));
   m_nBytesReadEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("bytes read"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "bytes read"));
   m_nBytesWrittenEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("bytes written"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "bytes written"));
 
   // Methods & threads
   SC_METHOD(reset);

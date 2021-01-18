@@ -24,10 +24,18 @@ class ConstantCurrentState : public PowerModelStateBase {
   ConstantCurrentState(const std::string name, double current_)
       : PowerModelStateBase(name), current(current_) {}
 
-  ConstantCurrentState(const std::string name)
+  /**
+   * @brief alternative constructor which attempts to set the current from the
+   * config item named "<moduleName> <name>". If the config does not contain
+   * that name, 0.0 is used.
+   * @param moduleName module name used for finding the current from the config.
+   * @param name name of this state.
+   */
+  ConstantCurrentState(const std::string moduleName, const std::string name)
       : PowerModelStateBase(name),
-        current(Config::get().contains(name) ? Config::get().getDouble(name)
-                                             : 0.0) {}
+        current(Config::get().contains(moduleName + " " + name)
+                    ? Config::get().getDouble(moduleName + " " + name)
+                    : 0.0) {}
 
   virtual double calculateCurrent([
       [maybe_unused]] const double supplyVoltage) const override {
@@ -36,7 +44,7 @@ class ConstantCurrentState : public PowerModelStateBase {
 
   virtual std::string toString() const override {
     return fmt::format(
-        FMT_STRING("{:s} <ConstantCurrentState> current={:.6} nA"), name,
+        FMT_STRING("<ConstantCurrentState> {:s}: current={:.6} nA"), name,
         current * 1e9);
   }
 

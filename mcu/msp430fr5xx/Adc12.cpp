@@ -64,12 +64,14 @@ void Adc12::end_of_elaboration() {
   BusTarget::end_of_elaboration();
   // Register power modelling states & events
   m_offStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("off"));
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "off"));
   m_onStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>("on"));
+      this->name(), std::make_unique<ConstantCurrentState>(this->name(), "on"));
 
   m_sampleEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("sample"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "sample"));
 
   // Register SC_METHODs here (after construction)
   SC_METHOD(process);

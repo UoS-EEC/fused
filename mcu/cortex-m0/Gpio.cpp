@@ -29,9 +29,11 @@ void Gpio::end_of_elaboration() {
 
   // Register power modelling events
   m_pinPosEdgeId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("negedge"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "negedge"));
   m_pinNegEdgeId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("posedge"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "posedge"));
   // Set up methods
   SC_METHOD(reset);
   sensitive << pwrOn;

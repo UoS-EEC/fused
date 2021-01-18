@@ -64,7 +64,8 @@ void TimerA::end_of_elaboration() {
 
   // Register events
   m_triggerEventId = powerModelPort->registerEvent(
-      this->name(), std::make_unique<ConstantEnergyEvent>("triggered"));
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "triggered"));
 
   // Register SC_METHODS here (after events have been constructed)
   SC_METHOD(process);

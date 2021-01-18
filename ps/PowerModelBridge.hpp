@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include <spdlog/spdlog.h>
 #include <systemc-ams>
 #include <systemc>
 #include "ps/PowerModelChannelIf.hpp"
@@ -29,13 +30,23 @@ SC_MODULE(PowerModelBridge) {
   void process() {
     const double timestep =
         (sc_core::sc_time_stamp() - m_lastReadTime).to_seconds();
-
-    // Current = static_current + E/(v*ts)
-    const double i =
-        powerModelPort->getStaticCurrent() +
-        powerModelPort->popDynamicEnergy() / (v_in.read() * timestep);
-    i_out.write(i);
     m_lastReadTime = sc_core::sc_time_stamp();
+
+    // Dynamic current = E/(v*ts)
+    const double dynamicCurrent =
+        powerModelPort->popDynamicEnergy() / (v_in.read() * timestep);
+
+    const double i = powerModelPort->getStaticCurrent() + dynamicCurrent;
+    i_out.write(i);
+
+    // spdlog::info(FMT_STRING(
+    // "{:s}: {:010d} us delta {:.1f} us static {:.6f} mA dynamic {:.6f} mA"),
+    //             this->name(),
+    //             static_cast<long long unsigned int>(
+    //                 1e6 * sc_core::sc_time_stamp().to_seconds()),
+    //             1e6 * timestep, 1e3 * powerModelPort->getStaticCurrent(),
+    //             1e3 * dynamicCurrent);
   }
+
   sc_core::sc_time m_lastReadTime{sc_core::SC_ZERO_TIME};
 };
