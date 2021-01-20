@@ -27,7 +27,6 @@
 #include "boards/Cm0SensorNode.hpp"
 #include "boards/Cm0TestBoard.hpp"
 #include "boards/Msp430TestBoard.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/SimulationController.hpp"
 
@@ -162,8 +161,6 @@ int sc_main(int argc, char *argv[]) {
 #pragma GCC diagnostic pop
   }
 #endif
-
-  EventLog::getInstance().dumpCsv();
 
   // Clean up memory
   delete board;

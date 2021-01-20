@@ -46,6 +46,7 @@ SysTick::SysTick(const sc_module_name name)
 }
 
 void SysTick::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
   const unsigned tenms =
       static_cast<unsigned>(sc_time(10, SC_MS) / clk->getPeriod()) - 1;
   m_regs.write(OFS_SYST_CALIB, SYST_CALIB_NOREF | tenms, /*force=*/true);

@@ -7,14 +7,11 @@
 
 #include <spdlog/spdlog.h>
 #include <tlm_utils/simple_initiator_socket.h>
-
 #include <systemc>
 #include <tlm>
-
 #include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "sd/Nrf24Radio.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -35,6 +32,8 @@ SC_MODULE(dut) {
   sc_signal_resolved interruptRequest{"interruptRequest"};  // Active low
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.nReset.bind(nReset);
@@ -42,6 +41,7 @@ SC_MODULE(dut) {
     m_dut.chipEnable.bind(chipEnable);
     m_dut.interruptRequest.bind(interruptRequest);
     m_dut.tSocket.bind(iSpiSocket);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   Nrf24Radio m_dut{"Nrf24Radio"};
@@ -471,14 +471,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

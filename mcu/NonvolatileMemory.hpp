@@ -12,7 +12,6 @@
 #include <list>
 #include <string>
 #include "mcu/GenericMemory.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 
 class NonvolatileMemory : public GenericMemory {

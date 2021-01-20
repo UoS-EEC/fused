@@ -13,7 +13,6 @@
 #include <tlm>
 #include "mcu/BusTarget.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 
 /**
  * @brief The Gpio class : simple unidirectional output-only "IO" port.
@@ -40,7 +39,7 @@ class Gpio : public BusTarget {
   /**
    * @brief Set up systemc methods.
    */
-  virtual void before_end_of_elaboration() override;
+  virtual void end_of_elaboration() override;
 
   /**
    * @brief reset Resets the IO registers to their default power-up values
@@ -58,8 +57,8 @@ class Gpio : public BusTarget {
   bool m_setIrq{false};     //! 1 if irq should be set
   unsigned m_lastState{0};  //! Last pin state, used to check for edges
   sc_core::sc_event m_updateIrqEvent{"updateIrqEvent"};
-  EventLog::eventId m_pinPosEdge;
-  EventLog::eventId m_pinNegEdge;
+  int m_pinPosEdgeId{-1};
+  int m_pinNegEdgeId{-1};
 
   /* ------ Private methods ------ */
   /**

@@ -8,7 +8,6 @@
 #include <string>
 #include <systemc>
 #include "mcu/msp430fr5xx/Mpy32.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 
 extern "C" {

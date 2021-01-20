@@ -11,7 +11,6 @@
 #include <tlm>
 #include "mcu/BusTarget.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 
 typedef unsigned __int128 uint128_t;
 

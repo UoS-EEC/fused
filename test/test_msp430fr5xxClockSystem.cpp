@@ -13,7 +13,7 @@
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/msp430fr5xx/ClockSystem.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 
 extern "C" {
@@ -33,6 +33,8 @@ SC_MODULE(dut) {
   ClockSourceChannel vloclk_sig{"vloclk_sig"};
   ClockSourceChannel modclk_sig{"modclk_sig"};
   ClockSourceChannel sysClk{"sysClk", sc_time(1, SC_NS)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
@@ -43,6 +45,7 @@ SC_MODULE(dut) {
     m_dut.vloclk.bind(vloclk_sig);
     m_dut.modclk.bind(modclk_sig);
     m_dut.systemClk.bind(sysClk);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   ClockSystem m_dut{"dut", 0};
@@ -91,14 +94,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

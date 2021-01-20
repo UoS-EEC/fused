@@ -8,7 +8,9 @@
 #include <systemc>
 #include <tuple>
 #include <vector>
+#include "libs/make_unique.hpp"
 #include "libs/strtk.hpp"
+#include "ps/ConstantCurrentState.hpp"
 #include "sd/Bme280.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -116,6 +118,25 @@ Bme280::Bme280(const sc_module_name name)
 }
 
 void Bme280::end_of_elaboration() {
+  // Register power modelling states and events
+  m_offStateId = powerModelPort->registerState(
+      "BME280", std::make_unique<ConstantCurrentState>(this->name(), "off"));
+  m_sleepStateId = powerModelPort->registerState(
+      "BME280", std::make_unique<ConstantCurrentState>(this->name(), "sleep"));
+  m_standbyStateId = powerModelPort->registerState(
+      "BME280",
+      std::make_unique<ConstantCurrentState>(this->name(), "standby"));
+  m_measureTemperatureStateId = powerModelPort->registerState(
+      "BME280", std::make_unique<ConstantCurrentState>(this->name(),
+                                                       "measure_temperature"));
+  m_measurePressureStateId = powerModelPort->registerState(
+      "BME280",
+      std::make_unique<ConstantCurrentState>(this->name(), "measure_humidity"));
+  m_measureHumidityStateId = powerModelPort->registerState(
+      "BME280",
+      std::make_unique<ConstantCurrentState>(this->name(), "measure_pressure"));
+
+  // Register SC_METHODs
   SC_METHOD(spiInterface);
   sensitive << m_transactionEvent << chipSelect.posedge_event();
   dont_initialize();
@@ -270,7 +291,7 @@ void Bme280::measurementLoop() {
       if (osrs_t == 0) {
         result = 0x8000;
       } else {
-        EventLog::getInstance().reportState("BME280", "measure_temperature");
+        powerModelPort->reportState(m_measureTemperatureStateId);
         for (int i = 0; i < nSamples(osrs_t); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result += static_cast<unsigned>((input.temperature - TEMP_OFFSET) /
@@ -295,7 +316,7 @@ void Bme280::measurementLoop() {
         result = 0x8000;
       } else {
         result = 0;
-        EventLog::getInstance().reportState("BME280", "measure_pressure");
+        powerModelPort->reportState(m_measurePressureStateId);
         for (int i = 0; i < nSamples(osrs_p); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result += static_cast<unsigned>((input.pressure - PRESS_OFFSET) /
@@ -322,7 +343,7 @@ void Bme280::measurementLoop() {
         result = 0x8000;
       } else {
         result = 0;
-        EventLog::getInstance().reportState("BME280", "measure_humidity");
+        powerModelPort->reportState(m_measureHumidityStateId);
         for (int i = 0; i < nSamples(osrs_h); ++i) {
           wait(sc_time(2, SC_MS));  // Sampling time
           result +=
@@ -344,7 +365,7 @@ void Bme280::measurementLoop() {
 
       if (m_measurementState == MeasurementState::Normal) {
         // Standby wait time
-        EventLog::getInstance().reportState("BME280", "standby");
+        powerModelPort->reportState(m_standbyStateId);
         const int STANDBY_DELAY_US[] = {500,    62500,   125000, 250000,
                                         500000, 1000000, 10000,  20000};
         auto delay = sc_time(
@@ -353,9 +374,9 @@ void Bme280::measurementLoop() {
                      sc_time_stamp().to_string(), delay.to_string());
         wait(delay);
       } else if (m_measurementState == MeasurementState::Sleep) {
-        EventLog::getInstance().reportState("BME280", "sleep");
+        powerModelPort->reportState(m_sleepStateId);
       } else if (m_measurementState == MeasurementState::PowerOff) {
-        EventLog::getInstance().reportState("BME280", "off");
+        powerModelPort->reportState(m_offStateId);
       }
     } else {  // Inactive
       wait(m_modeUpdateEvent);

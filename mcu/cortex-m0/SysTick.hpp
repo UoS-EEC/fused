@@ -16,7 +16,6 @@
 #include "mcu/ClockDivider.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Utilities.hpp"
 
 #define SYST_BASE 0xE000E010
@@ -60,7 +59,8 @@ class SysTick : public BusTarget {
   SysTick(const sc_core::sc_module_name name);
 
   /**
-   * @brief end_of_elaboration Used to initiate calibration register's TENMS.
+   * @brief set up methods, sensitivity, and register power model events and
+   * states
    */
   virtual void end_of_elaboration() override;
 
@@ -90,7 +90,6 @@ class SysTick : public BusTarget {
       "m_updateIrqEvent"};  //! event triggered when irq state should be updated
 
   /*------ Private variables ------*/
-  EventLog::eventId m_triggerEvent;
   sc_core::sc_time m_lastTick{sc_core::SC_ZERO_TIME};
   bool m_setIrq{false};
 

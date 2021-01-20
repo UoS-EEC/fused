@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <iterator>
 #include "mcu/NonvolatileMemory.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 
 using namespace sc_core;

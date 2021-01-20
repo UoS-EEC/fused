@@ -10,20 +10,28 @@
 #include <systemc>
 #include <tlm>
 #include "BusTarget.hpp"
+#include "libs/make_unique.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 
 using namespace sc_core;
 
 BusTarget::BusTarget(const sc_module_name name, const unsigned startAddress,
                      const unsigned endAddress)
-    : tSocket("tSocket"),
+    : sc_module(name),
+      tSocket("tSocket"),
       m_startAddress(startAddress),
-      m_endAddress(endAddress),
-      m_elog(EventLog::getInstance()),
-      sc_module(name) {
+      m_endAddress(endAddress) {
   sc_assert(startAddress <= endAddress);
   tSocket.bind(*this);
-  m_readEventId = m_elog.registerEvent(std::string(this->name()) + " read");
-  m_writeEventId = m_elog.registerEvent(std::string(this->name()) + " write");
+}
+
+void BusTarget::end_of_elaboration() {
+  m_readEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "read"));
+  m_writeEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "write"));
 }
 
 void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
@@ -35,11 +43,11 @@ void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     m_regs.write(addr, data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
-    m_elog.increment(m_writeEventId);
+    powerModelPort->reportEvent(m_writeEventId);
   } else if (trans.get_command() == tlm::TLM_READ_COMMAND) {
     m_regs.read(addr, data, len);
     m_readEvent.notify(delay + systemClk->getPeriod());
-    m_elog.increment(m_readEventId);
+    powerModelPort->reportEvent(m_readEventId);
   } else {
     SC_REPORT_FATAL(this->name(), "Payload command not supported.");
   }

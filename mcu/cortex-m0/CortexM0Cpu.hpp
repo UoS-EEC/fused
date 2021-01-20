@@ -12,7 +12,7 @@
 #include <tlm>
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 
 extern "C" {
 #include "mcu/cortex-m0/decode.h"
@@ -29,6 +29,9 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! CPU clock
   tlm::tlm_initiator_socket<> iSocket;                 //! TLM initiator socket
   sc_core::sc_in<bool> pwrOn{"pwrOn"};                 //! "power-good" signal
+
+  //! Output port for power model events
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
   // -- Interrupts
   // SysTick
@@ -50,7 +53,8 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   CortexM0Cpu(const sc_core::sc_module_name nm);
 
   /**
-   * @brief end_of_elaboration set up threads and methods.
+   * @brief end_of_elaboration SystemC callback. Used here for registering power
+   * modelling events as well as setting up SC_THREADs and SC_METHODs.
    */
   virtual void end_of_elaboration() override;
 
@@ -263,10 +267,15 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   InstructionBuffer m_instructionBuffer;
   std::unordered_set<unsigned> m_breakpoints;  // Set of breakpoint addresses
   std::unordered_set<unsigned> m_watchpoints;  // Set of watchpoint addresses
-  EventLog::eventId m_idleCyclesEvent;       //! Event used to track idle cycles
-  EventLog::eventId m_nInstructionsEventId;  //! Event used to track number of
-                                             //! executed instructions
   std::array<unsigned, 17> m_regsAtExceptEnter{{0}};  //! Used for checking
+
+  /* Power model event & state ids */
+  int m_idleCyclesEventId{-1};     //! Event used to track idle cycles
+  int m_nInstructionsEventId{-1};  //! Event used to track number of
+                               //! executed instructions
+  int m_offStateId{-1};
+  int m_onStateId{-1};
+  int m_sleepStateId{-1};
 
   /* ------ Private methods ------ */
 

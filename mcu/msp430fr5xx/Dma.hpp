@@ -15,7 +15,6 @@
 #include <tlm>
 #include "mcu/BusTarget.hpp"
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
 
 // Trigger multiplexer for one DMA channel
 SC_MODULE(TriggerMux) {

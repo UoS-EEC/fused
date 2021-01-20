@@ -11,7 +11,6 @@
 #include <systemc>
 #include <tlm>
 #include "mcu/BusTarget.hpp"
-#include "ps/EventLog.hpp"
 
 class GenericMemory : public BusTarget {
   SC_HAS_PROCESS(GenericMemory);
@@ -50,9 +49,15 @@ class GenericMemory : public BusTarget {
    */
   virtual unsigned int transport_dbg(tlm::tlm_generic_payload &trans) override;
 
+  /**
+   * @brief SystemC callback, used here to register power modelling events.
+   */
+  virtual void end_of_elaboration() override;
+
  protected:
   std::unique_ptr<uint8_t[]> mem;  // Pointer to emulated memory
   const size_t m_capacity;         // Memory capacity (bytes)
-  EventLog::eventId m_nBytesReadEventId;
-  EventLog::eventId m_nBytesWrittenEventId;
+
+  int m_nBytesWrittenEventId{-1};
+  int m_nBytesReadEventId{-1};
 };

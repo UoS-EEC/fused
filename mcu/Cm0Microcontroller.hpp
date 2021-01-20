@@ -31,9 +31,6 @@ class Cm0Microcontroller : public Microcontroller {
   SC_HAS_PROCESS(Cm0Microcontroller);
 
  public:
-  /* ------ Ports ------ */
-  sc_core::sc_in<bool> nReset{"nReset"};
-
   /* ------ Signals ------ */
 
   /*------ Interrupt lines ------*/

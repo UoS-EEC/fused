@@ -11,7 +11,6 @@
 #include <systemc>
 #include <vector>
 #include "include/peripheral-defines.h"
-#include "ps/EventLog.hpp"
 #include "utilities/Config.hpp"
 
 /** SC Module SimpleMonitor
@@ -55,11 +54,6 @@ class SimpleMonitor : public BusTarget {
       case SIMPLE_MONITOR_TEST_FAIL:
         SC_REPORT_FATAL(this->name(),
                         "SW_TEST_FAIL: CPU reported software test fail");
-        break;
-      case SIMPLE_MONITOR_START_EVENT_LOG:  // Trigger event log
-        spdlog::info("{}: Signaling EventLog to start recording.",
-                     this->name());
-        EventLog::getInstance().startLogging(sc_core::SC_ZERO_TIME);
         break;
       case SIMPLE_MONITOR_INDICATE_BEGIN:
         break;

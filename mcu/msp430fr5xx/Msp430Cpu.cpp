@@ -7,7 +7,6 @@
 
 #include <spdlog/spdlog.h>
 #include <stdint.h>
-
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -16,9 +15,10 @@
 #include <systemc>
 #include <thread>
 #include <tlm>
-
+#include "libs/make_unique.hpp"
 #include "mcu/msp430fr5xx/Msp430Cpu.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/ConstantCurrentState.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -32,32 +32,10 @@ Msp430Cpu::Msp430Cpu(const sc_module_name name, const bool logOperation,
                      const bool logInstructions)
     : sc_module(name),
       m_doLogOperation(logOperation),
-      m_doLogInstructions(logInstructions),
-      m_elog(EventLog::getInstance()) {
+      m_doLogInstructions(logInstructions) {
   iSocket.bind(*this);
 
   SC_THREAD(process);
-
-  m_idleCyclesEvent =
-      m_elog.registerEvent(std::string(this->name()) + " idle cycles");
-
-  std::string ops[] = {"ADD", "ADDC", "AND",  "BIC",  "BIS",  "BIT",  "CALL",
-                       "CMP", "DADD", "JC",   "JZ",   "JGE",  "JL",   "JMP",
-                       "JN",  "JNC",  "JNZ",  "MOV",  "PUSH", "RETI", "RRA",
-                       "RRC", "SUB",  "SUBC", "SWPB", "SXT",  "XOR"};
-
-  for (const auto &op : ops) {
-    instrEventIds[op] = m_elog.registerEvent(std::string("inst-") + op);
-  }
-
-  m_formatIEvent = m_elog.registerEvent(std::string(this->name()) + " formatI");
-  m_formatIIEvent =
-      m_elog.registerEvent(std::string(this->name()) + " formatII");
-  m_formatIIIEvent =
-      m_elog.registerEvent(std::string(this->name()) + " formatIII");
-  m_pcIsDestinationEvent =
-      m_elog.registerEvent(std::string(this->name()) + " pc-is-dest");
-  m_irqEvent = m_elog.registerEvent(std::string(this->name()) + " irq");
 
   std::string odir = Config::get().getString("OutputDirectory");
   if (logOperation) {
@@ -67,6 +45,46 @@ Msp430Cpu::Msp430Cpu(const sc_module_name name, const bool logOperation,
   if (logInstructions) {
     m_instrLogFile.open(odir + "/cpu_instructions.log");
   }
+}
+
+void Msp430Cpu::end_of_elaboration() {
+  // Register events & states
+  const std::string ops[] = {
+      "ADD",  "ADDC", "AND", "BIC", "BIS", "BIT",  "CALL", "CMP", "DADD",
+      "JC",   "JZ",   "JGE", "JL",  "JMP", "JN",   "JNC",  "JNZ", "MOV",
+      "PUSH", "RETI", "RRA", "RRC", "SUB", "SUBC", "SWPB", "SXT", "XOR"};
+
+  for (const auto &op : ops) {
+    powerModelPort->registerEvent(
+        this->name(), std::make_unique<ConstantEnergyEvent>(this->name(), op));
+  }
+
+  m_formatIEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "formatI"));
+  m_formatIIEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "formatII"));
+  m_formatIIIEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "formatIII"));
+  m_pcIsDestinationEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "pc-is-dest"));
+  m_irqEventId = powerModelPort->registerEvent(
+      this->name(), std::make_unique<ConstantEnergyEvent>(this->name(), "irq"));
+  m_idleCyclesEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "idle cycles"));
+
+  m_offStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "off"));
+  m_onStateId = powerModelPort->registerState(
+      this->name(), std::make_unique<ConstantCurrentState>(this->name(), "on"));
+  m_sleepStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "sleep"));
 }
 
 void Msp430Cpu::reset(void) {
@@ -84,7 +102,7 @@ void Msp430Cpu::process() {
     if (pwrOn.read() && m_run) {
       // Handle interrupts
       if (irq.read()) {
-        EventLog::getInstance().increment(m_irqEvent);
+        powerModelPort->reportEvent(m_irqEventId);
         processInterrupt();
       }
 
@@ -99,14 +117,14 @@ void Msp430Cpu::process() {
       if (getSr() & CPUOFF) {
         // Low-power mode -- don't execute instructions
         if (!m_sleeping) {
-          EventLog::getInstance().reportState(this->name(), "sleep");
+          powerModelPort->reportState(m_sleepStateId);
           m_sleeping = true;
         }
         wait(mclk->getPeriod());
       } else {
         // Normal mode -- execute instructions
         if (m_sleeping) {
-          EventLog::getInstance().reportState(this->name(), "on");
+          powerModelPort->reportState(m_onStateId);
           m_sleeping = false;
         }
         uint16_t opcode = fetch();
@@ -118,13 +136,13 @@ void Msp430Cpu::process() {
         uint8_t instructionFmt = (opcode & 0xe000) >> 13;
         if (instructionFmt == 0) {
           executeSingleOpInstruction(opcode);
-          m_elog.increment(m_formatIIEvent);
+          powerModelPort->reportEvent(m_formatIIEventId);
         } else if (instructionFmt == 1) {
           executeConditionalJump(opcode);
-          m_elog.increment(m_formatIIIEvent);
+          powerModelPort->reportEvent(m_formatIIIEventId);
         } else {
           executeDoubleOpInstruction(opcode);
-          m_elog.increment(m_formatIEvent);
+          powerModelPort->reportEvent(m_formatIEventId);
         }
         if (m_doStep) {  // end single step
           m_run = false;
@@ -138,7 +156,7 @@ void Msp430Cpu::process() {
     }
 
     if (m_run && (!pwrOn.read())) {
-      EventLog::getInstance().reportState(this->name(), "off");
+      powerModelPort->reportState(m_offStateId);
       wait(pwrOn.posedge_event());  // Wait for power
       m_sleeping = false;
       reset();  // Reset
@@ -168,7 +186,7 @@ void Msp430Cpu::processInterrupt() {
       m_opsLogFile << "@" << setw(10) << sc_time_stamp() << ": IRQHANDLER 0x"
                    << hex << setw(4) << addr << "\n";
     }
-    EventLog::getInstance().reportState(this->name(), "on");
+    powerModelPort->reportState(m_onStateId);
     m_sleeping = false;
   } else if ((getSr() & GIE) || irqIdx.read() < 3) {  // GIE or NMI
     // Push pc to stack

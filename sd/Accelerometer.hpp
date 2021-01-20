@@ -8,7 +8,6 @@
 #include <deque>
 #include <systemc>
 #include <vector>
-#include "ps/EventLog.hpp"
 #include "sd/SpiDevice.hpp"
 
 /**
@@ -88,7 +87,8 @@ class Accelerometer : public SpiDevice {
   virtual void reset(void) override;
 
   /**
-   * @brief set up methods & sensitivity
+   * @brief set up methods, sensitivity, and register power model events and
+   * states
    */
   virtual void end_of_elaboration() override;
 
@@ -241,8 +241,10 @@ class Accelerometer : public SpiDevice {
   std::vector<InputTraceEntry> m_inputTrace;
   sc_core::sc_time m_inputTraceTimestep;
 
-  // Eventlog IDs for power model
-  EventLog::eventId m_sampleEventId;
+  /* Event & state ids */
+  int m_sampleEventId{-1};
+  int m_sleepStateId{-1};
+  int m_activeStateId{-1};
 
   /* ------ Private methods ------ */
 
@@ -279,5 +281,5 @@ class Accelerometer : public SpiDevice {
    * @brief reportState utility function for reporting the current measurement
    * state to the global event log.
    */
-  void reportState() const;
+  void reportState();
 };

@@ -9,11 +9,13 @@
 #include <string>
 #include <systemc>
 #include <tlm>
+#include "libs/make_unique.hpp"
 #include "mcu/ClockDivider.hpp"
 #include "mcu/ClockMux.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/msp430fr5xx/Adc12.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/ConstantCurrentState.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "utilities/Utilities.hpp"
 
 extern "C" {
@@ -56,13 +58,21 @@ Adc12::Adc12(const sc_module_name name)
       m_regs.addRegister(i, 0, RegisterFile::AccessMode::READ_WRITE);
     }
   }
-
-  // Register events
-  m_sampleEvent = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " sample");
 }
 
 void Adc12::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
+  // Register power modelling states & events
+  m_offStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "off"));
+  m_onStateId = powerModelPort->registerState(
+      this->name(), std::make_unique<ConstantCurrentState>(this->name(), "on"));
+
+  m_sampleEventId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "sample"));
+
   // Register SC_METHODs here (after construction)
   SC_METHOD(process);
   sensitive << samplingClock;
@@ -83,7 +93,7 @@ void Adc12::reset(void) {
     modeEvent.notify(SC_ZERO_TIME);  // initialize process
   } else {                           // Negedge of pwrOn
     if (m_active) {
-      EventLog::getInstance().reportState(this->name(), "off");
+      powerModelPort->reportState(m_offStateId);
       m_active = false;
     }
   }
@@ -99,13 +109,13 @@ void Adc12::process() {
       // ADC is on
       if (!m_active) {
         m_active = true;
-        EventLog::getInstance().reportState(this->name(), "on");
+        powerModelPort->reportState(m_onStateId);
       }
 
     } else {
       // ADC is off, wait for bus transaction
       if (m_active) {
-        EventLog::getInstance().reportState(this->name(), "off");
+        powerModelPort->reportState(m_offStateId);
         m_active = false;
       }
       next_trigger(modeEvent | pwrOn.negedge_event());
@@ -140,7 +150,7 @@ void Adc12::process() {
         static_cast<double>(resolution) *
         (vcc.read() / 4.0));  // Assumes 2v ref and meas vcc/2
     m_regs.write(OFS_ADC12MEM0, sample);
-    EventLog::getInstance().increment(m_sampleEvent);
+    powerModelPort->reportEvent(m_sampleEventId);
 
     // Window comparator low interrupt
     if (m_regs.testBitMask(OFS_ADC12IER2, ADC12LOIE) &&

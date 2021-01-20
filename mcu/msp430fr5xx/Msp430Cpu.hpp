@@ -16,7 +16,7 @@
 #include <tlm>
 #include <unordered_set>
 #include "mcu/ClockSourceIf.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 #include "utilities/Utilities.hpp"
 
 class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
@@ -30,6 +30,9 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   sc_core::sc_in<bool> busStall{"busStall"};  //! indicate busy bus
   sc_core::sc_out<bool> ira{"ira_out"};       //! irq accepted
 
+  //! Output port for power model events
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
+
   //! Decides whether to wait for peripheral's ack of IRA asserted or
   //! just wait one cycle
   sc_core::sc_in<bool> iraConnected{"iraConnected"};
@@ -42,6 +45,12 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
 
   Msp430Cpu(const sc_core::sc_module_name name, const bool logOperation = false,
             const bool logInstruction = false);
+
+  /**
+   * @brief end_of_elaboration SystemC callback. Used here for registering power
+   * modelling events.
+   */
+  virtual void end_of_elaboration() override;
 
   /**
    * @brief writeMem: Callback function for write operations to memory by
@@ -179,14 +188,18 @@ class Msp430Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   bool m_sleeping{false};    //! Indicate whether cpu is sleeping
   bool m_doStep{false};      //! Set to 1 to single-step, cleared automatically.
   uint64_t m_idleCycles{0};  //! Total number of idle cycles (for logging)
-  EventLog &m_elog;
-  EventLog::eventId m_idleCyclesEvent;
-  EventLog::eventId m_formatIEvent;
-  EventLog::eventId m_formatIIEvent;
-  EventLog::eventId m_formatIIIEvent;
-  EventLog::eventId m_pcIsDestinationEvent;  // Blanket for all branches/jumps
-  EventLog::eventId m_irqEvent;
-  std::map<std::string, EventLog::eventId> instrEventIds;
+
+  /* Event and state ids for power modelling */
+  int m_idleCyclesEventId{-1};
+  int m_formatIEventId{-1};
+  int m_formatIIEventId{-1};
+  int m_formatIIIEventId{-1};
+  int m_pcIsDestinationEventId{-1};  // Blanket for all branches/jumps
+  int m_irqEventId{-1};
+  std::map<std::string, int> instrEventIds;
+  int m_offStateId{-1};
+  int m_onStateId{-1};
+  int m_sleepStateId{-1};
 
   std::array<uint32_t, 16> m_cpuRegs;
 

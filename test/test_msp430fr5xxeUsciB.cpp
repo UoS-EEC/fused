@@ -16,7 +16,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -39,6 +39,8 @@ SC_MODULE(dut) {
   ClockSourceChannel smclk{"smclk", sc_time(1, SC_US)};
   ClockSourceChannel aclk{"aclk", sc_time(1, SC_US)};
   ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
@@ -50,6 +52,7 @@ SC_MODULE(dut) {
     m_dut.ira.bind(ira);
     m_dut.dmaTrigger.bind(dmaTrigger);
     m_dut.systemClk.bind(mclk);
+    m_dut.powerModelPort.bind(powerModelChannel);
 
     tEusciSocket.register_b_transport(this, &dut::b_transport);
   }
@@ -219,14 +222,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

@@ -14,7 +14,7 @@
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -31,6 +31,8 @@ SC_MODULE(dut) {
   std::array<sc_signal<bool>, 32> irq;
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_US)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
@@ -43,6 +45,7 @@ SC_MODULE(dut) {
     m_dut.pending.bind(pending);
     m_dut.returning.bind(returning);
     m_dut.active.bind(active);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   Nvic m_dut{"dut"};
@@ -243,14 +246,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

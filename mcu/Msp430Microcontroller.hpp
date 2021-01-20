@@ -33,16 +33,12 @@
 #include "mcu/msp430fr5xx/PowerManagementModule.hpp"
 #include "mcu/msp430fr5xx/TimerA.hpp"
 #include "mcu/msp430fr5xx/eUSCI_B.hpp"
-#include "ps/EventLog.hpp"
 #include "utilities/SimpleMonitor.hpp"
 
 class Msp430Microcontroller : public Microcontroller {
   SC_HAS_PROCESS(Msp430Microcontroller);
 
  public:
-  /* ------ Ports ------ */
-  sc_core::sc_in<bool> nReset{"nReset"};
-
   /* ------ Signals ------ */
   sc_core::sc_signal<bool> dma_dummy{"dma_dummy"};
 

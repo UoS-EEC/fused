@@ -5,9 +5,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "sd/Nrf24Radio.hpp"
-
 #include <systemc>
+#include "libs/make_unique.hpp"
+#include "ps/ConstantCurrentState.hpp"
+#include "sd/Nrf24Radio.hpp"
 
 using namespace sc_core;
 
@@ -48,6 +49,35 @@ Nrf24Radio::Nrf24Radio(const sc_core::sc_module_name name) : SpiDevice(name) {
 }
 
 void Nrf24Radio::end_of_elaboration() {
+  // Register power modelling states
+  m_porStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "por"));
+  m_powerDownStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "power_down"));
+  m_startUpStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "start_up"));
+  m_standbyOneStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "standby_one"));
+  m_standbyTwoStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "standby_two"));
+  m_rxSettlingStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "rx_settling"));
+  m_txSettlingStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "tx_settling"));
+  m_rxModeStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "rx_mode"));
+  m_txModeStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "tx_mode"));
+
   // Set up methods & threads
   SC_METHOD(payloadReceivedHandler);
   sensitive << m_transactionEvent;
@@ -258,77 +288,77 @@ void Nrf24Radio::stateChangeHandler(void) {
     switch (m_radio_state) {
       case OpModes::UNDEFINED:
         m_radio_state = OpModes::POWER_ON_RESET;
-        EventLog::getInstance().reportState(this->name(), "por");
+        powerModelPort->reportState(m_porStateId);
         wait(sc_time(10, SC_MS));
-        EventLog::getInstance().reportState(this->name(), "power_down");
+        powerModelPort->reportState(m_powerDownStateId);
         m_radio_state = OpModes::POWER_DOWN;
         break;
       case OpModes::POWER_DOWN:
         if (m_regs.read(NRF_CONFIG) & PWR_UP) {
           m_radio_state = OpModes::OSC_STARTUP;
-          EventLog::getInstance().reportState(this->name(), "start_up");
+          powerModelPort->reportState(m_startUpStateId);
           wait(sc_time(150, SC_US));  // For External crystal
-          EventLog::getInstance().reportState(this->name(), "standby_one");
+          powerModelPort->reportState(m_standbyOneStateId);
           m_radio_state = OpModes::STANDBY1;
         }
         break;
       case OpModes::STANDBY1:
         if ((m_regs.read(NRF_CONFIG) & PWR_UP) == 0) {
-          EventLog::getInstance().reportState(this->name(), "power_down");
+          powerModelPort->reportState(m_powerDownStateId);
           m_radio_state = OpModes::POWER_DOWN;
         } else if ((m_regs.read(NRF_CONFIG) & PRIM_RX) && ce) {
-          EventLog::getInstance().reportState(this->name(), "rx_settling");
+          powerModelPort->reportState(m_rxSettlingStateId);
           m_radio_state = OpModes::RX_SETTLING;
           wait(sc_time(130, SC_US));
-          EventLog::getInstance().reportState(this->name(), "rx_mode");
+          powerModelPort->reportState(m_rxModeStateId);
           m_radio_state = OpModes::RX_MODE;
         } else if (!(m_regs.read(NRF_CONFIG) & PRIM_RX) && ce &&
                    !m_txFifo.isEmpty()) {
-          EventLog::getInstance().reportState(this->name(), "tx_settling");
+          powerModelPort->reportState(m_txSettlingStateId);
           m_radio_state = OpModes::TX_SETTLING;
           wait(sc_time(130, SC_US));
-          EventLog::getInstance().reportState(this->name(), "tx_mode");
+          powerModelPort->reportState(m_txModeStateId);
           m_radio_state = OpModes::TX_MODE;
           m_txEvent.notify();
         } else if (!(m_regs.read(NRF_CONFIG) & PRIM_RX) && ce &&
                    m_txFifo.isEmpty()) {
-          EventLog::getInstance().reportState(this->name(), "standby_two");
+          powerModelPort->reportState(m_standbyTwoStateId);
           m_radio_state = OpModes::STANDBY2;
         }
         break;
       case OpModes::STANDBY2:
         if ((m_regs.read(NRF_CONFIG) & PWR_UP) == 0) {
-          EventLog::getInstance().reportState(this->name(), "power_down");
+          powerModelPort->reportState(m_powerDownStateId);
           m_radio_state = OpModes::POWER_DOWN;
         } else if (ce && !m_txFifo.isEmpty()) {
-          EventLog::getInstance().reportState(this->name(), "tx_settling");
+          powerModelPort->reportState(m_txSettlingStateId);
           m_radio_state = OpModes::TX_SETTLING;
           wait(sc_time(130, SC_US));
-          EventLog::getInstance().reportState(this->name(), "tx_mode");
+          powerModelPort->reportState(m_txModeStateId);
           m_radio_state = OpModes::TX_MODE;
           m_txEvent.notify();
         }
         break;
       case OpModes::RX_MODE:
         if ((m_regs.read(NRF_CONFIG) & PWR_UP) == 0) {
-          EventLog::getInstance().reportState(this->name(), "power_down");
+          powerModelPort->reportState(m_powerDownStateId);
           m_radio_state = OpModes::POWER_DOWN;
         } else if (!ce) {
-          EventLog::getInstance().reportState(this->name(), "standby_one");
+          powerModelPort->reportState(m_standbyOneStateId);
           m_radio_state = OpModes::STANDBY1;
         }
         break;
       case OpModes::TX_MODE:
         if ((m_regs.read(NRF_CONFIG) & PWR_UP) == 0) {
-          EventLog::getInstance().reportState(this->name(), "power_down");
+          powerModelPort->reportState(m_powerDownStateId);
           m_radio_state = OpModes::POWER_DOWN;
         } else if (!ce) {
-          EventLog::getInstance().reportState(this->name(), "standby_one");
+          powerModelPort->reportState(m_standbyOneStateId);
           m_radio_state = OpModes::STANDBY1;
         } else if (ce && !m_txFifo.isEmpty()) {
           m_txEvent.notify();
         } else if (ce && m_txFifo.isEmpty()) {
-          EventLog::getInstance().reportState(this->name(), "standby_two");
+          powerModelPort->reportState(m_standbyTwoStateId);
           m_radio_state = OpModes::STANDBY2;
         }
         break;
@@ -407,4 +437,3 @@ void Nrf24Radio::irqEventHandler(void) {
     }
   }
 }
-

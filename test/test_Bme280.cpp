@@ -11,8 +11,7 @@
 #include <tlm>
 #include <vector>
 #include "mcu/SpiTransactionExtension.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "sd/Bme280.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
@@ -29,6 +28,8 @@ SC_MODULE(dut) {
   // Signals
   sc_signal<bool> nReset{"nReset"};
   sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
@@ -37,6 +38,7 @@ SC_MODULE(dut) {
     m_dut.nReset.bind(nReset);
     m_dut.chipSelect.bind(chipSelect);
     m_dut.tSocket.bind(iSpiSocket);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   Bme280 m_dut{"dut"};
@@ -196,14 +198,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

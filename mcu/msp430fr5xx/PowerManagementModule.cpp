@@ -33,7 +33,9 @@ PowerManagementModule::PowerManagementModule(sc_module_name name)
 PowerManagementModule::PowerManagementModule(sc_module_name name,
                                              unsigned startAddress,
                                              unsigned endAddress)
-    : BusTarget(name, startAddress, endAddress) {
+    : BusTarget(name, startAddress, endAddress),
+      m_bootCurrentState(
+          std::make_shared<BootCurrentState>("bootCurrentState")) {
   m_vOn = Config::get().getDouble("PMMOn");
   m_vOff = Config::get().getDouble("PMMOff");
   m_vMax = Config::get().getDouble("VMAX");
@@ -59,6 +61,10 @@ PowerManagementModule::PowerManagementModule(sc_module_name name,
   }
   m_bootCurrentTimeResolution =
       grid.row(1).get<double>(0) - grid.row(0).get<double>(0);
+}
+
+void PowerManagementModule::end_of_elaboration() {
+  powerModelPort->registerState(this->name(), m_bootCurrentState);
 
   SC_THREAD(process);
 }
@@ -71,7 +77,7 @@ void PowerManagementModule::reset(void) {
 }
 
 void PowerManagementModule::process(void) {
-  staticPower.write(0.0);
+  // staticPower.write(0.0);
 
   wait(SC_ZERO_TIME);
 
@@ -90,10 +96,10 @@ void PowerManagementModule::process(void) {
       if (crntVcc > m_vOn) {
         // Replay boot-current trace
         for (const auto &v : m_bootCurrentTrace) {
-          staticPower.write(v);
+          m_bootCurrentState->setCurrent(v);
           wait(sc_time::from_seconds(m_bootCurrentTimeResolution));
         }
-        staticPower.write(0.0);
+        m_bootCurrentState->setCurrent(0.0);
 
         m_isOn = true;
         pwrGood.write(m_isOn);

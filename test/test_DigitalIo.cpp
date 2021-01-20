@@ -13,7 +13,7 @@
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -31,6 +31,8 @@ SC_MODULE(dut) {
   sc_signal<bool> pwrGood{"pwrGood"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     for (unsigned int i = 0; i < port.size(); i++) {
@@ -41,6 +43,7 @@ SC_MODULE(dut) {
     m_dut.irq[1].bind(irq1);
     m_dut.tSocket.bind(iSocket);
     m_dut.systemClk.bind(clk);
+    m_dut.powerModelPort.bind(powerModelChannel);
   }
 
   DigitalIo m_dut{"port", 0, 0x1f};
@@ -195,14 +198,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
 

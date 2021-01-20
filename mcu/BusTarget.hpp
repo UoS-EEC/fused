@@ -12,18 +12,31 @@
 #include <tlm>
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 
 class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
  public:
   /* ------ Ports ------ */
-  sc_core::sc_port<ClockSourceConsumerIf> systemClk{"systemClk"};  //! Bus clock
-  tlm::tlm_target_socket<> tSocket;    //! TLM socket
-  sc_core::sc_in<bool> pwrOn{"pwrOn"}; /*! Indicate if power to this
-                                  target is on */
+  //! Bus clock
+  sc_core::sc_port<ClockSourceConsumerIf> systemClk{"systemClk"};
+
+  //! TLM bus socket
+  tlm::tlm_target_socket<> tSocket;
+
+  //! Indicates if power to this target is on
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};
+
+  //! Event-port for logging and reporting dynamic power consumption
+  PowerModelEventOutPort powerModelPort{"powerModelPort"};
+
   /* ------ Public methods ------ */
   BusTarget(const sc_core::sc_module_name name, const unsigned startAddress,
             const unsigned endAddress);
+
+  /**
+   * @brief SystemC callback, used here to register power modelling events.
+   */
+  virtual void end_of_elaboration() override;
 
   /**
    * @brief b_transport transaction.
@@ -32,7 +45,7 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
    * @return
    */
   virtual void b_transport(tlm::tlm_generic_payload &trans,
-                           sc_core::sc_time &delay);
+                           sc_core::sc_time &delay) override;
 
   /**
    * @brief transport_dbg Transaction without affecting simulation time.
@@ -40,7 +53,7 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
    * @param trans
    * @return
    */
-  virtual unsigned int transport_dbg(tlm::tlm_generic_payload &trans);
+  virtual unsigned int transport_dbg(tlm::tlm_generic_payload &trans) override;
 
   /**
    * @brief reset Resets to power-up defaults.
@@ -81,7 +94,7 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   [[noreturn]] virtual tlm::tlm_sync_enum nb_transport_fw(
       tlm::tlm_generic_payload &trans[[maybe_unused]],
       tlm::tlm_phase &phase[[maybe_unused]],
-      sc_core::sc_time &delay[[maybe_unused]]) {
+      sc_core::sc_time &delay[[maybe_unused]]) override {
     SC_REPORT_ERROR(this->name(), "not implemented");
     exit(1);
   }
@@ -89,7 +102,7 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   // dummy method
   [[noreturn]] virtual bool get_direct_mem_ptr(
       tlm::tlm_generic_payload &trans[[maybe_unused]],
-      tlm::tlm_dmi &data[[maybe_unused]]) {
+      tlm::tlm_dmi &data[[maybe_unused]]) override {
     SC_REPORT_ERROR(this->name(), "not implemented");
     exit(1);
   }
@@ -98,9 +111,8 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   const unsigned int m_startAddress;
   const unsigned int m_endAddress;
   RegisterFile m_regs;
-  EventLog::eventId m_readEventId;
-  EventLog::eventId m_writeEventId;
-  EventLog &m_elog;
+  int m_readEventId{-1};
+  int m_writeEventId{-1};
 
   //! Events triggered on bus access via b_transport -- not transport_dbg!
   sc_core::sc_event m_readEvent{"readEvent"};    //! Triggered on read access

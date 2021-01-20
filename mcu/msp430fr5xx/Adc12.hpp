@@ -14,7 +14,6 @@
 #include "mcu/ClockMux.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 
 /**
  * @brief The Adc12 class Modelling specific mode of ADC12 module
@@ -88,8 +87,12 @@ class Adc12 : public BusTarget {
 
  private:
   /* ------ Private variables ------ */
-  EventLog::eventId m_sampleEvent;
   bool m_active{false};
+
+  /* Power model event & state ids */
+  int m_sampleEventId{-1};
+  int m_offStateId{-1};
+  int m_onStateId{-1};
 
   /* ------ SC events ------ */
   sc_core::sc_event samplingClockUpdateEvent{"samplingClockUpdateEvent"};

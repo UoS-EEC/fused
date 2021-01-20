@@ -9,8 +9,9 @@
 #include <string>
 #include <systemc>
 #include <tlm>
+#include "libs/make_unique.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
-#include "ps/EventLog.hpp"
+#include "ps/ConstantEnergyEvent.hpp"
 #include "utilities/Config.hpp"
 
 extern "C" {
@@ -22,18 +23,30 @@ using namespace sc_core;
 DigitalIo::DigitalIo(sc_module_name name, const uint16_t startAddress,
                      const uint16_t endAddress)
     : BusTarget(name, startAddress, endAddress) {
-  // Register events
-  m_pinPosEdge = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " io_pin_pos");
-  m_pinNegEdge = EventLog::getInstance().registerEvent(
-      std::string(this->name()) + " io_pin_neg");
-
   // Initialise register file
   uint16_t endOffset = endAddress - startAddress + 1;
   for (uint16_t i = 0; i < endOffset; i += 2) {
     m_regs.addRegister(i, 0, RegisterFile::AccessMode::READ_WRITE);
   }
+}
 
+void DigitalIo::reset(void) {
+  m_regs.reset();
+  m_lastState = 0;
+}
+
+void DigitalIo::end_of_elaboration() {
+  BusTarget::end_of_elaboration();
+
+  // Register events & states
+  m_pinPosEdgeId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "io_pin_pos"));
+  m_pinNegEdgeId = powerModelPort->registerEvent(
+      this->name(),
+      std::make_unique<ConstantEnergyEvent>(this->name(), "io_pin_neg"));
+
+  // Register SC_METHODs
   SC_METHOD(reset);
   sensitive << pwrOn;
   dont_initialize();
@@ -43,11 +56,6 @@ DigitalIo::DigitalIo(sc_module_name name, const uint16_t startAddress,
   for (int i = 0; i < 16; i++) {
     sensitive << pins[i];
   }
-}
-
-void DigitalIo::reset(void) {
-  m_regs.reset();
-  m_lastState = 0;
 }
 
 void DigitalIo::process(void) {
@@ -85,10 +93,10 @@ void DigitalIo::process(void) {
       if ((ren | dir) & mask) {  // If output or Pull-up mode
         // Count edges
         if (!current && (out & mask)) {
-          EventLog::getInstance().increment(m_pinPosEdge);
+          powerModelPort->reportEvent(m_pinPosEdgeId);
           // std::cerr << "Posedge on pin " << i << '\n';;
         } else if (current && !(out & mask)) {
-          EventLog::getInstance().increment(m_pinNegEdge);
+          powerModelPort->reportEvent(m_pinNegEdgeId);
           // std::cerr << "Negedge on pin " << i << '\n';;
         }
 

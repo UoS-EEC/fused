@@ -11,7 +11,6 @@
 #include <tlm>
 #include "mcu/BusTarget.hpp"
 #include "mcu/GenericMemory.hpp"
-#include "ps/EventLog.hpp"
 
 /**
  * @brief The VolatileMemory class Implements overwriting of memory at reset

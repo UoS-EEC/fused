@@ -18,7 +18,7 @@
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/NonvolatileMemory.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -32,6 +32,8 @@ SC_MODULE(dut) {
   sc_signal<unsigned> framWaitStates{"framWaitStates", 1};
   tlm_utils::simple_initiator_socket<dut> cacheSocket{"cacheSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
@@ -41,6 +43,8 @@ SC_MODULE(dut) {
     m_dut.tSocket.bind(cacheSocket);
     m_dut.iSocket.bind(nvm.tSocket);
     nvm.waitStates.bind(framWaitStates);
+    m_dut.powerModelPort.bind(powerModelChannel);
+    nvm.powerModelPort.bind(powerModelChannel);
   }
 
   Cache m_dut{"dut", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1};
@@ -154,14 +158,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

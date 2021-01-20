@@ -14,7 +14,7 @@
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/GenericMemory.hpp"
 #include "mcu/msp430fr5xx/Dma.hpp"
-#include "ps/DynamicEnergyChannel.hpp"
+#include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
 
@@ -36,6 +36,8 @@ SC_MODULE(dut) {
   std::array<sc_signal<bool>, 30> trigger;
   GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
+  PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
+                                      sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(nreset);
@@ -50,6 +52,8 @@ SC_MODULE(dut) {
     for (auto i = 0; i < trigger.size(); i++) {
       m_dut.trigger[i].bind(trigger[i]);
     }
+    m_dut.powerModelPort.bind(powerModelChannel);
+    mem.powerModelPort.bind(powerModelChannel);
   }
 
   Dma m_dut{"dut"};
@@ -265,14 +269,6 @@ int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Parse CLI arguments & config file
   auto &config = Config::get();
   config.parseFile();
-
-  // Instantiate and hook up event log to dummy signals
-  sc_signal<double> elogStaticConsumption{"elogStaticConsumption"};
-  DynamicEnergyChannel elogDynamicConsumption("elogDynamicConsumption");
-
-  auto &elog = EventLog::getInstance();
-  elog.staticPower.bind(elogStaticConsumption);
-  elog.dynamicEnergy.bind(elogDynamicConsumption);
 
   tester t("tester");
   sc_start();

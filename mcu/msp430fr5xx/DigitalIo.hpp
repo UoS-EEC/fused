@@ -12,7 +12,6 @@
 #include <tlm>
 #include "mcu/BusTarget.hpp"
 #include "mcu/RegisterFile.hpp"
-#include "ps/EventLog.hpp"
 
 /**
  * @brief The DigitalIo class : model one IO port. For now only used to trace
@@ -40,10 +39,16 @@ class DigitalIo : public BusTarget {
    */
   virtual void reset(void) override;
 
+  /**
+   * @brief set up methods, sensitivity, and register power model events and
+   * states
+   */
+  virtual void end_of_elaboration() override;
+
  private:
   /* ------ Private variables ------ */
-  EventLog::eventId m_pinPosEdge;
-  EventLog::eventId m_pinNegEdge;
+  int m_pinPosEdgeId{-1};
+  int m_pinNegEdgeId{-1};
 
   unsigned int m_lastState{0};  // Used to detect input edges
 
