@@ -226,17 +226,17 @@ void PowerModelChannel::logLoop() {
     // Wait for a timestep
     wait(m_logTimestep);
 
-    // Push new timestep
-    m_log.emplace_back(m_events.size() + 1, 0);  // New row of all 0s
-    // Last column in the new row is the current time step
-    m_log.back().back() = static_cast<int>(
-        (m_logTimestep + sc_time_stamp()).to_seconds() * 1.0e6);
-
     // Dump file when log exceeds threshold
     if (m_log.size() > m_logDumpThreshold) {
       dumpEventCsv();
       m_log.clear();
     }
+
+    // Push new timestep
+    m_log.emplace_back(m_events.size() + 1, 0);  // New row of all 0s
+    // Last column in the new row is the current time step
+    m_log.back().back() = static_cast<int>(
+        (m_logTimestep + sc_time_stamp()).to_seconds() * 1.0e6);
   }
 }
 
