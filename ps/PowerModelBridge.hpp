@@ -28,6 +28,10 @@ SC_MODULE(PowerModelBridge) {
   }
 
   void process() {
+    if (v_in.read() <= 0.0) {
+      i_out.write(0.0);
+      return;
+    }
     const double timestep =
         (sc_core::sc_time_stamp() - m_lastReadTime).to_seconds();
     m_lastReadTime = sc_core::sc_time_stamp();
