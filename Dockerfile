@@ -15,7 +15,7 @@ FROM ubuntu:bionic as systemc-build
     WORKDIR /opt/src/
     ENV HOME /opt
     RUN apt update && apt install -y \
-            libboost-dev build-essential g++ wget ninja-build git gdb rsync
+            libboost-dev build-essential g++ wget ninja-build git gdb rsync autoconf
 
     # CMAKE v3.15.4
     RUN wget https://github.com/Kitware/CMake/releases/download/v3.15.4/cmake-3.15.4-Linux-x86_64.sh &&\
