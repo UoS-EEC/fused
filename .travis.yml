@@ -1,21 +1,35 @@
+os: linux
 dist: bionic
-sudo: false
 language: cpp
 
+services:
+  - docker
+
 before_install:
-  - sudo apt-get -y install ninja-build libboost-dev
-
-install:
-  - pip install --user cmake
-  - cmake -Bbuild -GNinja -D INSTALL_DEPENDENCIES=ON
-  - cmake --build build && rm -rf build
-
-env:
-  - ARM_GCC_ROOT=${HOME}/.local/arm-gcc \
-    MSP430_GCC_ROOT=${HOME}/.local/msp430-gcc \
-    MSP430_INC=${HOME}/.local/msp430-inc \
-    FUSED_ROOT=${PWD}/fused
+  - docker pull sivertism/fused-dev
+  - export BUILDID="build-$RANDOM"
+  - >
+    docker run
+    --name $BUILDID
+    -v ${PWD}:/opt/src
+    -p 51000:51000
+    -d
+    -t sivertism/fused-dev:latest
 
 script:
-  - cmake -Bbuild -GNinja
-  - cmake --build build
+  - >
+    docker exec
+    -t $BUILDID
+    /bin/bash -c "cmake -Bbuild -GNinja"
+  - >
+    docker exec
+    -t $BUILDID
+    /bin/bash -c "cmake --build build"
+  - >
+    docker exec
+    -t $BUILDID
+    /bin/bash -c "mkdir /tmp/fused-outputs/"
+  - >
+    docker exec
+    -t $BUILDID
+    /bin/bash -c "cmake --build build --target testcheck"
