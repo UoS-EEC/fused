@@ -19,6 +19,8 @@ set(EP_INSTALL_DIR $ENV{HOME}/.local CACHE STRING
 
 IF(INSTALL_DEPENDENCIES)
   project(INSTALL_DEPENDENCIES NONE)
+  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
   include(cmake/InstallDependencies.cmake)
   return()
 ELSE()
@@ -35,7 +37,7 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}
 
 configure_file(config/config.yaml.in config.yaml)
 
-set(CMAKE_CXX_STANDARD 11) #${SystemC_CXX_STANDARD})
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_EXE_LINKER_FLAGS -static)
 

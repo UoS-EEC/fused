@@ -11,23 +11,27 @@ set_property (DIRECTORY PROPERTY EP_BASE Dependencies)
 
 # SystemC
 ExternalProject_Add (ep_systemc
-  URL https://github.com/accellera-official/systemc/archive/2.3.3.tar.gz
-  CONFIGURE_COMMAND ./configure --prefix=${EP_INSTALL_DIR}
-                                CXXFLAGS=--std=c++11
-                                --with-unix-layout=yes
-                                --with-arch-suffix=
-
-  BUILD_COMMAND make -j4
-  BUILD_IN_SOURCE 1
+  GIT_REPOSITORY https://github.com/accellera-official/systemc.git
+  GIT_TAG 38b8a2c61aafe40de44296bee0c9c28ac4e80b01
+  GIT_SHALLOW ON
+  GIT_PROGRESS ON
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EP_INSTALL_DIR}
+             -DCMAKE_CXX_STANDARD=11
   )
 
 # SystemC-AMS
 ExternalProject_Add (ep_systemc_ams
   DEPENDS ep_systemc
-  URL https://www.coseda-tech.com/files/coside/user_files/Files/Proof-of-Concepts/systemc-ams-2.1.tar.gz
-  CONFIGURE_COMMAND ./configure --prefix=${EP_INSTALL_DIR}
+  GIT_REPOSITORY https://github.com/sivertism/mirror-sysc-ams.git
+  GIT_TAG 2.3
+  GIT_SHALLOW ON
+  GIT_PROGRESS ON
+  CONFIGURE_COMMAND autoreconf
+    COMMAND autoconf configure.ac > configure
+    COMMAND ./configure --prefix=${EP_INSTALL_DIR}
                                 CXXFLAGS=--std=c++11
                                 --with-systemc=${EP_INSTALL_DIR}
+                                --disable-systemc_compile_check
                                 --with-arch-suffix=
   BUILD_COMMAND make -j4
   BUILD_IN_SOURCE 1
