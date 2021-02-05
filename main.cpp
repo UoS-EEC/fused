@@ -162,11 +162,5 @@ int sc_main(int argc, char *argv[]) {
   }
 #endif
 
-  // Clean up memory
-  delete board;
-#ifdef GDB_SERVER
-  delete dbgThread;
-#endif
-
   return 0;
 }
