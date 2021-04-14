@@ -22,6 +22,7 @@ target_link_libraries(testPowerModelChannel
   PRIVATE
     systemc
     PowerSystem
+    spdlog::spdlog
     )
 
 
