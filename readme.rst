@@ -129,16 +129,17 @@ dependencies or add some tools to the image, run the following command:
 
     $> docker build -t local-fused-dev . --build-arg SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)"
 
-On linux (tested on Ubuntu 18.04)
----------------------------------
+On linux (tested on Ubuntu 18.04 & 20.04)
+-----------------------------------------
 
 First, install a few tools:
 
 .. code-block:: bash
 
-    $> sudo apt install libboost-dev build-essential g++ ninja-build git gdb
+    $> sudo apt install libboost-dev build-essential g++ ninja-build git gdb \
+       libncurses5 libncursesw5 libtinfo5 libpython2.7
 
-Then install a recent version of *CMake* (>= version 3.12):
+Then install a recent version of *CMake* (>= version 3.13):
 
 .. code-block:: bash
 
