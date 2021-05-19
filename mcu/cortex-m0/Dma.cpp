@@ -17,7 +17,7 @@ using namespace tlm;
 using namespace CortexM0Peripherals;
 
 Dma::Dma(const sc_module_name name, const unsigned startAddress)
-    : BusTarget(name, startAddress, startAddress + 0x6f) {
+    : BusTarget(name, startAddress, startAddress + 0x73) {
   // Construct & bind submodules
   for (int i = 0; i < NCHANNELS; i++) {
     m_triggerMuxes[i] =

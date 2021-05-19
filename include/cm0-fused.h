@@ -52,8 +52,8 @@ extern "C" {
 
 /* ------ DMA ------ */
 #define DMA_BASE 0x40014000
-#define DMA_SIZE 0x6F
-#define DMA_EXCEPT_ID 26
+#define DMA_SIZE 0x74
+#define DMA_EXCEPT_ID 27
 
 #ifdef __cplusplus
 }

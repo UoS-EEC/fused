@@ -243,7 +243,7 @@ struct Dma::RegisterAddress {
   static const unsigned DMACTL4            = 0x000C;
 
   // Interrupt vector
-  static const unsigned DMAIV              = 0x000E;
+  static const unsigned DMAIV              = 0x0070;
 
   // Channel 0
   static const unsigned DMA0CTL            = 0x0010;
