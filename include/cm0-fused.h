@@ -49,6 +49,12 @@ extern "C" {
 #define SPI2_EXCEPT_ID 26
 #define SPI1 *((volatile unsigned int *)SPI1_BASE)
 #define SPI2 *((volatile unsigned int *)SPI2_BASE)
+
+/* ------ DMA ------ */
+#define DMA_BASE 0x40014000
+#define DMA_SIZE 0x6F
+#define DMA_EXCEPT_ID 26
+
 #ifdef __cplusplus
 }
 #endif

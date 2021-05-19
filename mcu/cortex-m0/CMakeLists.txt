@@ -32,6 +32,8 @@ target_compile_definitions(
 target_include_directories(cm0-cpu PRIVATE ${CMAKE_CURRENT_LIST_DIRECTORY})
 
 add_library(Cm0Peripherals
+  Dma.hpp
+  Dma.cpp
   Gpio.cpp
   Gpio.hpp
   Spi.cpp

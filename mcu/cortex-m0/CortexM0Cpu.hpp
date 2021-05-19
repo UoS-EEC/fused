@@ -7,12 +7,12 @@
 
 #pragma once
 
+#include "mcu/ClockSourceIf.hpp"
+#include "ps/PowerModelChannelIf.hpp"
 #include <deque>
 #include <systemc>
 #include <tlm>
 #include <unordered_set>
-#include "mcu/ClockSourceIf.hpp"
-#include "ps/PowerModelChannelIf.hpp"
 
 extern "C" {
 #include "mcu/cortex-m0/decode.h"
@@ -24,11 +24,12 @@ extern struct CPU cpu;
 class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   SC_HAS_PROCESS(CortexM0Cpu);
 
- public:
+public:
   /* ------ Ports ------ */
-  sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"};  //! CPU clock
-  tlm::tlm_initiator_socket<> iSocket;                 //! TLM initiator socket
-  sc_core::sc_in<bool> pwrOn{"pwrOn"};                 //! "power-good" signal
+  sc_core::sc_port<ClockSourceConsumerIf> clk{"clk"}; //! CPU clock
+  tlm::tlm_initiator_socket<> iSocket;                //! TLM initiator socket
+  sc_core::sc_in<bool> pwrOn{"pwrOn"};                //! "power-good" signal
+  sc_core::sc_in<bool> busStall{"busStall"};          //! indicate busy bus
 
   //! Output port for power model events
   PowerModelEventOutPort powerModelPort{"powerModelPort"};
@@ -222,34 +223,35 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
   /*------ Dummy methods --------------------------------------------------*/
 
   // Dummy method:
-  [[noreturn]] void invalidate_direct_mem_ptr(
-      sc_dt::uint64 start_range[[maybe_unused]],
-      sc_dt::uint64 end_range[[maybe_unused]]) {
+  [[noreturn]] void invalidate_direct_mem_ptr(sc_dt::uint64 start_range
+                                              [[maybe_unused]],
+                                              sc_dt::uint64 end_range
+                                              [[maybe_unused]]) {
     SC_REPORT_FATAL(this->name(), "invalidate_direct_mem_ptr not implemented");
     exit(1);
   }
 
-      // Dummy method:
-      [[noreturn]] tlm::tlm_sync_enum
-      nb_transport_bw(tlm::tlm_generic_payload &trans[[maybe_unused]],
-                      tlm::tlm_phase &phase[[maybe_unused]],
-                      sc_core::sc_time &delay[[maybe_unused]]) {
+  // Dummy method:
+  [[noreturn]] tlm::tlm_sync_enum
+  nb_transport_bw(tlm::tlm_generic_payload &trans [[maybe_unused]],
+                  tlm::tlm_phase &phase [[maybe_unused]],
+                  sc_core::sc_time &delay [[maybe_unused]]) {
     SC_REPORT_FATAL(this->name(), "nb_transport_bw is not implemented");
     exit(1);
   }
 
   /* ------ Public variables ------*/
- private:
+private:
   /* ------ Constants ------ */
-  static const unsigned N_GPR = 16;      // How many general purpose registers
-  static const unsigned SP_REGNUM = 13;  // Stack pointer
-  static const unsigned LR_REGNUM = 14;  // Link register
-  static const unsigned PC_REGNUM = 15;  // Program counter
-  static const unsigned CPSR_REGNUM = 0x19;  // (virtual register)
+  static const unsigned N_GPR = 16;     // How many general purpose registers
+  static const unsigned SP_REGNUM = 13; // Stack pointer
+  static const unsigned LR_REGNUM = 14; // Link register
+  static const unsigned PC_REGNUM = 15; // Program counter
+  static const unsigned CPSR_REGNUM = 0x19; // (virtual register)
 
-  static const unsigned OPCODE_WFE = 0xbf20;  //! Wait for Event opcode
-  static const unsigned OPCODE_WFI = 0xbf30;  //! Wait for Interrupt opcode
-  static const unsigned OPCODE_NOP = 0x46c0;  // 0xbf00;  //! NOP (mov r8, r8)
+  static const unsigned OPCODE_WFE = 0xbf20; //! Wait for Event opcode
+  static const unsigned OPCODE_WFI = 0xbf30; //! Wait for Interrupt opcode
+  static const unsigned OPCODE_NOP = 0x46c0; // 0xbf00;  //! NOP (mov r8, r8)
 
   /* ------ Private variables ------ */
   struct InstructionBuffer {
@@ -258,21 +260,21 @@ class CortexM0Cpu : public sc_core::sc_module, tlm::tlm_bw_transport_if<> {
     bool valid{false};
   };
 
-  std::deque<uint16_t> m_instructionQueue{};  //! Pipeline
-  int m_bubbles{0};  //! Current number of pipeline bubbles
+  std::deque<uint16_t> m_instructionQueue{}; //! Pipeline
+  int m_bubbles{0}; //! Current number of pipeline bubbles
   int m_pipelineStages;
   bool m_sleeping{false};
   bool m_run{false};
   bool m_doStep{false};
   InstructionBuffer m_instructionBuffer;
-  std::unordered_set<unsigned> m_breakpoints;  // Set of breakpoint addresses
-  std::unordered_set<unsigned> m_watchpoints;  // Set of watchpoint addresses
-  std::array<unsigned, 17> m_regsAtExceptEnter{{0}};  //! Used for checking
+  std::unordered_set<unsigned> m_breakpoints; // Set of breakpoint addresses
+  std::unordered_set<unsigned> m_watchpoints; // Set of watchpoint addresses
+  std::array<unsigned, 17> m_regsAtExceptEnter{{0}}; //! Used for checking
 
   /* Power model event & state ids */
-  int m_idleCyclesEventId{-1};     //! Event used to track idle cycles
-  int m_nInstructionsEventId{-1};  //! Event used to track number of
-                               //! executed instructions
+  int m_idleCyclesEventId{-1};    //! Event used to track idle cycles
+  int m_nInstructionsEventId{-1}; //! Event used to track number of
+                                  //! executed instructions
   int m_offStateId{-1};
   int m_onStateId{-1};
   int m_sleepStateId{-1};

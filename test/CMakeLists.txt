@@ -237,3 +237,18 @@ target_link_libraries(testCm0Spi
     Cm0Utilities
     Cm0Microcontroller
   )
+
+# ------ Cm0 DMA ------
+add_executable(testCm0Dma
+  test_cm0Dma.cpp
+  )
+
+target_link_libraries(testCm0Dma
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Cm0Utilities
+    Cm0Microcontroller
+  )
+

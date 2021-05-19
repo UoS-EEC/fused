@@ -7,12 +7,6 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <array>
-#include <iostream>
-#include <systemc>
-#include <utilities/SimpleMonitor.hpp>
-#include <vector>
 #include "mcu/Bus.hpp"
 #include "mcu/BusTarget.hpp"
 #include "mcu/ClockSourceChannel.hpp"
@@ -22,15 +16,22 @@
 #include "mcu/NonvolatileMemory.hpp"
 #include "mcu/VolatileMemory.hpp"
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
+#include "mcu/cortex-m0/Dma.hpp"
 #include "mcu/cortex-m0/Gpio.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "mcu/cortex-m0/Spi.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
+#include <array>
+#include <iostream>
+#include <stdint.h>
+#include <systemc>
+#include <utilities/SimpleMonitor.hpp>
+#include <vector>
 
 class Cm0Microcontroller : public Microcontroller {
   SC_HAS_PROCESS(Cm0Microcontroller);
 
- public:
+public:
   /* ------ Signals ------ */
 
   /*------ Interrupt lines ------*/
@@ -43,14 +44,20 @@ class Cm0Microcontroller : public Microcontroller {
 
   /* ------ Clocks ------ */
   ClockSourceChannel masterClock{
-      "masterClock", sc_core::sc_time(125, sc_core::SC_NS)};  // 8 MHz
+      "masterClock", sc_core::sc_time(125, sc_core::SC_NS)}; // 8 MHz
   ClockSourceChannel peripheralClock{
-      "peripheralClock", sc_core::sc_time(125, sc_core::SC_NS)};  // 8 MHz
+      "peripheralClock", sc_core::sc_time(125, sc_core::SC_NS)}; // 8 MHz
 
   /* ------ "Analog" signals ------ */
 
   /* ------ Miscellaneous ------ */
   sc_core::sc_signal<unsigned int> nvmWaitStates{"nvmWaitStates", 1};
+
+  //! Signal from DMA to take over bus
+  sc_core::sc_signal<bool> busStall{"busStall"};
+
+  //! DMA triggers
+  std::array<sc_core::sc_signal<bool>, 30> dmaTrigger;
 
   //! Constructor
   explicit Cm0Microcontroller(sc_core::sc_module_name nm);
@@ -157,25 +164,26 @@ class Cm0Microcontroller : public Microcontroller {
     m_cpu.removeBreakpoint(addr);
   }
 
- private:
+private:
   /**
    * @brief process Monitors output from PMM and resets processor during
    * power outages
    */
   void process(void);
 
- public:
+public:
   /* ------ Constants ------ */
 
   /* ------ Peripherals ------ */
-  DummyPeripheral *scb;     //! System Control Block is not implemented
-  VolatileMemory *sram;     //! Volatile memory (SRAM)
-  NonvolatileMemory *invm;  //! Instruction memory (NVM)
-  NonvolatileMemory *dnvm;  //! Data memory (NVRAM)
-  SysTick *sysTick;         //! SysTick Timer
-  Nvic *nvic;               //! NVIC interrupt controller
-  Gpio *gpio;               //! Basic GPIO
-  Spi *spi;                 //! SPI peripheral
+  DummyPeripheral *scb;          //! System Control Block is not implemented
+  VolatileMemory *sram;          //! Volatile memory (SRAM)
+  NonvolatileMemory *invm;       //! Instruction memory (NVM)
+  NonvolatileMemory *dnvm;       //! Data memory (NVRAM)
+  SysTick *sysTick;              //! SysTick Timer
+  Nvic *nvic;                    //! NVIC interrupt controller
+  Gpio *gpio;                    //! Basic GPIO
+  Spi *spi;                      //! SPI peripheral
+  CortexM0Peripherals::Dma *dma; //! Direct Memory Access peripheral
 
   /* ------- CPU & bus ------ */
   CortexM0Cpu m_cpu;
