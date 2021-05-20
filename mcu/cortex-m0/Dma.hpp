@@ -17,6 +17,7 @@
 #include "mcu/BusTarget.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include <array>
+#include <ostream>
 #include <spdlog/spdlog.h>
 #include <stdint.h>
 #include <systemc>
@@ -136,7 +137,6 @@ private:
 
 // DMA module -- implements the register file & orchestrates channels
 class Dma : public BusTarget {
-  SC_HAS_PROCESS(Dma);
 
 public:
   /*------ Ports ------*/

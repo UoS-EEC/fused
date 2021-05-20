@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "include/cm0-fused.h"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/GenericMemory.hpp"
@@ -18,7 +19,8 @@
 #include <tlm>
 #include <tlm_utils/simple_initiator_socket.h>
 
-// get DMA bitfield definitions
+// get DMA bitfield definitions from the MSP430 header
+#undef DMA_BASE // Need to undef this first
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
 }
@@ -109,8 +111,12 @@ public:
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u);
+
+    // Clear IRQ
+    test.active_exception.write(DMA_EXCEPT_ID + 16);
     wait(test.mclk.getPeriod());
+    test.active_exception.write(-1);
     sc_assert(read32(Dma::RegisterAddress::DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());
@@ -151,8 +157,10 @@ public:
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u);
+    test.active_exception.write(DMA_EXCEPT_ID + 16);
     wait(test.mclk.getPeriod());
+    test.active_exception.write(-1);
     sc_assert(read32(Dma::RegisterAddress::DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());
@@ -196,8 +204,10 @@ public:
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u);
+    test.active_exception.write(DMA_EXCEPT_ID + 16);
     wait(test.mclk.getPeriod());
+    test.active_exception.write(-1);
     sc_assert(read32(Dma::RegisterAddress::DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());

@@ -6,12 +6,14 @@
  */
 
 /* ------ Includes ----------------------------------------------------------*/
-#include "dma_defs.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <support.h>
+
+#include "cmsis/core_cm0.h"
+#include "dma_defs.h"
 
 /* ------ Types -------------------------------------------------------------*/
 
@@ -67,7 +69,7 @@ volatile static bool irqTriggered = false;
 
 /* ------ Function Declarations ---------------------------------------------*/
 
-void interrupt27_Handler(void) { // DMA interrupt handler
+void Interrupt27_Handler(void) { // DMA interrupt handler
   irqTriggered = true;
   Dma->DMAIV = 0; // Clear pending irq
 }
@@ -108,10 +110,14 @@ int main(void) {
     Dma->DMA0SA = (unsigned)a;
     Dma->DMA0DA = (unsigned)b;
     Dma->DMA0SZ = sizeof(a) / 4;
+
+    NVIC_SetPriority(27, 2);
+    NVIC_EnableIRQ(27);
+
     Dma->DMA0CTL |= DMAEN | DMAREQ;
 
     // Delay while transfering
-    for (int i = 0; i < 10000; ++i) {
+    for (int i = 0; i < 100; ++i) {
     }
 
     // Assert that interrupt was triggered

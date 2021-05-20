@@ -69,6 +69,7 @@ Dma::Dma(const sc_module_name name, const unsigned startAddress)
   m_regs.addRegister(RegisterAddress::DMA5SZ, undef);
 
   // Set up methods & threads
+  SC_HAS_PROCESS(Dma);
   SC_METHOD(reset);
   sensitive << pwrOn;
 
@@ -76,7 +77,8 @@ Dma::Dma(const sc_module_name name, const unsigned startAddress)
   sensitive << m_updateIrqFlagEvent;
 
   SC_METHOD(irqControl);
-  sensitive << m_updateIrqEvent;
+  sensitive << active_exception << m_updateIrqEvent;
+  dont_initialize();
 
   SC_THREAD(process);
 }
@@ -279,7 +281,7 @@ void Dma::irqControl() {
     irq->write(false);
 
     // Clear interrupt vector flags & registers
-    m_clearIfg = false;
+    m_clearIfg = true;
     m_updateIrqFlagEvent.notify(SC_ZERO_TIME);
   }
   m_setIrq = false;
