@@ -85,6 +85,7 @@ int sc_main(int argc, char *argv[]) {
     SC_REPORT_FATAL(
         "sc_main",
         fmt::format("invalid setting for Board \"{:s}\"", bstring).c_str());
+    exit(1);  // supress "board may be uninitialized" warning
   }
 
   // Set up output folder
