@@ -73,20 +73,20 @@ public:
     //   - Transfermode Single,
     //   - increment source and destination address
     //   - size: 32 byte
-    //   - word size: 16-bit
+    //   - word size: 32 bit
 
     spdlog::info("Testing basic single transfer");
 
     // Set memory contents
-    for (auto i = 0; i < 1024; i++) {
-      writeMemory16(2 * i, i);
+    for (auto i = 0; i < 2048; i++) {
+      writeMemory32(4 * i, i);
     }
 
     // Configure DMA
-    write16(Dma::RegisterAddress::DMA0SA, 0);
-    write16(Dma::RegisterAddress::DMA0DA, 128);
-    write16(Dma::RegisterAddress::DMA0SZ, 32);
-    write16(Dma::RegisterAddress::DMA0CTL,
+    write32(Dma::RegisterAddress::DMA0SA, 0);
+    write32(Dma::RegisterAddress::DMA0DA, 128);
+    write32(Dma::RegisterAddress::DMA0SZ, 32);
+    write32(Dma::RegisterAddress::DMA0CTL,
             DMADT_0 | DMADSTINCR_3 | DMASRCINCR_3 | DMADSTBYTE__WORD |
                 DMASRCBYTE__WORD | DMALEVEL__EDGE | DMAEN_1 | DMAIE);
     // Trigger
@@ -103,15 +103,15 @@ public:
 
     // Should be disabled after completed transfer
     sc_assert(!test.m_dut.m_channels[0]->enable);
-    sc_assert(!(read16(Dma::RegisterAddress::DMA0CTL) & DMAEN));
+    sc_assert(!(read32(Dma::RegisterAddress::DMA0CTL) & DMAEN));
     sc_assert(!test.busStall.read());
 
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read16(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
     wait(test.mclk.getPeriod());
-    sc_assert(read16(Dma::RegisterAddress::DMAIV) == 0);
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());
 
@@ -119,17 +119,17 @@ public:
     for (auto i = 0; i < 31; i++) {
       // std::cout << 2 * i + 128 << ": " << readMemory16(2 * i + 128)
       //<< std::endl;
-      sc_assert(readMemory16(2 * i + 128) == i);
+      sc_assert(readMemory32(4 * i + 128) == i);
     }
 
     // TEST -- Block transfer
     spdlog::info("Testing basic block transfer");
 
     // Configure DMA
-    write16(Dma::RegisterAddress::DMA0SA, 0);
-    write16(Dma::RegisterAddress::DMA0DA, 256);
-    write16(Dma::RegisterAddress::DMA0SZ, 32);
-    write16(Dma::RegisterAddress::DMA0CTL,
+    write32(Dma::RegisterAddress::DMA0SA, 0);
+    write32(Dma::RegisterAddress::DMA0DA, 256);
+    write32(Dma::RegisterAddress::DMA0SZ, 32);
+    write32(Dma::RegisterAddress::DMA0CTL,
             DMADT_1 | DMADSTINCR_3 | DMASRCINCR_3 | DMADSTBYTE__WORD |
                 DMASRCBYTE__WORD | DMALEVEL__EDGE | DMAEN_1 | DMAIE);
     // Trigger
@@ -151,9 +151,9 @@ public:
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read16(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
     wait(test.mclk.getPeriod());
-    sc_assert(read16(Dma::RegisterAddress::DMAIV) == 0);
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());
 
@@ -161,27 +161,27 @@ public:
     for (auto i = 0; i < 31; i++) {
       // std::cout << 2 * i + 256 << ": " << readMemory16(2 * i + 256)
       //<< std::endl;
-      sc_assert(readMemory16(2 * i + 256) == i);
+      sc_assert(readMemory32(4 * i + 256) == i);
     }
 
     // TEST -- Software trigger
     //   - Transfermode Single,
     //   - increment source and destination address
     //   - size: 32 byte
-    //   - word size: 16-bit
+    //   - word size: 32 bit
     spdlog::info("Testing software trigger");
 
     // Configure DMA
-    write16(Dma::RegisterAddress::DMA0SA, 0);
-    write16(Dma::RegisterAddress::DMA0DA, 128);
-    write16(Dma::RegisterAddress::DMA0SZ, 32);
+    write32(Dma::RegisterAddress::DMA0SA, 0);
+    write32(Dma::RegisterAddress::DMA0DA, 128);
+    write32(Dma::RegisterAddress::DMA0SZ, 32);
     unsigned ctrl = DMADT_0 | DMADSTINCR_3 | DMASRCINCR_3 | DMADSTBYTE__WORD |
                     DMASRCBYTE__WORD | DMALEVEL__EDGE | DMAEN_1 | DMAIE;
 
-    write16(Dma::RegisterAddress::DMA0CTL, ctrl); // Trigger
+    write32(Dma::RegisterAddress::DMA0CTL, ctrl); // Trigger
     for (auto i = 0; i < 32; i++) {
       // std::cout << *test.m_dut.m_channels[0] << std::endl;
-      write16(Dma::RegisterAddress::DMA0CTL, ctrl | DMAREQ);
+      write32(Dma::RegisterAddress::DMA0CTL, ctrl | DMAREQ);
       sc_assert(test.m_dut.m_channels[0]->enable);
       sc_assert(test.busStall.read());
       wait(3 * test.mclk.getPeriod());
@@ -191,68 +191,68 @@ public:
     // Should be disabled after completed transfer
     sc_assert(!test.m_dut.m_channels[0]->enable);
     sc_assert(!test.busStall.read());
-    sc_assert(!(read16(Dma::RegisterAddress::DMA0CTL) & DMAEN));
+    sc_assert(!(read32(Dma::RegisterAddress::DMA0CTL) & DMAEN));
 
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read16(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 2u); // Clears irq
     wait(test.mclk.getPeriod());
-    sc_assert(read16(Dma::RegisterAddress::DMAIV) == 0);
+    sc_assert(read32(Dma::RegisterAddress::DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(!test.irq.read());
 
     sc_stop();
   }
 
-  void writeMemory16(const uint32_t addr, const uint32_t val) {
+  void writeMemory32(const uint32_t addr, const uint32_t val) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
-    unsigned char data[2];
+    unsigned char data[4];
     trans.set_data_ptr(data);
-    trans.set_data_length(2);
+    trans.set_data_length(4);
     trans.set_command(tlm::TLM_WRITE_COMMAND);
     trans.set_address(addr);
 
-    Utility::unpackBytes(data, Utility::htots(val), 2);
+    Utility::unpackBytes(data, Utility::htotl(val), 4);
     test.mem.transport_dbg(trans); // Bypassing sockets
   }
 
-  int readMemory16(const uint32_t addr) {
+  int readMemory32(const uint32_t addr) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
-    unsigned char data[2];
+    unsigned char data[4];
     trans.set_data_ptr(data);
-    trans.set_data_length(2);
+    trans.set_data_length(4);
     trans.set_command(tlm::TLM_READ_COMMAND);
     trans.set_address(addr);
 
     test.mem.transport_dbg(trans); // Bypassing sockets
-    return Utility::ttohs(Utility::packBytes(data, 2));
+    return Utility::ttohl(Utility::packBytes(data, 4));
   }
 
-  void write16(const uint32_t addr, const uint32_t val, bool doWait = true) {
+  void write32(const uint32_t addr, const uint32_t val, bool doWait = true) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
-    unsigned char data[2];
+    unsigned char data[4];
     trans.set_data_ptr(data);
-    trans.set_data_length(2);
+    trans.set_data_length(4);
     trans.set_command(tlm::TLM_WRITE_COMMAND);
     trans.set_address(addr);
 
-    Utility::unpackBytes(data, Utility::htots(val), 2);
+    Utility::unpackBytes(data, Utility::htotl(val), 4);
     test.iSocket->b_transport(trans, delay);
     if (doWait) {
       wait(delay);
     }
   }
 
-  uint32_t read16(const uint32_t addr, bool doWait = true) {
+  uint32_t read32(const uint32_t addr, bool doWait = true) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
-    unsigned char data[2];
+    unsigned char data[4];
     trans.set_data_ptr(data);
-    trans.set_data_length(2);
+    trans.set_data_length(4);
     trans.set_command(tlm::TLM_READ_COMMAND);
     trans.set_address(addr);
     test.iSocket->b_transport(trans, delay);
@@ -260,7 +260,7 @@ public:
     if (doWait) {
       wait(delay);
     }
-    return Utility::ttohs(Utility::packBytes(data, 2));
+    return Utility::ttohl(Utility::packBytes(data, 4));
   }
 
   dut test{"dut"};

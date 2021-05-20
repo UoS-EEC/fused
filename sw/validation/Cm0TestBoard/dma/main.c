@@ -73,16 +73,16 @@ void interrupt27_Handler(void) { // DMA interrupt handler
 }
 
 void dma_copy(char *src, char *dst, const int len) {
-  // Blocking block-transfer, autoincrement, 2-byte word size
+  // Blocking block-transfer, autoincrement, 4-byte word size
   Dma->DMA0CTL = DMADT_1 | DMASRCINCR_3 | DMADSTINCR_3;
   Dma->DMA0SA = (unsigned)src;
   Dma->DMA0DA = (unsigned)dst;
-  Dma->DMA0SZ = len / 2;
+  Dma->DMA0SZ = len / 4;
   Dma->DMA0CTL |= DMAEN | DMAREQ;
-  while (Dma->DMA0CTL & DMAEN)
-    ;            // Wait for transfer complete
-  if (len % 2) { // transfer last byte
-    *(dst + len - 1) = *(src + len - 1);
+
+  // Transfer tail bytes
+  for (int i = len % 4; i > 0; --i) {
+    *(dst + len - i) = *(src + len - i);
   }
 }
 
@@ -93,9 +93,29 @@ int main(void) {
   while (1) {
     // Block copy
     dma_copy((char *)a, (char *)b, sizeof(a));
+
+    // Wait for transfer to complete
+    while (Dma->DMA0CTL & DMAEN)
+      ;
+
+    // Verify results
     for (size_t i = 0; i < sizeof(a) / sizeof(int); i++) {
       assert(b[i] == a[i]);
     }
+
+    // Block copy with interrupt
+    Dma->DMA0CTL = DMADT_1 | DMASRCINCR_3 | DMADSTINCR_3 | DMAIE__ENABLE;
+    Dma->DMA0SA = (unsigned)a;
+    Dma->DMA0DA = (unsigned)b;
+    Dma->DMA0SZ = sizeof(a) / 4;
+    Dma->DMA0CTL |= DMAEN | DMAREQ;
+
+    // Delay while transfering
+    for (int i = 0; i < 10000; ++i) {
+    }
+
+    // Assert that interrupt was triggered
+    assert(irqTriggered);
 
     end_experiment();
   }

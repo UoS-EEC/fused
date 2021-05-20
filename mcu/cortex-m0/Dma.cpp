@@ -75,6 +75,9 @@ Dma::Dma(const sc_module_name name, const unsigned startAddress)
   SC_METHOD(interruptUpdate);
   sensitive << m_updateIrqFlagEvent;
 
+  SC_METHOD(irqControl);
+  sensitive << m_updateIrqEvent;
+
   SC_THREAD(process);
 }
 
@@ -158,7 +161,7 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 }
 
 void Dma::process() {
-  uint8_t data[2];
+  uint8_t data[4];
   sc_time delay = SC_ZERO_TIME;
   tlm_generic_payload trans; //! Outgoing transaction
   trans.set_data_ptr(data);
@@ -187,11 +190,12 @@ void Dma::process() {
 
       // Accept, perform transfer, update state & registers
       const auto &ch = *m_channels[channelIdx];
-      const auto offset =
+      const auto channelAddressOffset =
           channelIdx * (RegisterAddress::DMA1CTL - RegisterAddress::DMA0CTL);
       trans.set_data_length((ch.sourceBytes == DmaChannel::Bytes::Byte) ? 1
-                                                                        : 2);
-      m_regs.clearBitMask(RegisterAddress::DMA0CTL + offset, BitMask::DMAREQ);
+                                                                        : 4);
+      m_regs.clearBitMask(RegisterAddress::DMA0CTL + channelAddressOffset,
+                          BitMask::DMAREQ);
       while (ch.pending.read()) {
         // Read
         trans.set_command(TLM_READ_COMMAND);
@@ -208,11 +212,12 @@ void Dma::process() {
         iSocket->b_transport(trans, delay);
         wait(delay);
         m_channelAccept[channelIdx].write(false);
-        m_regs.write(RegisterAddress::DMA0SZ + offset, ch.size);
+        m_regs.write(RegisterAddress::DMA0SZ + channelAddressOffset, ch.size);
       }
 
       if (!ch.enable) {
-        m_regs.clearBitMask(RegisterAddress::DMA0CTL + offset, BitMask::DMAEN);
+        m_regs.clearBitMask(RegisterAddress::DMA0CTL + channelAddressOffset,
+                            BitMask::DMAEN);
       }
       if (ch.interruptFlag && ch.interruptEnable) {
         m_updateIrqFlagEvent.notify(SC_ZERO_TIME);
@@ -267,11 +272,11 @@ void Dma::irqControl() {
   if (m_setIrq && (!irq.read())) {
     spdlog::info("{:s}: @{:s} interrupt request", this->name(),
                  sc_time_stamp().to_string());
-    irq.write(true);
+    irq->write(true);
   } else if ((active_exception.read() - 16) == DMA_EXCEPT_ID) {
     spdlog::info("{:s}: @{:s} interrupt request cleared.", this->name(),
                  sc_time_stamp().to_string());
-    irq.write(false);
+    irq->write(false);
 
     // Clear interrupt vector flags & registers
     m_clearIfg = false;
@@ -285,20 +290,20 @@ void DmaChannel::updateAddresses() {
   case AutoIncrementMode::Unchanged:
     break;
   case AutoIncrementMode::Decrement:
-    m_tDestinationAddress -= (destinationBytes == Bytes::Word) ? 2 : 1;
+    m_tDestinationAddress -= (destinationBytes == Bytes::Word) ? 4 : 1;
     break;
   case AutoIncrementMode::Increment:
-    m_tDestinationAddress += (destinationBytes == Bytes::Word) ? 2 : 1;
+    m_tDestinationAddress += (destinationBytes == Bytes::Word) ? 4 : 1;
     break;
   }
   switch (sourceAutoIncrement) {
   case AutoIncrementMode::Unchanged:
     break;
   case AutoIncrementMode::Decrement:
-    m_tSourceAddress -= (sourceBytes == Bytes::Word) ? 2 : 1;
+    m_tSourceAddress -= (sourceBytes == Bytes::Word) ? 4 : 1;
     break;
   case AutoIncrementMode::Increment:
-    m_tSourceAddress += (sourceBytes == Bytes::Word) ? 2 : 1;
+    m_tSourceAddress += (sourceBytes == Bytes::Word) ? 4 : 1;
     break;
   }
 }
@@ -506,6 +511,8 @@ void DmaChannel::process() {
           wait(accept.posedge_event());
           updateAddresses();
           if ((size > 0) && (size < m_tSize) && (size % 4 == 0)) {
+            // Wait 2 cycles after every 4th transfer, to allow some CPU
+            // activity (unstall the CPU for 2 cycles every 4 transfers)
             wait(2 * systemClk->getPeriod());
           }
           if (!enable) {
