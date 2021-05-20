@@ -421,7 +421,6 @@ void DmaChannel::process() {
                    this->name(), size, sourceAddress, destinationAddress);
       pending.write(true);
       while (size) {
-        std::cout << "Block-transfer: remaining " << size << std::endl;
         wait(accept.posedge_event());
         updateAddresses();
         if (!enable) {
