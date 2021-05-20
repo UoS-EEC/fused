@@ -101,6 +101,7 @@ IF(ENABLE_TESTS)
   add_test(NAME Cm0SysTick COMMAND testCm0SysTick)
   add_test(NAME Cm0Nvic COMMAND testCm0Nvic)
   add_test(NAME Cm0Spi COMMAND testCm0Spi)
+  add_test(NAME Cm0Dma COMMAND testCm0Dma)
 
   # ---- Software tests ------
   execute_process(

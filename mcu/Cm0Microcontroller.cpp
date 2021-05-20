@@ -5,33 +5,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <stdint.h>
-#include <iomanip>
-#include <iostream>
-#include <numeric>
-#include <sstream>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "include/cm0-fused.h"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
+#include "mcu/cortex-m0/Dma.hpp"
 #include "mcu/cortex-m0/Gpio.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
 #include "utilities/Config.hpp"
+#include <iomanip>
+#include <iostream>
+#include <numeric>
+#include <spdlog/spdlog.h>
+#include <sstream>
+#include <stdint.h>
+#include <string>
+#include <systemc>
+#include <tlm>
 
 using namespace sc_core;
+using namespace CortexM0Peripherals;
 
 Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
-    : Microcontroller(nm),
-      m_cpu("CPU"),
-      bus("bus"),
-      masterClock(
-          "masterClock",
-          sc_time::from_seconds(Config::get().getDouble("MasterClockPeriod"))),
+    : Microcontroller(nm), m_cpu("CPU"), bus("bus"),
+      masterClock("masterClock", sc_time::from_seconds(Config::get().getDouble(
+                                     "MasterClockPeriod"))),
       peripheralClock("peripheralClock",
                       sc_time::from_seconds(
                           Config::get().getDouble("PeripheralClockPeriod"))) {
@@ -49,8 +48,10 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   mon = new SimpleMonitor("mon", SIMPLE_MONITOR_BASE);
   gpio = new Gpio("gpio");
   spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10);
+  dma = new Dma("dma", DMA_BASE);
 
   slaves.push_back(dnvm);
+  slaves.push_back(dma);
   slaves.push_back(invm);
   slaves.push_back(gpio);
   slaves.push_back(mon);
@@ -97,6 +98,9 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   gpio->irq.bind(nvic_irq[GPIO_EXCEPT_ID]);
   gpio->active_exception.bind(cpu_active_exception);
 
+  dma->irq.bind(nvic_irq[DMA_EXCEPT_ID]);
+  dma->active_exception.bind(cpu_active_exception);
+
   nvic->pending.bind(nvic_pending);
   nvic->returning.bind(cpu_returning_exception);
   nvic->active.bind(cpu_active_exception);
@@ -121,9 +125,17 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   // Miscellaneous
   invm->waitStates.bind(nvmWaitStates);
   dnvm->waitStates.bind(nvmWaitStates);
+  m_cpu.busStall.bind(busStall);
+
+  // DMA
+  dma->busStall.bind(busStall);
+  for (size_t i = 0; i < dmaTrigger.size(); ++i) {
+    dma->trigger[i].bind(dmaTrigger[i]);
+  }
 
   // Bus
   m_cpu.iSocket.bind(bus.tSocket);
+  dma->iSocket.bind(bus.tSocket);
   for (const auto &s : slaves) {
     bus.bindTarget(*s);
   }

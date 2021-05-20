@@ -5,11 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <chrono>
-#include <systemc>
-#include <thread>
-#include <tlm>
 #include "include/cm0-fused.h"
 #include "libs/make_unique.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
@@ -17,13 +12,18 @@
 #include "ps/ConstantCurrentState.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
 #include "utilities/Utilities.hpp"
+#include <chrono>
+#include <spdlog/spdlog.h>
+#include <systemc>
+#include <thread>
+#include <tlm>
 
 using namespace sc_core;
 
 struct CPU cpu;
 
 CortexM0Cpu *m_ctx =
-    nullptr;  //! Simulation context used for hooking callbacks into thumbulator
+    nullptr; //! Simulation context used for hooking callbacks into thumbulator
 
 CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
   iSocket.bind(*this);
@@ -79,7 +79,7 @@ void CortexM0Cpu::end_of_elaboration() {
 }
 
 void CortexM0Cpu::process() {
-  wait(SC_ZERO_TIME);  // Wait for start of simulation
+  wait(SC_ZERO_TIME); // Wait for start of simulation
 
   // Initialize CPU state
   cpu.debug = 1;
@@ -164,15 +164,15 @@ void CortexM0Cpu::process() {
     }
 
     if (!m_run) {
-      waitForCommand();  // Stall simulation, waiting for gdb server
-                         // interaction
+      waitForCommand(); // Stall simulation, waiting for gdb server
+                        // interaction
     }
 
     if (m_run && (!pwrOn.read())) {
       powerModelPort->reportState(m_offStateId);
-      wait(pwrOn.default_event());  // Wait for power
+      wait(pwrOn.default_event()); // Wait for power
       powerModelPort->reportState(m_onStateId);
-      reset();  // Reset CPU
+      reset(); // Reset CPU
     }
   }
 }
@@ -194,13 +194,13 @@ void CortexM0Cpu::reset() {
   m_instructionBuffer.data = 0;
 
   // Initialize the special-purpose registers
-  cpu.apsr = 0;        // No flags set
-  cpu.ipsr = 0;        // No exception number
-  cpu.espr = ESPR_T;   // Thumb mode
-  cpu.primask = 0;     // No except priority boosting
-  cpu.control = 0;     // Priv mode and main stack
-  cpu.sp_main = 0;     // Stack pointer for exception handling
-  cpu.sp_process = 0;  // Stack pointer for process
+  cpu.apsr = 0;       // No flags set
+  cpu.ipsr = 0;       // No exception number
+  cpu.espr = ESPR_T;  // Thumb mode
+  cpu.primask = 0;    // No except priority boosting
+  cpu.control = 0;    // Priv mode and main stack
+  cpu.sp_main = 0;    // Stack pointer for exception handling
+  cpu.sp_process = 0; // Stack pointer for process
 
   // Clear the general purpose registers
   memset(cpu.gpr, 0, sizeof(cpu.gpr));
@@ -229,7 +229,7 @@ void CortexM0Cpu::reset() {
 
 void CortexM0Cpu::exceptionCheck() {
   if (cpu_get_ipsr() != 0) {
-    return;  // Not handling nested exceptions yet
+    return; // Not handling nested exceptions yet
   }
   // TODO check PRIMASK
   // TODO nested exception/preemption
@@ -251,18 +251,18 @@ void CortexM0Cpu::exceptionCheck() {
 
 void CortexM0Cpu::exceptionEnter(const unsigned exceptionId) {
   // First instruction to be fetched & executed after exception return
-  const auto nextPc = getNextExecutionPc() | 1u;  // |1u to add thumb bit
+  const auto nextPc = getNextExecutionPc() | 1u; // |1u to add thumb bit
 
   // Save a snapshot of registers for checking correct irq handling
   std::copy(std::begin(cpu.gpr), std::end(cpu.gpr),
             std::begin(m_regsAtExceptEnter));
-  m_regsAtExceptEnter[15] = nextPc;  // Point to next valid instr.
+  m_regsAtExceptEnter[15] = nextPc; // Point to next valid instr.
   m_regsAtExceptEnter[16] = cpu_get_apsr();
 
   // Align stack frame to 8 bytes (to comply with AAPCS)
   // (SP is already aligned to 4 bytes)
   uint32_t frameAlign = (cpu_get_sp() & 0x4) != 0;
-  cpu_set_sp((cpu_get_sp() - 0x20) & (~0x4));  // Pre-decrement SP
+  cpu_set_sp((cpu_get_sp() - 0x20) & (~0x4)); // Pre-decrement SP
   uint32_t framePtr = cpu_get_sp();
 
   // Stack R0-R3, R12, R14, PC, xPSR
@@ -283,11 +283,11 @@ void CortexM0Cpu::exceptionEnter(const unsigned exceptionId) {
   // Encode the mode of the cpu at time of exception in LR value
   // (Set LR = EXC_RETURN)
   if (cpu_mode_is_handler()) {
-    cpu_set_lr(0xFFFFFFF1);  // Nested exception
+    cpu_set_lr(0xFFFFFFF1); // Nested exception
   } else if (cpu_stack_is_main()) {
-    cpu_set_lr(0xFFFFFFF9);  // First exception, main stack
+    cpu_set_lr(0xFFFFFFF9); // First exception, main stack
   } else {
-    cpu_set_lr(0xFFFFFFFD);  // First exception, process stack
+    cpu_set_lr(0xFFFFFFFD); // First exception, process stack
   }
 
   // Put the cpu in exception handling mode
@@ -307,23 +307,23 @@ void CortexM0Cpu::exceptionReturn(const uint32_t EXC_RETURN) {
   // Return to the mode and stack that were active when the exception started
   // Error if handler mode and process stack, stops simulation
   switch (EXC_RETURN) {
-    case 0xFFFFFFF1:  // Return to handler mode (nested interrupt)
-      cpu_mode_handler();
-      cpu_stack_use_main();
-      break;
-    case 0xFFFFFFF9:  // Return to thread mode using main stack
-      cpu_mode_thread();
-      cpu_stack_use_main();
-      break;
-    case 0xFFFFFFFD:  // Return to thread mode using process stack
-      cpu_mode_thread();
-      cpu_stack_use_process();
-      break;
-    default:
-      spdlog::error("{}::exceptionReturn Invalid EXC_RETURN 0x{:0x}",
-                    this->name(), EXC_RETURN);
-      SC_REPORT_FATAL(this->name(), "Invalid EXC_RETURN");
-      break;
+  case 0xFFFFFFF1: // Return to handler mode (nested interrupt)
+    cpu_mode_handler();
+    cpu_stack_use_main();
+    break;
+  case 0xFFFFFFF9: // Return to thread mode using main stack
+    cpu_mode_thread();
+    cpu_stack_use_main();
+    break;
+  case 0xFFFFFFFD: // Return to thread mode using process stack
+    cpu_mode_thread();
+    cpu_stack_use_process();
+    break;
+  default:
+    spdlog::error("{}::exceptionReturn Invalid EXC_RETURN 0x{:0x}",
+                  this->name(), EXC_RETURN);
+    SC_REPORT_FATAL(this->name(), "Invalid EXC_RETURN");
+    break;
   }
 
   cpu_set_ipsr(0);
@@ -344,18 +344,17 @@ void CortexM0Cpu::exceptionReturn(const uint32_t EXC_RETURN) {
                                       : framePtr + 0x20);
 
   // Set special-purpose registers
-  cpu_set_apsr(cpu_get_apsr() & 0xF0000000);  // Clear invalid bits
-  cpu_set_ipsr(0);                            // Ignore epsr
+  cpu_set_apsr(cpu_get_apsr() & 0xF0000000); // Clear invalid bits
+  cpu_set_ipsr(0);                           // Ignore epsr
   takenBranch = 1;
   activeException.write(0);
 
   // Check correct state
   for (int i = 0; i < m_regsAtExceptEnter.size(); i++) {
     if (cpu.gpr[i] != m_regsAtExceptEnter[i]) {
-      spdlog::error(
-          "{}:exceptionReturn r{} was not restored correctly: is "
-          "0x{:08x}, should be 0x{:08x}",
-          this->name(), i, cpu.gpr[i], m_regsAtExceptEnter[i]);
+      spdlog::error("{}:exceptionReturn r{} was not restored correctly: is "
+                    "0x{:08x}, should be 0x{:08x}",
+                    this->name(), i, cpu.gpr[i], m_regsAtExceptEnter[i]);
     }
   }
 }
@@ -423,6 +422,11 @@ void CortexM0Cpu::writeMem(const uint32_t addr, uint8_t *const data,
   sc_time delay;
   tlm::tlm_generic_payload trans;
 
+  if (busStall.read()) {
+    // Wait for bus to become available
+    wait(busStall.negedge_event());
+  }
+
   delay = SC_ZERO_TIME;
   trans.set_address(addr);
   trans.set_data_length(bytelen);
@@ -455,6 +459,11 @@ void CortexM0Cpu::readMem(const uint32_t addr, uint8_t *const data,
   sc_time delay;
   tlm::tlm_generic_payload trans;
 
+  if (busStall.read()) {
+    // Wait for bus to become available
+    wait(busStall.negedge_event());
+  }
+
   delay = SC_ZERO_TIME;
   trans.set_address(addr);
   trans.set_data_length(bytelen);
@@ -485,7 +494,7 @@ uint32_t CortexM0Cpu::dbg_readReg(size_t addr) {
 
 void CortexM0Cpu::dbg_writeReg(size_t addr, uint32_t data) {
   if (addr == PC_REGNUM) {
-    cpu_set_pc((data + 2 * (m_pipelineStages - 1)) | 1);  // Adjusted for fetch
+    cpu_set_pc((data + 2 * (m_pipelineStages - 1)) | 1); // Adjusted for fetch
   } else if (addr == CPSR_REGNUM) {
     spdlog::warn("writes to CPSR are ignored.");
   } else if (addr <= N_GPR) {
@@ -551,6 +560,7 @@ std::ostream &operator<<(std::ostream &os, const CortexM0Cpu &rhs) {
     << "\nreturningException: " << rhs.returningException.read()
     << "\nNVIC irq: " << rhs.nvicIrq.read()
     << "\nSysTick irq: " << rhs.sysTickIrq.read()
+    << "\nbusStall " << rhs.busStall.read()
     << "\nPipeline: [";
   for (const auto &i :  rhs.m_instructionQueue) {
     os << i << ", ";

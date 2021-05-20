@@ -1,23 +1,23 @@
 /*
- * Copyright (c) 2019-2020, University of Southampton and Contributors.
+ * Copyright (c) 2019-2021, University of Southampton and Contributors.
  * All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "include/cm0-fused.h"
 #include "mcu/BusTarget.hpp"
-#include "mcu/msp430fr5xx/Dma.hpp"
+#include "mcu/cortex-m0/Dma.hpp"
 #include <algorithm>
-
-extern "C" {
-#include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
-}
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 
 using namespace sc_core;
 using namespace tlm;
+using namespace CortexM0Peripherals;
 
-Dma::Dma(const sc_module_name name)
-    : BusTarget(name, DMA_BASE, DMA_BASE + 0x6f) {
+Dma::Dma(const sc_module_name name, const unsigned startAddress)
+    : BusTarget(name, startAddress, startAddress + 0x73) {
   // Construct & bind submodules
   for (int i = 0; i < NCHANNELS; i++) {
     m_triggerMuxes[i] =
@@ -38,62 +38,54 @@ Dma::Dma(const sc_module_name name)
 
   const unsigned undef = 0xAAAA;
   // Build register file
-  // Control registers
-  m_regs.addRegister(OFS_DMACTL0, 0);
-  m_regs.addRegister(OFS_DMACTL1, 0);
-  m_regs.addRegister(OFS_DMACTL2, 0);
-  m_regs.addRegister(OFS_DMACTL4, 0);
-  m_regs.addRegister(OFS_DMAIV, 0);
-  m_regs.addRegister(OFS_DMA0CTL, 0);
-  m_regs.addRegister(OFS_DMA0SA_L, undef);
-  m_regs.addRegister(OFS_DMA0SA_H, undef);
-  m_regs.addRegister(OFS_DMA0DA_L, undef);
-  m_regs.addRegister(OFS_DMA0DA_H, undef);
-  m_regs.addRegister(OFS_DMA0SZ, undef);
-  m_regs.addRegister(OFS_DMA1CTL, 0);
-  m_regs.addRegister(OFS_DMA1SA_L, undef);
-  m_regs.addRegister(OFS_DMA1SA_H, undef);
-  m_regs.addRegister(OFS_DMA1DA_L, undef);
-  m_regs.addRegister(OFS_DMA1DA_H, undef);
-  m_regs.addRegister(OFS_DMA1SZ, undef);
-  m_regs.addRegister(OFS_DMA2CTL, 0);
-  m_regs.addRegister(OFS_DMA2SA_L, undef);
-  m_regs.addRegister(OFS_DMA2SA_H, undef);
-  m_regs.addRegister(OFS_DMA2DA_L, undef);
-  m_regs.addRegister(OFS_DMA2DA_H, undef);
-  m_regs.addRegister(OFS_DMA2SZ, undef);
-  m_regs.addRegister(OFS_DMA3CTL, 0);
-  m_regs.addRegister(OFS_DMA3SA_L, undef);
-  m_regs.addRegister(OFS_DMA3SA_H, undef);
-  m_regs.addRegister(OFS_DMA3DA_L, undef);
-  m_regs.addRegister(OFS_DMA3DA_H, undef);
-  m_regs.addRegister(OFS_DMA3SZ, undef);
-  m_regs.addRegister(OFS_DMA4CTL, 0);
-  m_regs.addRegister(OFS_DMA4SA_L, undef);
-  m_regs.addRegister(OFS_DMA4SA_H, undef);
-  m_regs.addRegister(OFS_DMA4DA_L, undef);
-  m_regs.addRegister(OFS_DMA4DA_H, undef);
-  m_regs.addRegister(OFS_DMA4SZ, undef);
-  m_regs.addRegister(OFS_DMA5CTL, 0);
-  m_regs.addRegister(OFS_DMA5SA_L, undef);
-  m_regs.addRegister(OFS_DMA5SA_H, undef);
-  m_regs.addRegister(OFS_DMA5DA_L, undef);
-  m_regs.addRegister(OFS_DMA5DA_H, undef);
-  m_regs.addRegister(OFS_DMA5SZ, undef);
+  m_regs.addRegister(RegisterAddress::DMACTL0, 0);
+  m_regs.addRegister(RegisterAddress::DMACTL1, 0);
+  m_regs.addRegister(RegisterAddress::DMACTL2, 0);
+  m_regs.addRegister(RegisterAddress::DMACTL4, 0);
+  m_regs.addRegister(RegisterAddress::DMAIV, 0);
+  m_regs.addRegister(RegisterAddress::DMA0CTL, 0);
+  m_regs.addRegister(RegisterAddress::DMA0SA, undef);
+  m_regs.addRegister(RegisterAddress::DMA0DA, undef);
+  m_regs.addRegister(RegisterAddress::DMA0SZ, undef);
+  m_regs.addRegister(RegisterAddress::DMA1CTL, 0);
+  m_regs.addRegister(RegisterAddress::DMA1SA, undef);
+  m_regs.addRegister(RegisterAddress::DMA1DA, undef);
+  m_regs.addRegister(RegisterAddress::DMA1SZ, undef);
+  m_regs.addRegister(RegisterAddress::DMA2CTL, 0);
+  m_regs.addRegister(RegisterAddress::DMA2SA, undef);
+  m_regs.addRegister(RegisterAddress::DMA2DA, undef);
+  m_regs.addRegister(RegisterAddress::DMA2SZ, undef);
+  m_regs.addRegister(RegisterAddress::DMA3CTL, 0);
+  m_regs.addRegister(RegisterAddress::DMA3SA, undef);
+  m_regs.addRegister(RegisterAddress::DMA3DA, undef);
+  m_regs.addRegister(RegisterAddress::DMA3SZ, undef);
+  m_regs.addRegister(RegisterAddress::DMA4CTL, 0);
+  m_regs.addRegister(RegisterAddress::DMA4SA, undef);
+  m_regs.addRegister(RegisterAddress::DMA4DA, undef);
+  m_regs.addRegister(RegisterAddress::DMA4SZ, undef);
+  m_regs.addRegister(RegisterAddress::DMA5CTL, 0);
+  m_regs.addRegister(RegisterAddress::DMA5SA, undef);
+  m_regs.addRegister(RegisterAddress::DMA5DA, undef);
+  m_regs.addRegister(RegisterAddress::DMA5SZ, undef);
 
   // Set up methods & threads
+  SC_HAS_PROCESS(Dma);
   SC_METHOD(reset);
   sensitive << pwrOn;
 
   SC_METHOD(interruptUpdate);
-  sensitive << m_updateIrqEvent;
+  sensitive << m_updateIrqFlagEvent;
+
+  SC_METHOD(irqControl);
+  sensitive << active_exception << m_updateIrqEvent;
+  dont_initialize();
 
   SC_THREAD(process);
 }
 
 void Dma::reset() {
-  // reset register values to defaults, or 0xAAAA if undefined
   m_regs.reset();
+
   // Reset channels
   for (size_t i = 0; i < NCHANNELS; ++i) {
     m_channels[i]->reset();
@@ -122,55 +114,56 @@ void Dma::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
 
   if (trans.get_command() == TLM_WRITE_COMMAND) {
     switch (addr) {
-    case OFS_DMACTL0:
+    case RegisterAddress::DMACTL0:
       setTrigger(0, val & 0x1f);
       setTrigger(1, (val & (0x1f << 8)) >> 8);
       break;
-    case OFS_DMACTL1:
+    case RegisterAddress::DMACTL1:
       setTrigger(2, val & 0x1f);
       setTrigger(3, (val & (0x1f << 8)) >> 8);
       break;
-    case OFS_DMACTL2:
+    case RegisterAddress::DMACTL2:
       setTrigger(4, val & 0x1f);
       setTrigger(5, (val & (0x1f << 8)) >> 8);
       break;
-    case OFS_DMACTL4:
+    case RegisterAddress::DMACTL4:
       spdlog::warn("{}: DMACTL4 functionality is not implemented");
       break;
-    case OFS_DMA0CTL:
+    case RegisterAddress::DMA0CTL:
       m_channels[0]->updateConfig(val);
       break;
-    case OFS_DMA1CTL:
+    case RegisterAddress::DMA1CTL:
       m_channels[1]->updateConfig(val);
       break;
-    case OFS_DMA2CTL:
+    case RegisterAddress::DMA2CTL:
       m_channels[2]->updateConfig(val);
       break;
-    case OFS_DMA3CTL:
+    case RegisterAddress::DMA3CTL:
       m_channels[3]->updateConfig(val);
       break;
-    case OFS_DMA4CTL:
+    case RegisterAddress::DMA4CTL:
       m_channels[4]->updateConfig(val);
       break;
-    case OFS_DMA5CTL:
+    case RegisterAddress::DMA5CTL:
       m_channels[5]->updateConfig(val);
       break;
     }
   } else if (trans.get_command() == TLM_READ_COMMAND) {
   }
 
-  if (addr == OFS_DMAIV) {
+  if (addr == RegisterAddress::DMAIV) {
     // Clear pending and set next pending
-    m_regs.write(OFS_DMAIV, 0, /*force=*/true);
+    m_regs.write(RegisterAddress::DMAIV, 0, /*force=*/true);
     m_clearIfg = true;
-    m_updateIrqEvent.notify(delay);
-  } else if (addr >= OFS_DMA0SA && addr <= OFS_DMA5SZ) {
+    m_updateIrqFlagEvent.notify(delay);
+  } else if (addr >= RegisterAddress::DMA0SA &&
+             addr <= RegisterAddress::DMA5SZ) {
     updateChannelAddresses();
   }
 }
 
 void Dma::process() {
-  uint8_t data[2];
+  uint8_t data[4];
   sc_time delay = SC_ZERO_TIME;
   tlm_generic_payload trans; //! Outgoing transaction
   trans.set_data_ptr(data);
@@ -194,15 +187,17 @@ void Dma::process() {
 
     if (channelIdx >= 0) {
       // DMA spends "1 or 2 clock cycles to synchronize to mclk"
-      stallCpu.write(true);
+      busStall.write(true);
       wait(systemClk->getPeriod());
 
       // Accept, perform transfer, update state & registers
       const auto &ch = *m_channels[channelIdx];
-      const auto offset = channelIdx * (OFS_DMA1CTL - OFS_DMA0CTL);
+      const auto channelAddressOffset =
+          channelIdx * (RegisterAddress::DMA1CTL - RegisterAddress::DMA0CTL);
       trans.set_data_length((ch.sourceBytes == DmaChannel::Bytes::Byte) ? 1
-                                                                        : 2);
-      m_regs.clearBitMask(OFS_DMA0CTL + offset, DMAREQ);
+                                                                        : 4);
+      m_regs.clearBitMask(RegisterAddress::DMA0CTL + channelAddressOffset,
+                          BitMask::DMAREQ);
       while (ch.pending.read()) {
         // Read
         trans.set_command(TLM_READ_COMMAND);
@@ -219,16 +214,17 @@ void Dma::process() {
         iSocket->b_transport(trans, delay);
         wait(delay);
         m_channelAccept[channelIdx].write(false);
-        m_regs.write(OFS_DMA0SZ + offset, ch.size);
+        m_regs.write(RegisterAddress::DMA0SZ + channelAddressOffset, ch.size);
       }
 
       if (!ch.enable) {
-        m_regs.clearBitMask(OFS_DMA0CTL + offset, DMAEN);
+        m_regs.clearBitMask(RegisterAddress::DMA0CTL + channelAddressOffset,
+                            BitMask::DMAEN);
       }
       if (ch.interruptFlag && ch.interruptEnable) {
-        m_updateIrqEvent.notify(SC_ZERO_TIME);
+        m_updateIrqFlagEvent.notify(SC_ZERO_TIME);
       }
-      stallCpu.write(false);
+      busStall.write(false);
     } else {
       wait(waitfor);
     }
@@ -238,33 +234,57 @@ void Dma::process() {
 void Dma::interruptUpdate() {
   int highestPrioChannel = -1;
   for (auto i = 0; i < m_channels.size(); i++) {
-    const auto offset = i * (OFS_DMA1CTL - OFS_DMA0CTL);
+    const auto offset =
+        i * (RegisterAddress::DMA1CTL - RegisterAddress::DMA0CTL);
     if (m_channels[i]->interruptFlag) {
-      m_regs.setBitMask(OFS_DMA0CTL + offset, DMAIFG);
+      m_regs.setBitMask(RegisterAddress::DMA0CTL + offset, BitMask::DMAIFG);
       highestPrioChannel = (highestPrioChannel == -1) ? i : highestPrioChannel;
     } else {
-      m_regs.clearBitMask(OFS_DMA0CTL + offset, DMAIFG);
+      m_regs.clearBitMask(RegisterAddress::DMA0CTL + offset, BitMask::DMAIFG);
     }
   }
 
   if (m_clearIfg && (highestPrioChannel != -1)) {
     // Clear highest priority pending flag & re-update interrupt state
     m_channels[highestPrioChannel]->interruptFlag = false;
-    m_updateIrqEvent.notify(SC_ZERO_TIME);
+    m_updateIrqFlagEvent.notify(SC_ZERO_TIME);
     return;
   }
   m_clearIfg = false;
 
   // Set IV & irq
   if (highestPrioChannel > -1) {
-    m_regs.write(OFS_DMAIV, 1u << (highestPrioChannel + 1), /*force=*/true);
+    m_regs.write(RegisterAddress::DMAIV, 1u << (highestPrioChannel + 1),
+                 /*force=*/true);
     if (m_channels[highestPrioChannel]->interruptEnable) {
-      irq.write(true);
+      m_setIrq = true;
+      m_updateIrqEvent.notify(SC_ZERO_TIME);
     }
   } else {
-    m_regs.write(OFS_DMAIV, 0, /*force=*/true);
-    irq.write(false);
+    m_regs.write(RegisterAddress::DMAIV, 0, /*force=*/true);
   }
+}
+
+void Dma::irqControl() {
+  if (pwrOn.read() == false) {
+    irq.write(false);
+    m_setIrq = false;
+    return;
+  }
+  if (m_setIrq && (!irq.read())) {
+    spdlog::info("{:s}: @{:s} interrupt request", this->name(),
+                 sc_time_stamp().to_string());
+    irq->write(true);
+  } else if ((active_exception.read() - 16) == DMA_EXCEPT_ID) {
+    spdlog::info("{:s}: @{:s} interrupt request cleared.", this->name(),
+                 sc_time_stamp().to_string());
+    irq->write(false);
+
+    // Clear interrupt vector flags & registers
+    m_clearIfg = true;
+    m_updateIrqFlagEvent.notify(SC_ZERO_TIME);
+  }
+  m_setIrq = false;
 }
 
 void DmaChannel::updateAddresses() {
@@ -272,32 +292,33 @@ void DmaChannel::updateAddresses() {
   case AutoIncrementMode::Unchanged:
     break;
   case AutoIncrementMode::Decrement:
-    m_tDestinationAddress -= (destinationBytes == Bytes::Word) ? 2 : 1;
+    m_tDestinationAddress -= (destinationBytes == Bytes::Word) ? 4 : 1;
     break;
   case AutoIncrementMode::Increment:
-    m_tDestinationAddress += (destinationBytes == Bytes::Word) ? 2 : 1;
+    m_tDestinationAddress += (destinationBytes == Bytes::Word) ? 4 : 1;
     break;
   }
   switch (sourceAutoIncrement) {
   case AutoIncrementMode::Unchanged:
     break;
   case AutoIncrementMode::Decrement:
-    m_tSourceAddress -= (sourceBytes == Bytes::Word) ? 2 : 1;
+    m_tSourceAddress -= (sourceBytes == Bytes::Word) ? 4 : 1;
     break;
   case AutoIncrementMode::Increment:
-    m_tSourceAddress += (sourceBytes == Bytes::Word) ? 2 : 1;
+    m_tSourceAddress += (sourceBytes == Bytes::Word) ? 4 : 1;
     break;
   }
 }
 
 void DmaChannel::updateConfig(const unsigned cfg) {
-  interruptEnable = cfg & DMAIE;
-  enable = cfg & DMAEN;
-  levelSensitive = cfg & DMALEVEL;
-  sourceBytes = (cfg & DMASRCBYTE) ? Bytes::Byte : Bytes::Word;
-  destinationBytes = (cfg & DMADSTBYTE) ? Bytes::Byte : Bytes::Word;
+  interruptEnable = cfg & Dma::BitMask::DMAIE;
+  enable = cfg & Dma::BitMask::DMAEN;
+  levelSensitive = cfg & Dma::BitMask::DMALEVEL;
+  sourceBytes = (cfg & Dma::BitMask::DMASRCBYTE) ? Bytes::Byte : Bytes::Word;
+  destinationBytes =
+      (cfg & Dma::BitMask::DMADSTBYTE) ? Bytes::Byte : Bytes::Word;
 
-  switch ((cfg & DMASRCINCR) >> 8) {
+  switch ((cfg & Dma::BitMask::DMASRCINCR) >> 8) {
   case 0:
     sourceAutoIncrement = AutoIncrementMode::Unchanged;
     break;
@@ -312,7 +333,7 @@ void DmaChannel::updateConfig(const unsigned cfg) {
     break;
   }
 
-  switch ((cfg & DMADSTINCR) >> 10) {
+  switch ((cfg & Dma::BitMask::DMADSTINCR) >> 10) {
   case 0:
     destinationAutoIncrement = AutoIncrementMode::Unchanged;
     break;
@@ -327,7 +348,7 @@ void DmaChannel::updateConfig(const unsigned cfg) {
     break;
   }
 
-  switch ((cfg & DMADT) >> 12) {
+  switch ((cfg & Dma::BitMask::DMADT) >> 12) {
   case 0:
     transferMode = TransferMode::Single;
     break;
@@ -355,7 +376,7 @@ void DmaChannel::updateConfig(const unsigned cfg) {
   }
 
   // Software trigger
-  if (cfg & DMAREQ) {
+  if (cfg & Dma::BitMask::DMAREQ) {
     m_softwareTrigger.notify(SC_ZERO_TIME);
   }
 }
@@ -492,6 +513,8 @@ void DmaChannel::process() {
           wait(accept.posedge_event());
           updateAddresses();
           if ((size > 0) && (size < m_tSize) && (size % 4 == 0)) {
+            // Wait 2 cycles after every 4th transfer, to allow some CPU
+            // activity (unstall the CPU for 2 cycles every 4 transfers)
             wait(2 * systemClk->getPeriod());
           }
           if (!enable) {
@@ -510,12 +533,15 @@ void DmaChannel::process() {
 
 void Dma::updateChannelAddresses() {
   for (auto i = 0; i < m_channels.size(); i++) {
-    const auto offset = i * (OFS_DMA1CTL - OFS_DMA0CTL);
-    m_channels[i]->sourceAddress = m_regs.read(OFS_DMA0SA + offset);
-    m_channels[i]->destinationAddress = m_regs.read(OFS_DMA0DA + offset);
-    m_channels[i]->size = m_regs.read(OFS_DMA0SZ + offset);
+    const auto offset =
+        i * (RegisterAddress::DMA1CTL - RegisterAddress::DMA0CTL);
+    m_channels[i]->sourceAddress =
+        m_regs.read(RegisterAddress::DMA0SA + offset);
+    m_channels[i]->destinationAddress =
+        m_regs.read(RegisterAddress::DMA0DA + offset);
+    m_channels[i]->size = m_regs.read(RegisterAddress::DMA0SZ + offset);
     if (!m_channels[i]->enable) {
-      m_channels[i]->m_tSize = m_regs.read(OFS_DMA0SZ + offset);
+      m_channels[i]->m_tSize = m_regs.read(RegisterAddress::DMA0SZ + offset);
     }
   }
 }
