@@ -5,13 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <tlm_utils/simple_target_socket.h>
-#include <array>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "include/cm0-fused.h"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
@@ -20,12 +13,19 @@
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <array>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
+#include <tlm_utils/simple_target_socket.h>
 
 using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood"};
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
@@ -57,8 +57,8 @@ SC_MODULE(dut) {
     // then respond
     auto *spiExtension = trans.get_extension<SpiTransactionExtension>();
     spiExtension->response = 0x00CD;
-    m_lastTransaction.deep_copy_from(trans);  // Copy the transaction object
-    m_lastPayload = trans.get_data_ptr()[0];  // Copy payload data
+    m_lastTransaction.deep_copy_from(trans); // Copy the transaction object
+    m_lastPayload = trans.get_data_ptr()[0]; // Copy payload data
     spdlog::info("SPI transaction with data 0x{:02x}", m_lastPayload);
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
   }
@@ -73,7 +73,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -95,12 +95,12 @@ SC_MODULE(tester) {
     spdlog::info("Testing basic SPI transfer...");
     // Configure SPI parameters
     // set phase, active high, 8-bit, master, 3-pin, aclk
-    write16(OFS_SPI_CR2, (7u << Spi::DS_SHIFT));  // 8-bit data size
+    write16(OFS_SPI_CR2, (7u << Spi::DS_SHIFT)); // 8-bit data size
     write16(OFS_SPI_CR1,
-            (1u << Spi::BR_SHIFT) |        // Baudrate = clk/4
-                (1u << Spi::SPE_SHIFT) |   // Enable
-                (1u << Spi::MSTR_SHIFT));  // Master mode
-    write16(OFS_SPI_DR, 0xabcd);           // Write data -> trigger transaction
+            (1u << Spi::BR_SHIFT) |       // Baudrate = clk/4
+                (1u << Spi::SPE_SHIFT) |  // Enable
+                (1u << Spi::MSTR_SHIFT)); // Master mode
+    write16(OFS_SPI_DR, 0xabcd);          // Write data -> trigger transaction
     wait(sc_time(1, SC_US));
     auto sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::BSY_MASK);
@@ -133,16 +133,16 @@ SC_MODULE(tester) {
     spdlog::info("Testing TXE interrupt...");
     test.m_dut.reset();
     write16(OFS_SPI_CR2,
-            Spi::TXEIE_MASK |            // TXE interrupt enable
-                (7u << Spi::DS_SHIFT));  // 8-bit data size
+            Spi::TXEIE_MASK |           // TXE interrupt enable
+                (7u << Spi::DS_SHIFT)); // 8-bit data size
     write16(OFS_SPI_CR1,
-            (1u << Spi::BR_SHIFT) |        // Baudrate = clk/4
-                (1u << Spi::SPE_SHIFT) |   // Enable
-                (1u << Spi::MSTR_SHIFT));  // Master mode
-    write16(OFS_SPI_DR, 0xabcd);           // Write data -> trigger transaction
-    write16(OFS_SPI_DR, 0xef01);           // Fill tx buffer
+            (1u << Spi::BR_SHIFT) |       // Baudrate = clk/4
+                (1u << Spi::SPE_SHIFT) |  // Enable
+                (1u << Spi::MSTR_SHIFT)); // Master mode
+    write16(OFS_SPI_DR, 0xabcd);          // Write data -> trigger transaction
+    write16(OFS_SPI_DR, 0xef01);          // Fill tx buffer
 
-    wait(sc_time(1, SC_US));  // Start send byte (1/4)
+    wait(sc_time(1, SC_US)); // Start send byte (1/4)
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::BSY_MASK);
     sc_assert(!(sr & Spi::TXE_MASK));
@@ -150,7 +150,7 @@ SC_MODULE(tester) {
     sc_assert(test.checkPayload(0x00cd));
     sc_assert(test.irq.read() == 0);
 
-    wait(sc_time(32, SC_US));  // Start send byte (2/4)
+    wait(sc_time(32, SC_US)); // Start send byte (2/4)
     sc_assert(test.checkPayload(0x00ab));
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::BSY_MASK);
@@ -158,7 +158,7 @@ SC_MODULE(tester) {
     sc_assert(!(sr & Spi::TXE_MASK));
     sc_assert(test.irq.read() == 0);
 
-    wait(sc_time(32, SC_US));  // Start send byte (3/4)
+    wait(sc_time(32, SC_US)); // Start send byte (3/4)
     sc_assert(test.checkPayload(0x0001));
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::RXNE_MASK);
@@ -166,7 +166,7 @@ SC_MODULE(tester) {
     sc_assert(sr & Spi::BSY_MASK);
     sc_assert(test.irq.read() == 1);
 
-    wait(sc_time(32, SC_US));  // Start send byte (4/4)
+    wait(sc_time(32, SC_US)); // Start send byte (4/4)
     sc_assert(test.checkPayload(0x00ef));
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::RXNE_MASK);
@@ -174,7 +174,7 @@ SC_MODULE(tester) {
     sc_assert(sr & Spi::BSY_MASK);
     sc_assert(test.irq.read() == 1);
 
-    wait(sc_time(32, SC_US));  // Finish send byte (4/4)
+    wait(sc_time(32, SC_US)); // Finish send byte (4/4)
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::RXNE_MASK);
     sc_assert(sr & Spi::TXE_MASK);
@@ -204,16 +204,16 @@ SC_MODULE(tester) {
     spdlog::info("Testing RXNE interrupt...");
     test.m_dut.reset();
     write16(OFS_SPI_CR2,
-            Spi::RXNEIE_MASK |           // RXNE interrupt enable
-                (7u << Spi::DS_SHIFT));  // 8-bit data size
+            Spi::RXNEIE_MASK |          // RXNE interrupt enable
+                (7u << Spi::DS_SHIFT)); // 8-bit data size
     write16(OFS_SPI_CR1,
-            (1u << Spi::BR_SHIFT) |        // Baudrate = clk/4
-                (1u << Spi::SPE_SHIFT) |   // Enable
-                (1u << Spi::MSTR_SHIFT));  // Master mode
-    write16(OFS_SPI_DR, 0xabcd);           // Write data -> trigger transaction
-    write16(OFS_SPI_DR, 0xef01);           // Fill tx buffer
+            (1u << Spi::BR_SHIFT) |       // Baudrate = clk/4
+                (1u << Spi::SPE_SHIFT) |  // Enable
+                (1u << Spi::MSTR_SHIFT)); // Master mode
+    write16(OFS_SPI_DR, 0xabcd);          // Write data -> trigger transaction
+    write16(OFS_SPI_DR, 0xef01);          // Fill tx buffer
 
-    wait(sc_time(1, SC_US));  // Start send byte (1/4)
+    wait(sc_time(1, SC_US)); // Start send byte (1/4)
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::BSY_MASK);
     sc_assert(!(sr & Spi::TXE_MASK));
@@ -221,7 +221,7 @@ SC_MODULE(tester) {
     sc_assert(test.checkPayload(0x00cd));
     sc_assert(test.irq.read() == 0);
 
-    wait(sc_time(32, SC_US));  // Start send byte (2/4)
+    wait(sc_time(32, SC_US)); // Start send byte (2/4)
     sc_assert(test.checkPayload(0x00ab));
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::BSY_MASK);
@@ -229,7 +229,7 @@ SC_MODULE(tester) {
     sc_assert(!(sr & Spi::TXE_MASK));
     sc_assert(test.irq.read() == 0);
 
-    wait(sc_time(32, SC_US));  // Start send byte (3/4)
+    wait(sc_time(32, SC_US)); // Start send byte (3/4)
     sc_assert(test.checkPayload(0x0001));
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::RXNE_MASK);
@@ -237,7 +237,7 @@ SC_MODULE(tester) {
     sc_assert(sr & Spi::BSY_MASK);
     sc_assert(test.irq.read() == 1);
 
-    wait(sc_time(32, SC_US));  // Start send byte (4/4)
+    wait(sc_time(32, SC_US)); // Start send byte (4/4)
     sc_assert(test.checkPayload(0x00ef));
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::RXNE_MASK);
@@ -245,7 +245,7 @@ SC_MODULE(tester) {
     sc_assert(sr & Spi::BSY_MASK);
     sc_assert(test.irq.read() == 1);
 
-    wait(sc_time(32, SC_US));  // Finish send byte (4/4)
+    wait(sc_time(32, SC_US)); // Finish send byte (4/4)
     sr = read16(OFS_SPI_SR);
     sc_assert(sr & Spi::RXNE_MASK);
     sc_assert(sr & Spi::TXE_MASK);
@@ -313,8 +313,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Cm0TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

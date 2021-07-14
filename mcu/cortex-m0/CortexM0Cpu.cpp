@@ -5,7 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "include/cm0-fused.h"
 #include "libs/make_unique.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/cortex-m0/CortexM0Cpu.hpp"
@@ -25,7 +24,10 @@ struct CPU cpu;
 CortexM0Cpu *m_ctx =
     nullptr; //! Simulation context used for hooking callbacks into thumbulator
 
-CortexM0Cpu::CortexM0Cpu(const sc_module_name nm) : sc_module(nm) {
+CortexM0Cpu::CortexM0Cpu(const sc_module_name nm,
+                         const unsigned instructionMemoryStartAddress)
+    : sc_module(nm),
+      m_instructionMemoryStartAddress(instructionMemoryStartAddress) {
   iSocket.bind(*this);
   m_ctx = this;
 
@@ -209,7 +211,7 @@ void CortexM0Cpu::reset() {
   cpu.gpr[GPR_LR] = 0;
 
   // Load main stack pointer from the start of program memory
-  uint32_t addr = ROM_START;
+  uint32_t addr = m_instructionMemoryStartAddress;
   cpu_set_sp(0xfffffffc & read32(addr));
   cpu.sp_process = 0;
 
@@ -232,6 +234,9 @@ void CortexM0Cpu::exceptionCheck() {
     return; // Not handling nested exceptions yet
   }
   // TODO check PRIMASK
+  if (cpu.primask > 0) {
+    return; // All interrupts masked (NMI not yet implemented)
+  }
   // TODO nested exception/preemption
 
   // Check if there is a pending exception
@@ -242,9 +247,13 @@ void CortexM0Cpu::exceptionCheck() {
     exceptionId = nvicIrq.read();
   }
   if (exceptionId != 0) {
-    spdlog::info("{}: @{:s} handling exception with ID {}", this->name(),
-                 sc_time_stamp().to_string(), exceptionId);
-    m_sleeping = false;
+    spdlog::info("{}: @{:.0f} ns handling exception with ID {}", this->name(),
+                 sc_time_stamp().to_seconds() * 1e9, exceptionId);
+    if (m_sleeping) {
+      m_sleeping = false;
+      powerModelPort->reportState(m_onStateId);
+    }
+
     exceptionEnter(exceptionId);
   }
 }
@@ -294,7 +303,8 @@ void CortexM0Cpu::exceptionEnter(const unsigned exceptionId) {
   cpu_mode_handler();
   cpu_set_ipsr(exceptionId);
   cpu_stack_use_main();
-  u32 handlerAddress = read32(ROM_START + 4 * exceptionId);
+  u32 handlerAddress =
+      read32(m_instructionMemoryStartAddress + 4 * exceptionId);
 
   activeException.write(exceptionId);
   cpu_set_pc(handlerAddress);
@@ -472,7 +482,7 @@ void CortexM0Cpu::readMem(const uint32_t addr, uint8_t *const data,
   iSocket->b_transport(trans, delay);
   if (trans.get_response_status() != tlm::TLM_OK_RESPONSE) {
     spdlog::error("{} Failed read from address 0x{:08x}.", this->name(), addr);
-    sc_stop();
+    SC_REPORT_FATAL(this->name(), "Failed read");
   }
   wait(delay);
 }

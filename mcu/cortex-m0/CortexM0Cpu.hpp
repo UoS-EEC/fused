@@ -51,7 +51,8 @@ public:
   /**
    * @brief CortexM0Cpu constructor
    */
-  CortexM0Cpu(const sc_core::sc_module_name nm);
+  CortexM0Cpu(const sc_core::sc_module_name nm,
+              const unsigned instructionMemoryStartAddress = 0);
 
   /**
    * @brief end_of_elaboration SystemC callback. Used here for registering power
@@ -240,7 +241,6 @@ public:
     exit(1);
   }
 
-  /* ------ Public variables ------*/
 private:
   /* ------ Constants ------ */
   static const unsigned N_GPR = 16;     // How many general purpose registers
@@ -252,8 +252,10 @@ private:
   static const unsigned OPCODE_WFE = 0xbf20; //! Wait for Event opcode
   static const unsigned OPCODE_WFI = 0xbf30; //! Wait for Interrupt opcode
   static const unsigned OPCODE_NOP = 0x46c0; // 0xbf00;  //! NOP (mov r8, r8)
+  const unsigned m_instructionMemoryStartAddress;
 
   /* ------ Private variables ------ */
+private:
   struct InstructionBuffer {
     unsigned data{0};
     unsigned address{0};
@@ -267,9 +269,10 @@ private:
   bool m_run{false};
   bool m_doStep{false};
   InstructionBuffer m_instructionBuffer;
-  std::unordered_set<unsigned> m_breakpoints; // Set of breakpoint addresses
-  std::unordered_set<unsigned> m_watchpoints; // Set of watchpoint addresses
-  std::array<unsigned, 17> m_regsAtExceptEnter{{0}}; //! Used for checking
+  std::unordered_set<unsigned> m_breakpoints;   // Set of breakpoint addresses
+  std::unordered_set<unsigned> m_watchpoints;   // Set of watchpoint addresses
+  std::array<unsigned, 17> m_regsAtExceptEnter; //! Used for checking
+  std::vector<unsigned> m_stackAtExceptEnter;   //! Used for checking
 
   /* Power model event & state ids */
   int m_idleCyclesEventId{-1};    //! Event used to track idle cycles

@@ -5,16 +5,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <systemc>
-#include <tlm>
-#include <vector>
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "sd/Bme280.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <spdlog/spdlog.h>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
+#include <vector>
 
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
@@ -24,10 +24,10 @@ using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> nReset{"nReset"};
-  sc_signal_resolved chipSelect{"chipSelect"};  //! Active low
+  sc_signal_resolved chipSelect{"chipSelect"}; //! Active low
   PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
                                       sc_time(1, SC_US)};
 
@@ -45,7 +45,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -130,8 +130,8 @@ SC_MODULE(tester) {
     spiExtension->bitOrder = SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
 
     trans.set_extension(spiExtension);
-    trans.set_address(0);      // SPI doesn't use address
-    trans.set_data_length(1);  // Transfer size is 1 byte
+    trans.set_address(0);     // SPI doesn't use address
+    trans.set_data_length(1); // Transfer size is 1 byte
     trans.set_command(tlm::TLM_WRITE_COMMAND);
     sc_time delay = spiExtension->transferTime();
 
@@ -139,10 +139,10 @@ SC_MODULE(tester) {
     test.chipSelect.write(sc_dt::SC_LOGIC_0);
     wait(SC_ZERO_TIME);
     trans.set_data_ptr(&addr);
-    test.iSpiSocket->b_transport(trans, delay);  // Transfer address
+    test.iSpiSocket->b_transport(trans, delay); // Transfer address
     wait(delay);
     trans.set_data_ptr(&cmd);
-    test.iSpiSocket->b_transport(trans, delay);  // Transfer command
+    test.iSpiSocket->b_transport(trans, delay); // Transfer command
     wait(delay);
     test.chipSelect.write(sc_dt::SC_LOGIC_1);
     wait(SC_ZERO_TIME);
@@ -164,8 +164,8 @@ SC_MODULE(tester) {
     spiExtension->bitOrder = SpiTransactionExtension::SpiBitOrder::MSB_FIRST;
 
     trans.set_extension(spiExtension);
-    trans.set_address(0);      // SPI doesn't use address
-    trans.set_data_length(1);  // Transfer size is 1 byte
+    trans.set_address(0);     // SPI doesn't use address
+    trans.set_data_length(1); // Transfer size is 1 byte
     trans.set_command(tlm::TLM_WRITE_COMMAND);
     trans.set_data_ptr(&data);
     sc_time delay = spiExtension->transferTime();
@@ -174,10 +174,10 @@ SC_MODULE(tester) {
     std::vector<uint8_t> response(len);
     test.chipSelect.write(sc_dt::SC_LOGIC_0);
     wait(SC_ZERO_TIME);
-    test.iSpiSocket->b_transport(trans, delay);  // Transfer address
+    test.iSpiSocket->b_transport(trans, delay); // Transfer address
     wait(delay);
     for (int i = 0; i < len; ++i) {
-      test.iSpiSocket->b_transport(trans, delay);  // Transfer data
+      test.iSpiSocket->b_transport(trans, delay); // Transfer data
       response[i] = spiExtension->response;
       wait(delay);
     }
@@ -196,8 +196,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Cm0SensorNode-config.yml");
 
   tester t("tester");
   sc_start();

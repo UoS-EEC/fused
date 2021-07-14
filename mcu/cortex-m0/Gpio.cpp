@@ -5,18 +5,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/fmt/fmt.h>
-#include <spdlog/spdlog.h>
-#include <systemc>
 #include "include/cm0-fused.h"
 #include "libs/make_unique.hpp"
 #include "mcu/cortex-m0/Gpio.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
+#include <systemc>
 
 using namespace sc_core;
 
-Gpio::Gpio(const sc_core::sc_module_name name)
-    : BusTarget(name, GPIO_BASE, GPIO_BASE + GPIO_SIZE - 1) {
+Gpio::Gpio(const sc_core::sc_module_name name, const unsigned startAddress,
+           const unsigned exceptionId)
+    : BusTarget(name, startAddress, startAddress + GPIO_SIZE - 1),
+      m_exceptionId(exceptionId) {
   // Initialize register file
   m_regs.addRegister(OFS_GPIO_DATA);
   m_regs.addRegister(OFS_GPIO_DIR);
@@ -55,19 +57,19 @@ void Gpio::reset(void) {
 }
 
 void Gpio::process(void) {
-  unsigned dir = m_regs.read(OFS_GPIO_DIR);    // Pin direction (in=0/out=1)
-  unsigned data = m_regs.read(OFS_GPIO_DATA);  // Pin states
-  unsigned ie = m_regs.read(OFS_GPIO_IE);      // Interrupt enable
+  unsigned dir = m_regs.read(OFS_GPIO_DIR);   // Pin direction (in=0/out=1)
+  unsigned data = m_regs.read(OFS_GPIO_DATA); // Pin states
+  unsigned ie = m_regs.read(OFS_GPIO_IE);     // Interrupt enable
 
   if (pwrOn.read()) {
     for (int i = 0; i < pins.size(); i++) {
-      unsigned mask = (1u << i);  // Pin mask
+      unsigned mask = (1u << i); // Pin mask
 
       // Read pin as boolean
       bool current;
       if (pins[i].read().is_01()) {
         current = pins[i].read().to_bool();
-      } else {  // Read 'Z' and 'X' as 0
+      } else { // Read 'Z' and 'X' as 0
         current = false;
         /*
         SC_REPORT_WARNING(
@@ -79,23 +81,23 @@ void Gpio::process(void) {
                 */
       }
 
-      if (dir & mask) {  // If output mode
+      if (dir & mask) { // If output mode
         // Count edges
-        if (!current && (data & mask)) {  // Posedge
+        if (!current && (data & mask)) { // Posedge
           powerModelPort->reportEvent(m_pinPosEdgeId);
-          spdlog::info("{:s}: @{:s} posedge on pin {:d}", this->name(),
-                       sc_time_stamp().to_string(), i);
-        } else if (current && !(data & mask)) {  // Negedge
+          spdlog::info("{:s}: @{:.0f} ns posedge on pin {:d}", this->name(),
+                       sc_time_stamp().to_seconds() * 1e9, i);
+        } else if (current && !(data & mask)) { // Negedge
           powerModelPort->reportEvent(m_pinNegEdgeId);
-          spdlog::info("{:s}: @{:s} negedge on pin {:d}", this->name(),
-                       sc_time_stamp().to_string(), i);
+          spdlog::info("{:s}: @{:.0f} ns negedge on pin {:d}", this->name(),
+                       sc_time_stamp().to_seconds() * 1e9, i);
         }
 
         // Write to outputs
         pins[i].write(sc_dt::sc_logic((data & mask) != 0));
-      } else {  // Input mode
+      } else { // Input mode
         // Read from inputs
-        if (current && !(m_lastState & mask)) {  // Posedge
+        if (current && !(m_lastState & mask)) { // Posedge
           spdlog::info("{:s}: @{:s} posedge on pin {:d}", this->name(),
                        sc_time_stamp().to_string(), i);
           m_regs.setBit(OFS_GPIO_DATA, i, true);
@@ -105,7 +107,7 @@ void Gpio::process(void) {
             m_setIrq = true;
             m_updateIrqEvent.notify(SC_ZERO_TIME);
           }
-        } else if (!current && (m_lastState & mask)) {  // Negedge
+        } else if (!current && (m_lastState & mask)) { // Negedge
           spdlog::info("{:s}: @{:s} negedge on pin {:d}", this->name(),
                        sc_time_stamp().to_string(), i);
           m_regs.clearBit(OFS_GPIO_DATA, i, true);
@@ -136,7 +138,7 @@ void Gpio::irqControl() {
     spdlog::info("{:s}: @{:s} interrupt request", this->name(),
                  sc_time_stamp().to_string());
     irq.write(true);
-  } else if ((active_exception.read() - 16) == GPIO_EXCEPT_ID) {
+  } else if ((active_exception.read() - 16) == m_exceptionId) {
     spdlog::info("{:s}: @{:s} interrupt request cleared.", this->name(),
                  sc_time_stamp().to_string());
     irq.write(false);
@@ -144,7 +146,7 @@ void Gpio::irqControl() {
   m_setIrq = false;
 }
 
-std::ostream& operator<<(std::ostream& os, const Gpio& rhs) {
+std::ostream &operator<<(std::ostream &os, const Gpio &rhs) {
   // clang-format off
   os << "<Gpio> " << rhs.name()
     << "\n\tI/O clock period " << rhs.clk->getPeriod()

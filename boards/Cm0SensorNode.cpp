@@ -5,10 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <systemc-ams>
-#include <systemc>
-#include <thread>
 #include "boards/Cm0SensorNode.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
@@ -16,6 +12,10 @@
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 #include "utilities/SimulationController.hpp"
+#include <spdlog/spdlog.h>
+#include <systemc-ams>
+#include <systemc>
+#include <thread>
 
 using namespace sc_core;
 
@@ -24,7 +24,10 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name)
       powerModelChannel(
           "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory"),
-          sc_time::from_seconds(Config::get().getDouble("LogTimestep"))) {
+          sc_time::from_seconds(Config::get().getDouble("LogTimestep"))),
+      powerModelBridge("powerModelBridge",
+                       sc_time::from_seconds(
+                           Config::get().getDouble("PowerModelTimestep"))) {
   /* ------ Bind ------ */
   // Reset
   resetCtrl.vcc.bind(vcc);
@@ -57,7 +60,7 @@ Cm0SensorNode::Cm0SensorNode(const sc_module_name name)
   mcu.vcc.bind(vcc);
 
   // External circuits (capacitor + supply voltage supervisor etc.)
-  externalCircuitry.i_out.bind(icc);
+  externalCircuitry.icc.bind(icc);
   externalCircuitry.vcc.bind(vcc);
   externalCircuitry.v_warn.bind(gpioPins[GpioPinAssignment::V_WARN]);
 

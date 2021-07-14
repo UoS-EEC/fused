@@ -5,17 +5,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/msp430fr5xx/DigitalIo.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
 
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
@@ -24,8 +24,8 @@ extern "C" {
 using namespace sc_core;
 
 SC_MODULE(dut) {
- public:
-  std::array<sc_signal_resolved, 16> port;  // Digital IO port
+public:
+  std::array<sc_signal_resolved, 16> port; // Digital IO port
   sc_signal<bool> irq0{"irq0"};
   sc_signal<bool> irq1{"irq1"};
   sc_signal<bool> pwrGood{"pwrGood"};
@@ -50,7 +50,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -70,7 +70,7 @@ SC_MODULE(tester) {
     writeWord(OFS_PADIR, 0xffff);
     writeWord(OFS_PAOUT, 0xffff);
 
-    wait(sc_time(1, SC_NS));  // Wait for pins to be updated
+    wait(sc_time(1, SC_NS)); // Wait for pins to be updated
     for (unsigned i = 0; i < test.port.size(); i++) {
       sc_assert(test.port[i].read().to_bool() == true);
     }
@@ -80,7 +80,7 @@ SC_MODULE(tester) {
     writeWord(OFS_PADIR, 0xffff);
     writeWord(OFS_PAOUT, 0);
 
-    wait(sc_time(1, SC_NS));  // Wait for pins to be updated
+    wait(sc_time(1, SC_NS)); // Wait for pins to be updated
     for (unsigned i = 0; i < test.port.size(); i++) {
       sc_assert(test.port[i].read().to_bool() == false);
     }
@@ -90,7 +90,7 @@ SC_MODULE(tester) {
     writeWord(OFS_PADIR, 0x5555);
     writeWord(OFS_PAOUT, 0xffff);
 
-    wait(sc_time(1, SC_NS));  // Wait for pins to be updated
+    wait(sc_time(1, SC_NS)); // Wait for pins to be updated
     bool shouldBeSet = true;
     for (unsigned int i = 0; i < test.port.size(); i++) {
       sc_assert(test.port[i].read().to_bool() == shouldBeSet);
@@ -196,8 +196,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Msp430TestBoard-config.yml");
 
   tester t("tester");
 

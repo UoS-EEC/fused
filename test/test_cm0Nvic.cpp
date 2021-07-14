@@ -5,24 +5,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <array>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <array>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
 
 using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood"};
   sc_signal<int> pending{"pending"};
@@ -52,7 +52,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -62,7 +62,7 @@ SC_MODULE(tester) {
     // ------ TEST: ISER Write-one-to-set
     test.m_dut.reset();
     write32(OFS_NVIC_ISER, 0xAAAAAAAA, false);
-    write32(OFS_NVIC_ISER, 0x00000000, false);  // Should have no effect
+    write32(OFS_NVIC_ISER, 0x00000000, false); // Should have no effect
     sc_assert(read32(OFS_NVIC_ISER) == 0xAAAAAAAA);
     sc_assert(read32(OFS_NVIC_ICER) == 0xAAAAAAAA);
 
@@ -73,7 +73,7 @@ SC_MODULE(tester) {
 
     // Clear to 5's
     write32(OFS_NVIC_ICER, 0xAAAAAAAA, false);
-    write32(OFS_NVIC_ICER, 0x00000000, false);  // Should have no effect
+    write32(OFS_NVIC_ICER, 0x00000000, false); // Should have no effect
     sc_assert(read32(OFS_NVIC_ISER) == 0x55555555);
     sc_assert(read32(OFS_NVIC_ICER) == 0x55555555);
 
@@ -89,19 +89,19 @@ SC_MODULE(tester) {
     // ------ TEST: Enable & Level-sensitive IRQ
     test.m_dut.reset();
     test.irq[3].write(true);
-    write32(OFS_NVIC_ISER, ~(1u << 3), false);  // Wrong enable bits
+    write32(OFS_NVIC_ISER, ~(1u << 3), false); // Wrong enable bits
     wait(sc_time(3, SC_US));
     sc_assert(test.m_dut.pending.read() == -1);
-    write32(OFS_NVIC_ISER, (1u << 3), false);  // Correct enable bit
+    write32(OFS_NVIC_ISER, (1u << 3), false); // Correct enable bit
     wait(sc_time(3, SC_US));
     sc_assert(test.m_dut.pending.read() == 3 + NVIC_EXCEPT_ID_BASE);
     write32(OFS_NVIC_ICER, (1u << 3),
-            false);  // Disabling should not clear pending
+            false); // Disabling should not clear pending
     sc_assert(test.m_dut.pending.read() == 3 + NVIC_EXCEPT_ID_BASE);
 
     // ------ TEST: Pulsed IRQ
     test.m_dut.reset();
-    write32(OFS_NVIC_ISER, (1u << 3), false);  // Correct enable bit
+    write32(OFS_NVIC_ISER, (1u << 3), false); // Correct enable bit
     test.irq[3].write(true);
     wait(sc_time(1, SC_US));
     test.irq[3].write(false);
@@ -110,41 +110,41 @@ SC_MODULE(tester) {
 
     // ------ TEST: Software-set IRQ
     test.m_dut.reset();
-    write32(OFS_NVIC_ISER, (1u << 4), false);  // Correct enable bit
+    write32(OFS_NVIC_ISER, (1u << 4), false); // Correct enable bit
     wait(sc_time(2, SC_US));
     sc_assert(test.m_dut.pending.read() == -1);
-    write32(OFS_NVIC_ISPR, ~(1u << 4), false);  // Wrong bits
+    write32(OFS_NVIC_ISPR, ~(1u << 4), false); // Wrong bits
     wait(sc_time(1, SC_US));
     sc_assert(test.m_dut.pending.read() == -1);
-    write32(OFS_NVIC_ISPR, (1u << 4), false);  // Correct bit
+    write32(OFS_NVIC_ISPR, (1u << 4), false); // Correct bit
     wait(sc_time(2, SC_US));
     sc_assert(test.m_dut.pending.read() == 4 + NVIC_EXCEPT_ID_BASE);
 
     // ------ TEST: Software-clear pending IRQ
     test.m_dut.reset();
     test.irq[3].write(true);
-    write32(OFS_NVIC_ISER, (1u << 3), false);  // Correct enable bit
+    write32(OFS_NVIC_ISER, (1u << 3), false); // Correct enable bit
     wait(sc_time(1, SC_US));
     sc_assert(test.m_dut.pending.read() == 3 + NVIC_EXCEPT_ID_BASE);
     wait(sc_time(1, SC_US));
     sc_assert(test.m_dut.pending.read() ==
-              3 + NVIC_EXCEPT_ID_BASE);  // Should still be active (latched)
-    write32(OFS_NVIC_ICPR, (1u << 3), false);  // Clear pending register
+              3 + NVIC_EXCEPT_ID_BASE); // Should still be active (latched)
+    write32(OFS_NVIC_ICPR, (1u << 3), false); // Clear pending register
     wait(sc_time(1, SC_US));
     sc_assert(
         test.m_dut.pending.read() ==
-        3 + NVIC_EXCEPT_ID_BASE);  // Should still be active (irq still high)
+        3 + NVIC_EXCEPT_ID_BASE); // Should still be active (irq still high)
     test.irq[3].write(false);
-    write32(OFS_NVIC_ICPR, (1u << 3), false);  // Clear pending register
+    write32(OFS_NVIC_ICPR, (1u << 3), false); // Clear pending register
     wait(sc_time(1, SC_US));
-    sc_assert(test.m_dut.pending.read() == -1);  // Should be cleared
+    sc_assert(test.m_dut.pending.read() == -1); // Should be cleared
 
     // ------ TEST: Prioritized sequence of IRQs
     test.m_dut.reset();
-    write32(OFS_NVIC_IPR0, 0xc0c0c0c0, false);  // irq[3:0] prio 3
-    write32(OFS_NVIC_IPR1, 0x80808080, false);  // irq[7:4] prio 2
-    write32(OFS_NVIC_IPR2, 0x40404040, false);  // irq[11:8] prio 1
-    write32(OFS_NVIC_IPR3, 0x00000000, false);  // irq[15:12] prio 0
+    write32(OFS_NVIC_IPR0, 0xc0c0c0c0, false); // irq[3:0] prio 3
+    write32(OFS_NVIC_IPR1, 0x80808080, false); // irq[7:4] prio 2
+    write32(OFS_NVIC_IPR2, 0x40404040, false); // irq[11:8] prio 1
+    write32(OFS_NVIC_IPR3, 0x00000000, false); // irq[15:12] prio 0
     write32(OFS_NVIC_ISER, 0xffff, false);
     test.irq[0].write(true);
     test.irq[4].write(true);
@@ -173,7 +173,7 @@ SC_MODULE(tester) {
 
     // ------ TEST: Accept an interrupt
     test.m_dut.reset();
-    write32(OFS_NVIC_ISER, (1u << 3), false);  // Correct enable bit
+    write32(OFS_NVIC_ISER, (1u << 3), false); // Correct enable bit
     test.irq[3].write(true);
     wait(sc_time(1, SC_US));
     test.irq[3].write(false);
@@ -188,7 +188,7 @@ SC_MODULE(tester) {
 
     // ------ TEST: Interrupt still requesting during exception return
     test.m_dut.reset();
-    write32(OFS_NVIC_ISER, (1u << 3), false);  // Correct enable bit
+    write32(OFS_NVIC_ISER, (1u << 3), false); // Correct enable bit
     test.irq[3].write(true);
     wait(sc_time(1, SC_US));
     sc_assert(test.pending.read() == 3 + NVIC_EXCEPT_ID_BASE);
@@ -244,8 +244,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Cm0TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

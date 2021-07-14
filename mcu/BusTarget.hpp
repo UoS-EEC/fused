@@ -29,6 +29,9 @@ class BusTarget : public sc_core::sc_module, public tlm::tlm_fw_transport_if<> {
   //! Event-port for logging and reporting dynamic power consumption
   PowerModelEventOutPort powerModelPort{"powerModelPort"};
 
+  //! Forward bus transactions to analysis port for analysis by subscribers
+  tlm::tlm_analysis_port<tlm::tlm_generic_payload> analysisPort{"analysisPort"};
+
   /* ------ Public methods ------ */
   BusTarget(const sc_core::sc_module_name name, const unsigned startAddress,
             const unsigned endAddress);

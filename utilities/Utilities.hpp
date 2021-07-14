@@ -20,7 +20,7 @@ namespace Utility {
  * @param data pointer to array of source bytes
  * @param width number of bytes to pack
  */
-uint64_t packBytes(uint8_t *const data, const size_t width);
+uint64_t packBytes(const uint8_t *data, const size_t width);
 
 /**
  * @brief unpackBytes unpack a (right-aligned) variable into an array of bytes
@@ -28,7 +28,7 @@ uint64_t packBytes(uint8_t *const data, const size_t width);
  * @param data pointer to array of source bytes
  * @param width number of bytes to pack
  */
-void unpackBytes(uint8_t *const data, uint64_t val, const size_t width);
+void unpackBytes(uint8_t *const data, uint64_t val, size_t width);
 
 /**
  * @brief htotl Convert 32-bit value from host to target endianness

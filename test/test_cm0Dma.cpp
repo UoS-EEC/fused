@@ -279,8 +279,7 @@ public:
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Cm0TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

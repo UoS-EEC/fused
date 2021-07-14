@@ -5,11 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/msp430fr5xx/ClockSystem.hpp"
@@ -17,6 +12,11 @@
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
 
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
@@ -25,7 +25,7 @@ extern "C" {
 using namespace sc_core;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood"};
   sc_signal<bool> irq{"irq"};
@@ -55,7 +55,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -83,7 +83,7 @@ SC_MODULE(tester) {
     wait(sc_time(2, SC_US));
     test.pwrGood.write(true);
     wait(sc_time(1, SC_US));
-    write16(OFS_TA1CTL, MC_1 | TASSEL_1);  // Disable irq
+    write16(OFS_TA1CTL, MC_1 | TASSEL_1); // Disable irq
     write16(OFS_TA1CCR0, 10 - 1);
 
     wait(sc_time(10, SC_US));
@@ -132,8 +132,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Msp430TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

@@ -5,10 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <systemc-ams>
-#include <systemc>
-#include <thread>
 #include "boards/Cm0TestBoard.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
@@ -16,6 +12,10 @@
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
 #include "utilities/SimulationController.hpp"
+#include <spdlog/spdlog.h>
+#include <systemc-ams>
+#include <systemc>
+#include <thread>
 
 using namespace sc_core;
 
@@ -24,7 +24,12 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
       powerModelChannel(
           "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory"),
-          sc_time::from_seconds(Config::get().getDouble("LogTimestep"))) {
+          sc_time::from_seconds(Config::get().getDouble("LogTimestep"))),
+      powerModelBridge(
+          "powerModelBridge",
+          sc_time::from_seconds(Config::get().getDouble("PowerModelTimestep")))
+
+{
   /* ------ Bind ------ */
   // Reset
   resetCtrl.vcc.bind(vcc);
@@ -50,7 +55,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
   mcu.vcc.bind(vcc);
 
   // External circuits (capacitor + supply voltage supervisor etc.)
-  externalCircuitry.i_out.bind(icc);
+  externalCircuitry.icc.bind(icc);
   externalCircuitry.vcc.bind(vcc);
   externalCircuitry.v_warn.bind(gpioPins[31]);
 
@@ -60,7 +65,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
   externalCircuitry.keepAlive.bind(keepAliveConverter.out);
 
   // --- Print memory map
-  std::cout << "------ MCU construction complete ------\n" << mcu.bus;
+  std::cout << "------ MCU construction complete ------\n" << mcu;
 
   /* ------- Signal tracing ------ */
   // Creates a value-change dump
@@ -68,7 +73,7 @@ Cm0TestBoard::Cm0TestBoard(const sc_module_name name)
       (Config::get().getString("OutputDirectory") + "/ext.vcd").c_str());
 
   for (int i = 0; i < gpioPins.size(); ++i) {
-    sca_trace(vcdfile, gpioPins[i], fmt::format("GPIO[{:02d}]", i));
+    sca_trace(vcdfile, gpioPins[i], fmt::format("GPIO0[{:02d}]", i));
   }
 
   for (int i = 0; i < mcu.nvic->irq.size(); ++i) {

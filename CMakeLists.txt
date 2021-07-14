@@ -35,8 +35,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}
   -Wall -Wextra -Wno-reorder -Wno-unused -Wno-sign-compare")
 
-configure_file(config/config.yaml.in config.yaml)
-
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(CMAKE_EXE_LINKER_FLAGS -static)
@@ -67,6 +65,7 @@ target_link_libraries(
   PRIVATE
     Cm0TestBoard
     Cm0SensorNode
+    MemicBoard
     Msp430TestBoard
     IntelHexParser::ihex-parser
 )
@@ -101,7 +100,10 @@ IF(ENABLE_TESTS)
   add_test(NAME Cm0SysTick COMMAND testCm0SysTick)
   add_test(NAME Cm0Nvic COMMAND testCm0Nvic)
   add_test(NAME Cm0Spi COMMAND testCm0Spi)
+  add_test(NAME Cm0UndoLogger COMMAND testCm0UndoLogger)
+  add_test(NAME CacheController COMMAND testCacheController)
   add_test(NAME Cm0Dma COMMAND testCm0Dma)
+  add_test(NAME WriteTracker COMMAND testWriteTracker)
 
   # ---- Software tests ------
   execute_process(

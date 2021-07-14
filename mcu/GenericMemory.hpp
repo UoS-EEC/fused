@@ -7,15 +7,14 @@
 
 #pragma once
 
+#include "mcu/BusTarget.hpp"
 #include <memory>
 #include <systemc>
-#include <tlm>
-#include "mcu/BusTarget.hpp"
 
 class GenericMemory : public BusTarget {
   SC_HAS_PROCESS(GenericMemory);
 
- public:
+public:
   /* ------ Types ------ */
 
   /* ------ Public methods ------ */
@@ -50,14 +49,21 @@ class GenericMemory : public BusTarget {
   virtual unsigned int transport_dbg(tlm::tlm_generic_payload &trans) override;
 
   /**
+   * @brief updatePowerState Report power state to eventlog.
+   */
+  virtual void updatePowerState();
+
+  /**
    * @brief SystemC callback, used here to register power modelling events.
    */
   virtual void end_of_elaboration() override;
 
- protected:
-  std::unique_ptr<uint8_t[]> mem;  // Pointer to emulated memory
-  const size_t m_capacity;         // Memory capacity (bytes)
+protected:
+  std::unique_ptr<uint8_t[]> mem; // Pointer to emulated memory
+  const size_t m_capacity;        // Memory capacity (bytes)
 
   int m_nBytesWrittenEventId{-1};
   int m_nBytesReadEventId{-1};
+  int m_offStateId{-1};
+  int m_onStateId{-1};
 };

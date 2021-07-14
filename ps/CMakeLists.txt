@@ -7,16 +7,22 @@
 
 add_library(
     PowerSystem
+    Capacitor.hpp
     ConstantEnergyEvent.hpp
+    LinearRegulator.hpp
     PowerModelBridge.hpp
     PowerModelEventBase.hpp
     PowerModelChannelIf.hpp
     PowerModelChannel.hpp
     PowerModelChannel.cpp
+    PowerSupplies.hpp
     )
 
 target_link_libraries(
     PowerSystem
-    systemc-ams
-    systemc
+    PUBLIC
+      systemc-ams
+      systemc
+    PRIVATE
+      spdlog::spdlog
     )

@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2019-2020, University of Southampton and Contributors.
+ * Copyright (c) 2018-2021, University of Southampton and Contributors.
  * All rights reserved.
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: Apache 2.0
  */
 
 /*
@@ -17,6 +17,8 @@
 #include "cm0-fused.h"
 #elif defined(MSP430_ARCH)
 #include "msp430-fused.h"
+#elif defined(MEMIC_ARCH)
+#include "memic-fused.h"
 #else
 #error("Target architecture not defined")
 #endif

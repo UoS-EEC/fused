@@ -33,8 +33,11 @@ class Gpio : public BusTarget {
   /**
    * @brief DigitalIo Constructor: initialise registers
    * @param name
+   * @param startAddress
+   * @param exceptionId
    */
-  Gpio(const sc_core::sc_module_name name);
+  Gpio(const sc_core::sc_module_name name, const unsigned startAddress,
+       const unsigned exceptionId);
 
   /**
    * @brief Set up systemc methods.
@@ -57,6 +60,7 @@ class Gpio : public BusTarget {
   bool m_setIrq{false};     //! 1 if irq should be set
   unsigned m_lastState{0};  //! Last pin state, used to check for edges
   sc_core::sc_event m_updateIrqEvent{"updateIrqEvent"};
+  const unsigned m_exceptionId;
   int m_pinPosEdgeId{-1};
   int m_pinNegEdgeId{-1};
 

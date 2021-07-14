@@ -5,11 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/GenericMemory.hpp"
@@ -17,6 +12,11 @@
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
 
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
@@ -26,7 +26,7 @@ using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> nreset{"nreset", false};
   sc_signal<bool> irq{"irq"};
@@ -34,7 +34,7 @@ SC_MODULE(dut) {
   sc_signal<bool> stallCpu{"stallCpu"};
   ClockSourceChannel mclk{"mclk", sc_time(125, SC_NS)};
   std::array<sc_signal<bool>, 30> trigger;
-  GenericMemory mem{"mem", 0, 0xFFFF};  //! 65k memory
+  GenericMemory mem{"mem", 0, 0xFFFF}; //! 65k memory
   tlm_utils::simple_initiator_socket<dut> iSocket{"iSocket"};
   PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
                                       sc_time(1, SC_US)};
@@ -60,7 +60,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -107,7 +107,7 @@ SC_MODULE(tester) {
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
+    sc_assert(read16(OFS_DMAIV) == 2u); // Clears irq
     wait(test.mclk.getPeriod());
     sc_assert(read16(OFS_DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
@@ -149,7 +149,7 @@ SC_MODULE(tester) {
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
+    sc_assert(read16(OFS_DMAIV) == 2u); // Clears irq
     wait(test.mclk.getPeriod());
     sc_assert(read16(OFS_DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
@@ -176,7 +176,7 @@ SC_MODULE(tester) {
     unsigned ctrl = DMADT_0 | DMADSTINCR_3 | DMASRCINCR_3 | DMADSTBYTE__WORD |
                     DMASRCBYTE__WORD | DMALEVEL__EDGE | DMAEN_1 | DMAIE;
 
-    write16(OFS_DMA0CTL, ctrl);  // Trigger
+    write16(OFS_DMA0CTL, ctrl); // Trigger
     for (auto i = 0; i < 32; i++) {
       std::cout << *test.m_dut.m_channels[0] << std::endl;
       write16(OFS_DMA0CTL, ctrl | DMAREQ);
@@ -194,7 +194,7 @@ SC_MODULE(tester) {
     // Check interrupt flag
     sc_assert(test.m_dut.m_channels[0]->interruptFlag);
     sc_assert(test.irq.read());
-    sc_assert(read16(OFS_DMAIV) == 2u);  // Clears irq
+    sc_assert(read16(OFS_DMAIV) == 2u); // Clears irq
     wait(test.mclk.getPeriod());
     sc_assert(read16(OFS_DMAIV) == 0);
     sc_assert(!test.m_dut.m_channels[0]->interruptFlag);
@@ -213,7 +213,7 @@ SC_MODULE(tester) {
     trans.set_address(addr);
 
     Utility::unpackBytes(data, Utility::htots(val), 2);
-    test.mem.transport_dbg(trans);  // Bypassing sockets
+    test.mem.transport_dbg(trans); // Bypassing sockets
   }
 
   int readMemory16(const uint32_t addr) {
@@ -225,7 +225,7 @@ SC_MODULE(tester) {
     trans.set_command(tlm::TLM_READ_COMMAND);
     trans.set_address(addr);
 
-    test.mem.transport_dbg(trans);  // Bypassing sockets
+    test.mem.transport_dbg(trans); // Bypassing sockets
     return Utility::ttohs(Utility::packBytes(data, 2));
   }
 
@@ -267,8 +267,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Msp430TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

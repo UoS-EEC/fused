@@ -5,12 +5,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <systemc-ams>
-#include <systemc>
 #include "boards/Msp430TestBoard.hpp"
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
+#include <spdlog/spdlog.h>
+#include <systemc-ams>
+#include <systemc>
 
 using namespace sc_core;
 
@@ -19,7 +19,10 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
       powerModelChannel(
           "powerModelChannel", /*logfile=*/
           Config::get().getString("OutputDirectory"),
-          sc_time::from_seconds(Config::get().getDouble("LogTimestep"))) {
+          sc_time::from_seconds(Config::get().getDouble("LogTimestep"))),
+      powerModelBridge("powerModelBridge",
+                       sc_time::from_seconds(
+                           Config::get().getDouble("PowerModelTimestep"))) {
   /* ------ Bind ------ */
   // Reset
   mcu.pmm->pwrGood.bind(nReset);
@@ -47,12 +50,12 @@ Msp430TestBoard::Msp430TestBoard(const sc_module_name name)
   mcu.vcc.bind(vcc);
 
   // External circuits (capacitor + supply voltage supervisor etc.)
-  externalCircuitry.i_out.bind(icc);
+  externalCircuitry.icc.bind(icc);
   externalCircuitry.vcc.bind(vcc);
   externalCircuitry.v_warn.bind(DIOBPins[0]);
 
   // KeepAlive -- bind to IO via converter
-  keepAliveConverter.in.bind(DIOCPins[8 + 0]);  // P6.0 as keepAlive
+  keepAliveConverter.in.bind(DIOCPins[8 + 0]); // P6.0 as keepAlive
   keepAliveConverter.out.bind(keepAliveBool);
   externalCircuitry.keepAlive.bind(keepAliveConverter.out);
 

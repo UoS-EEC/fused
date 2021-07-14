@@ -5,16 +5,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <systemc>
-#include <tlm>
 #include "mcu/RegisterFile.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "sd/Nrf24Radio.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <spdlog/spdlog.h>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
 
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
@@ -24,12 +24,12 @@ using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
-  sc_signal<bool> nReset{"nReset"};                         // Active low
-  sc_signal_resolved chipSelect{"chipSelect"};              // Active low
-  sc_signal_resolved chipEnable{"chipEnable"};              // Active high
-  sc_signal_resolved interruptRequest{"interruptRequest"};  // Active low
+  sc_signal<bool> nReset{"nReset"};                        // Active low
+  sc_signal_resolved chipSelect{"chipSelect"};             // Active low
+  sc_signal_resolved chipEnable{"chipEnable"};             // Active high
+  sc_signal_resolved interruptRequest{"interruptRequest"}; // Active low
   // Sockets
   tlm_utils::simple_initiator_socket<dut> iSpiSocket{"iSpiSocket"};
   PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
@@ -48,7 +48,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -66,8 +66,8 @@ SC_MODULE(tester) {
     auto *spiExtension = new SpiTransactionExtension();
 
     trans.set_extension(spiExtension);
-    trans.set_address(0);      // SPI doesn't use address
-    trans.set_data_length(1);  // Transfer size up to 1 byte
+    trans.set_address(0);     // SPI doesn't use address
+    trans.set_data_length(1); // Transfer size up to 1 byte
 
     spiExtension->clkPeriod = sc_core::sc_time(10, sc_core::SC_US);
     spiExtension->nDataBits = 8;
@@ -291,7 +291,7 @@ SC_MODULE(tester) {
     test.iSpiSocket->b_transport(trans, delay);
     wait(delay);
 
-    data = PWR_UP;  // clear PRIM_RX
+    data = PWR_UP; // clear PRIM_RX
     test.iSpiSocket->b_transport(trans, delay);
     wait(delay);
 
@@ -321,7 +321,7 @@ SC_MODULE(tester) {
     test.iSpiSocket->b_transport(trans, delay);
     wait(delay);
 
-    data = TX_DS | RX_P_NO_2 | RX_P_NO_1 | RX_P_NO_0;  // clear TX_DS
+    data = TX_DS | RX_P_NO_2 | RX_P_NO_1 | RX_P_NO_0; // clear TX_DS
     test.iSpiSocket->b_transport(trans, delay);
     wait(delay);
 
@@ -355,7 +355,7 @@ SC_MODULE(tester) {
     sc_assert(test.m_dut.m_radio_state == Nrf24Radio::OpModes::TX_MODE);
 
     test.chipEnable.write(
-        sc_dt::sc_logic(false));  // So that -> STANDBY1 instead of STANDBY2
+        sc_dt::sc_logic(false)); // So that -> STANDBY1 instead of STANDBY2
 
     wait(sc_time(28, SC_US));
     sc_assert(test.m_dut.m_radio_state == Nrf24Radio::OpModes::STANDBY1);
@@ -363,7 +363,7 @@ SC_MODULE(tester) {
     // ------ TEST: Sending multiple packets
     // STANDBY1 -> TX_MODE with 3 packets in Tx Fifo
     spdlog::info("------ TEST: Sending multiple packets");
-    test.chipSelect.write(sc_dt::sc_logic(false));  // Packet 1
+    test.chipSelect.write(sc_dt::sc_logic(false)); // Packet 1
     wait(sc_time(1, SC_US));
 
     data = W_TX_PAYLOAD;
@@ -377,7 +377,7 @@ SC_MODULE(tester) {
     test.chipSelect.write(sc_dt::sc_logic(true));
     wait(sc_time(1, SC_US));
 
-    test.chipSelect.write(sc_dt::sc_logic(false));  // Packet 2
+    test.chipSelect.write(sc_dt::sc_logic(false)); // Packet 2
     wait(sc_time(1, SC_US));
 
     data = W_TX_PAYLOAD;
@@ -391,7 +391,7 @@ SC_MODULE(tester) {
     test.chipSelect.write(sc_dt::sc_logic(true));
     wait(sc_time(1, SC_US));
 
-    test.chipSelect.write(sc_dt::sc_logic(false));  // Packet 3
+    test.chipSelect.write(sc_dt::sc_logic(false)); // Packet 3
     wait(sc_time(1, SC_US));
 
     data = W_TX_PAYLOAD;
@@ -412,7 +412,7 @@ SC_MODULE(tester) {
     sc_assert(test.m_dut.m_txFifo.isFull());
     sc_assert(test.m_dut.m_radio_state == Nrf24Radio::OpModes::STANDBY1);
 
-    test.chipSelect.write(sc_dt::sc_logic(false));  // Change Address Width
+    test.chipSelect.write(sc_dt::sc_logic(false)); // Change Address Width
     wait(sc_time(1, SC_US));
 
     data = W_REGISTER | SETUP_AW;
@@ -427,7 +427,7 @@ SC_MODULE(tester) {
     wait(sc_time(1, SC_US));
 
     test.chipSelect.write(
-        sc_dt::sc_logic(false));  // Change transmit power & dataRate
+        sc_dt::sc_logic(false)); // Change transmit power & dataRate
     wait(sc_time(1, SC_US));
 
     data = W_REGISTER | RF_SETUP;
@@ -441,7 +441,7 @@ SC_MODULE(tester) {
     test.chipSelect.write(sc_dt::sc_logic(true));
     wait(sc_time(1, SC_US));
 
-    test.chipEnable.write(sc_dt::sc_logic(true));  // Start Transmit
+    test.chipEnable.write(sc_dt::sc_logic(true)); // Start Transmit
     wait(sc_time(1, SC_US));
 
     sc_assert(test.m_dut.m_radio_state == Nrf24Radio::OpModes::TX_SETTLING);
@@ -469,8 +469,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Msp430TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

@@ -15,20 +15,21 @@
 //#define TARGET_LITTLE_ENDIAN
 //#define TARGET_WORD_SIZE 4
 
-#include <spdlog/spdlog.h>
+#include "boards/Board.hpp"
+#include "boards/Cm0SensorNode.hpp"
+#include "boards/Cm0TestBoard.hpp"
+#include "boards/MemicBoard.hpp"
+#include "boards/Msp430TestBoard.hpp"
+#include "utilities/Config.hpp"
+#include "utilities/SimulationController.hpp"
 #include <chrono>
 #include <cstdlib>
 #include <ihex-parser/IntelHexFile.hpp>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <systemc-ams>
 #include <systemc>
 #include <thread>
-#include "boards/Board.hpp"
-#include "boards/Cm0SensorNode.hpp"
-#include "boards/Cm0TestBoard.hpp"
-#include "boards/Msp430TestBoard.hpp"
-#include "utilities/Config.hpp"
-#include "utilities/SimulationController.hpp"
 
 #ifdef GDB_SERVER
 #include <gdb-server/GdbServer.hpp>
@@ -68,9 +69,15 @@ int sc_main(int argc, char *argv[]) {
   int rspPort = DEFAULT_RSP_PORT;
 
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseCli(argc, argv);
-  config.parseFile();
+  Config::get().parseCli(argc, argv);
+  if (Config::get().contains("ConfigFile")) {
+    // Config file parsed as argument
+    Config::get().parseFile(Config::get().getString("ConfigFile"));
+  } else {
+    // Default config for board
+    Config::get().parseFile(std::string("../config/") +
+                            Config::get().getString("Board") + "-config.yml");
+  }
 
   // Instantiate board
   Board *board;
@@ -81,28 +88,31 @@ int sc_main(int argc, char *argv[]) {
     board = new Msp430TestBoard("Msp430TestBoard");
   } else if (bstring == "Cm0SensorNode") {
     board = new Cm0SensorNode("Cm0SensorNode");
+  } else if (bstring == "MemicBoard") {
+    board = new MemicBoard("MemicBoard");
   } else {
     SC_REPORT_FATAL(
         "sc_main",
         fmt::format("invalid setting for Board \"{:s}\"", bstring).c_str());
-    exit(1);  // supress "board may be uninitialized" warning
+    exit(1); // supress "board may be uninitialized" warning
   }
 
   // Set up output folder
   // When <filesystem> is available:
-  // std::filesystem::create_directories(config.getString("OutputDirectory"))
+  // std::filesystem::create_directories(Config::get().getString("OutputDirectory"))
   auto sysStatus = system(
-      std::string("mkdir -p " + config.getString("OutputDirectory")).c_str());
+      std::string("mkdir -p " + Config::get().getString("OutputDirectory"))
+          .c_str());
   if (sysStatus) {
     spdlog::error("Failed to create output directory at {} ... exiting",
-                  config.getString("OutputDirectory"));
+                  Config::get().getString("OutputDirectory"));
     exit(1);
   }
 
   /* ------ Simulation control ------ */
   SimulationController simCtrl(&board->getMicrocontroller());
   [[maybe_unused]] DummyModule d(
-      "dummy", &simCtrl);  // Used to access end_of_simulation callback
+      "dummy", &simCtrl); // Used to access end_of_simulation callback
 
 #ifdef GDB_SERVER
   GdbServer *gdbServer;
@@ -130,7 +140,7 @@ int sc_main(int argc, char *argv[]) {
       return 1;
     }
     IntelHexFile programFile(fn);
-    sc_start(SC_ZERO_TIME);  // Finish elaboration before programming
+    sc_start(SC_ZERO_TIME); // Finish elaboration before programming
     for (const auto &s : programFile.getProgramData()) {
       simCtrl.writeMem(&s.second[0], s.first, s.second.size());
     }
@@ -162,6 +172,7 @@ int sc_main(int argc, char *argv[]) {
 #pragma GCC diagnostic pop
   }
 #endif
+  delete board;
 
   return 0;
 }

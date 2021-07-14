@@ -36,9 +36,29 @@ add_library(
   )
 
 target_link_libraries(
-  Cm0TestBoard
+  Cm0SensorNode
   PRIVATE
     Cm0Microcontroller
+    Cm0Utilities
+    PowerSystem
+    SerialDevices
+    systemc-ams
+    systemc
+    spdlog::spdlog
+)
+
+# ------ MEMIC ------
+add_library(
+  MemicBoard
+  Board.hpp
+  MemicBoard.hpp
+  MemicBoard.cpp
+  )
+
+target_link_libraries(
+  MemicBoard
+  PRIVATE
+    MemicMicrocontroller
     Cm0Utilities
     PowerSystem
     SerialDevices

@@ -16,7 +16,7 @@
  * @brief The Config class Singleton class to store CLI and yaml configs
  */
 class Config {
- public:
+public:
   static Config &get() {
     static Config instance;
     return instance;
@@ -26,7 +26,7 @@ class Config {
    * @brief parseFile Parse yaml file for config
    * @param fn path to config yaml file
    */
-  void parseFile(const std::string &fn = "");
+  void parseFile(const std::string &fn);
 
   /**
    * @brief parseCli Parse command line arguments, these override yaml-configs.
@@ -71,10 +71,10 @@ class Config {
    */
   bool contains(const std::string &key) const;
 
- private:
+private:
   /* ------ Private variables ------ */
-  std::map<std::string, std::string> m_config{};  //! Configuration
-  std::string m_configFileName;                   //! Path to Yaml-file
+  std::map<std::string, std::string> m_config{}; //! Configuration
+  std::string m_configFileName;                  //! Path to Yaml-file
 
   /* ------ Private methods ------ */
 

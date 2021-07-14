@@ -5,13 +5,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <tlm_utils/simple_target_socket.h>
-#include <array>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/SpiTransactionExtension.hpp"
@@ -19,6 +12,13 @@
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <array>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
+#include <tlm_utils/simple_target_socket.h>
 
 extern "C" {
 #include "mcu/msp430fr5xx/device_includes/msp430fr5994.h"
@@ -28,7 +28,7 @@ using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood"};
   sc_signal<bool> ira{"ira"};
@@ -66,8 +66,8 @@ SC_MODULE(dut) {
     auto *spiExtension = trans.get_extension<SpiTransactionExtension>();
     spiExtension->response = 0x00CD;
     std::cout << *spiExtension;
-    m_lastTransaction.deep_copy_from(trans);  // Copy the transaction object
-    m_lastPayload = trans.get_data_ptr()[0];  // Copy payload data
+    m_lastTransaction.deep_copy_from(trans); // Copy the transaction object
+    m_lastPayload = trans.get_data_ptr()[0]; // Copy payload data
     trans.set_response_status(tlm::TLM_OK_RESPONSE);
   }
 
@@ -86,7 +86,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -151,24 +151,24 @@ SC_MODULE(tester) {
     // Enable interrupts
     write16(OFS_UCB0IE, UCTXIE | UCRXIE);
     // Tx with SPI packet
-    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00);  // eUSCI not busy
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
     write16(OFS_UCB0TXBUF, 0x00AD, true);
     std::cout << "Tx @ " << sc_time_stamp() << std::endl;
     sc_assert(read16(OFS_UCB0IFG) == 0x0000);
-    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x01);  // eUSCI busy
-    wait(sc_time(80, SC_US));  // This takes as long as it needs to transmit
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x01); // eUSCI busy
+    wait(sc_time(80, SC_US)); // This takes as long as it needs to transmit
     std::cout << "Checking irq @ " << sc_time_stamp() << std::endl;
     sc_assert(test.irq.read());
     test.ira.write(1);
     wait(SC_ZERO_TIME);
     test.ira.write(0);
-    wait(sc_time(1, SC_US));  // Time to process the ISR
+    wait(sc_time(1, SC_US)); // Time to process the ISR
     std::cout << "Checking irq again @ " << sc_time_stamp() << std::endl;
     sc_assert(test.irq.read());
     test.ira.write(1);
     sc_assert(read16(OFS_UCB0IFG) == (UCTXIFG | UCRXIFG));
     std::cout << "Checking UCBUSY @ " << sc_time_stamp() << std::endl;
-    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00);  // eUSCI not busy
+    sc_assert((read16(OFS_UCB0STATW) & UCBUSY) == 0x00); // eUSCI not busy
 
     // ------ TEST: DMA Trigger
     write16(OFS_UCB0IE, 0x0000);
@@ -220,8 +220,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Msp430TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

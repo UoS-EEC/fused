@@ -12,6 +12,7 @@
 #include <tlm>
 #include "libs/make_unique.hpp"
 #include "mcu/GenericMemory.hpp"
+#include "ps/ConstantCurrentState.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
 #include "utilities/Config.hpp"
 
@@ -33,6 +34,17 @@ void GenericMemory::end_of_elaboration() {
   m_nBytesReadEventId = powerModelPort->registerEvent(
       this->name(),
       std::make_unique<ConstantEnergyEvent>(this->name(), "bytes read"));
+  m_offStateId = powerModelPort->registerState(
+      this->name(),
+      std::make_unique<ConstantCurrentState>(this->name(), "off"));
+  m_onStateId = powerModelPort->registerState(
+      this->name(), std::make_unique<ConstantCurrentState>(
+        "on",
+        Config::get().getDouble(std::string(this->name()) + " on") * m_capacity* 8));
+
+  // Register methods
+  SC_METHOD(updatePowerState);
+  sensitive << pwrOn.value_changed();
 }
 
 void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
@@ -41,6 +53,10 @@ void GenericMemory::b_transport(tlm::tlm_generic_payload &trans,
   auto len = trans.get_data_length();
   auto *data = trans.get_data_ptr();
 
+  // Forward transaction for analysis by subscribers
+  analysisPort.write(trans);
+
+  // Perform transaction
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     std::memcpy(&mem[addr], data, len);
     m_writeEvent.notify(delay + systemClk->getPeriod());
@@ -75,6 +91,14 @@ unsigned int GenericMemory::transport_dbg(tlm::tlm_generic_payload &trans) {
 
   trans.set_response_status(tlm::TLM_OK_RESPONSE);
   return len;
+}
+
+void GenericMemory::updatePowerState() {
+  if (pwrOn.read() == true) {
+    powerModelPort->reportState(m_onStateId);
+  } else {
+    powerModelPort->reportState(m_offStateId);
+  }
 }
 
 int GenericMemory::size() const { return m_capacity; }

@@ -59,7 +59,7 @@ class Msp430TestBoard : public Board {
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
   IoSimulationStopper simStopper{"PA2Stopper"};
-  PowerModelBridge powerModelBridge{"powerModelBridge"};
+  PowerModelBridge powerModelBridge;
 
   /* ------ Tracing ------ */
   sca_util::sca_trace_file *vcdfile;

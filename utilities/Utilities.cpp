@@ -12,7 +12,7 @@
 #include <fstream>
 #include "utilities/Utilities.hpp"
 
-uint64_t Utility::packBytes(uint8_t *const data, const size_t width) {
+uint64_t Utility::packBytes(const uint8_t *const data, const size_t width) {
   assert(width < sizeof(uint64_t));
   uint64_t res = 0;
   for (unsigned int i = 0; i < width; i++) {

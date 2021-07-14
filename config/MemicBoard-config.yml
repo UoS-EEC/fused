@@ -1,0 +1,204 @@
+#
+# Copyright (c) 2019-2021, University of Southampton and Contributors.
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Fused configuration parameters.
+# Note that command line options take precedence over config-file options, so
+# any options specified here may be overruled when launching Fused.
+
+# Board
+Board: MemicBoard
+
+# ------ Paths ------
+OutputDirectory: /tmp/fused-outputs
+
+# Operation mode/Program to execute:
+GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
+ProgramHexFile: none # Path to a program hex file
+Bme280TraceFile: none
+AccelerometerTraceFile: none
+
+# ------ Simulation control ------
+SimTimeLimit: 30.0 # Simulation time limit (seconds)
+IoSimulationStopperTarget: 3 # Simulation stops after X posedge of pin connected to simstopper
+
+# ------ Timesteps ------
+PowerModelTimestep: 10.0E-6
+LogTimestep: 1.0e-3 # Time step of the power model's csv files
+
+# ------ Cortex M0 Clocks ------
+MasterClockPeriod: 800.0e-9
+PeripheralClockPeriod: 800.0e-9
+
+# ------ CPU version ------
+CortexM0Version: cm0+
+
+# ------ Power supply ------
+PowerSupply: ConstantPowerSupply
+PowerSupplyVoltage: 1.81 #[W]
+PowerSupplyPower: 10.0E-6 #[W]
+SupplyCurrentLimit: 5.0E-3 #[A]
+SupplyVoltageLimit: 3.59 # [V]
+
+# ------ Power system ------
+CpuCoreVoltage: 1.8
+SVSVon: 3.5
+SVSVoff: 3.4
+VoltageWarning: 2.2
+
+# Storage capacitor
+CapacitorValue: 10.0e-6
+CapacitorInitialVoltage: 3.0
+
+# ------ MemicBoard-specific settings ------
+MemicBoard.mcu.icache.Enable: True
+MemicBoard.mcu.icache.CacheReplacementPolicy: PseudoRandom
+MemicBoard.mcu.icache.CacheWritePolicy: WriteThrough # {WriteThrough, WriteAround, WriteBack}
+MemicBoard.mcu.icache.CacheLineWidth: 16
+MemicBoard.mcu.icache.CacheNLines: 2
+MemicBoard.mcu.icache.CacheNSets: 128
+MemicBoard.mcu.icache.icache_ctrl.MaxModified: 128
+
+MemicBoard.mcu.dcache.Enable: True
+MemicBoard.mcu.dcache.CacheReplacementPolicy: PseudoRandomNotDirty
+MemicBoard.mcu.dcache.CacheWritePolicy: WriteBack # {WriteThrough, WriteAround, WriteBack}
+MemicBoard.mcu.dcache.CacheLineWidth: 32
+MemicBoard.mcu.dcache.CacheNLines: 2
+MemicBoard.mcu.dcache.CacheNSets: 32
+MemicBoard.mcu.dcache.dcache_ctrl.MaxModified: 128
+
+# UndoLogger log capacity (cache lines)
+MemicBoard.mcu.undoLogger.capacity: 8
+
+# Banked Memory settings
+MemicBoard.mcu.isram.Enable: False
+MemicBoard.mcu.isram.AutoRetentionDelayCycles: 1000
+MemicBoard.mcu.isram.ActiveToRetentionDelayCycles: 1
+MemicBoard.mcu.isram.RetentionToActiveDelayCycles: 1
+
+MemicBoard.mcu.dsram.Enable: False
+MemicBoard.mcu.dsram.AutoRetentionDelayCycles: 1000
+MemicBoard.mcu.dsram.ActiveToRetentionDelayCycles: 1
+MemicBoard.mcu.dsram.RetentionToActiveDelayCycles: 1
+
+MemicBoard.mcu.invm.AutoRetentionDelayCycles: 1000
+MemicBoard.mcu.invm.ActiveToRetentionDelayCycles: 10
+MemicBoard.mcu.invm.RetentionToActiveDelayCycles: 10
+
+MemicBoard.mcu.dnvm.AutoRetentionDelayCycles: 1000
+MemicBoard.mcu.dnvm.ActiveToRetentionDelayCycles: 10
+MemicBoard.mcu.dnvm.RetentionToActiveDelayCycles: 10
+
+# ------ Energy consumption ------
+# MRAM 0.3 pJ read / 6 pJ write per bit
+# Source:
+# [“Ambient Energy Harvesting Nonvolatile Processors: From Circuit to System.”,
+# Yongpan Liu et al., DAC’15, 2015. https://doi.org/10.1145/2744769.2747910.]
+# Instruction MRAM
+MemicBoard.mcu.invm on: 0.0
+MemicBoard.mcu.invm off: 0.0
+MemicBoard.mcu.invm write: 1.92e-10 # J/word
+MemicBoard.mcu.invm read: 9.6e-12 # J/word
+# No public data, so using same numbers as SRAM here
+MemicBoard.mcu.invm retentionToActive: 9.4e-11 # J
+MemicBoard.mcu.invm activeToRetention: 1.76e-12
+
+# Data MRAM
+MemicBoard.mcu.dnvm on: 0.0
+MemicBoard.mcu.dnvm off: 0.0
+MemicBoard.mcu.dnvm write: 1.92e-10 # J/word
+MemicBoard.mcu.dnvm read: 9.6e-12 # J/word
+# No public data, so using same numbers as SRAM here
+MemicBoard.mcu.dnvm retentionToActive: 9.4e-11 # J
+MemicBoard.mcu.dnvm activeToRetention: 1.76e-12
+
+# Instruction SRAM 0.33 pJ read/write per bit
+MemicBoard.mcu.isram write:  1.05e-11 # J/word
+MemicBoard.mcu.isram read: 1.05e-11 # J/word
+MemicBoard.mcu.isram retentionToActive: 9.40e-11 #J
+MemicBoard.mcu.isram activeToRetention: 1.76e-12 #J
+
+# Data SRAM 0.33pJ read/write per bit
+MemicBoard.mcu.dsram write: 1.05e-11 # J/word
+MemicBoard.mcu.dsram read: 1.05e-11 # J/word
+MemicBoard.mcu.dsram retentionToActive: 9.40e-11 #J
+MemicBoard.mcu.dsram activeToRetention: 1.76e-12 #J
+
+# Instruction Cache (same as sram)
+MemicBoard.mcu.icache bytes read: 2.64e-12 # J/byte
+MemicBoard.mcu.icache bytes written: 2.64e-12 # J/byte
+MemicBoard.mcu.icache tag read bits: 0.33e-12 # J/byte
+MemicBoard.mcu.icache tag write bits: 0.33e-12 # J/byte
+
+# Data Cache (same as sram)
+MemicBoard.mcu.dcache bytes read: 2.64e-12 # J/byte
+MemicBoard.mcu.dcache bytes written: 2.64e-12 # J/byte
+MemicBoard.mcu.dcache tag read bits: 0.33e-12 # J/byte
+MemicBoard.mcu.dcache tag write bits: 0.33e-12 # J/byte
+
+# Undo log internal buffer (same energy as sram)
+MemicBoard.mcu.undoLogger read log byte: 2.64e-12 # J/byte
+MemicBoard.mcu.undoLogger write log byte: 2.64e-1 # J/byte
+
+# CPU current
+MemicBoard.mcu.CPU on:  1.0e-6 # CM0 active current
+MemicBoard.mcu.CPU off:  0.0
+MemicBoard.mcu.CPU sleep:  0.0
+
+# Memory static power
+MemicBoard.mcu.isram.active: 5.295e-11 #A per bit
+MemicBoard.mcu.isram.retention: 1.12e-11 #A per bit
+MemicBoard.mcu.isram.off: 0.0 #A per bit
+
+MemicBoard.mcu.dsram.active: 5.295e-11 #A per bit
+MemicBoard.mcu.dsram.retention: 1.12e-11 #A per bit
+MemicBoard.mcu.dsram.off: 0.0 #A per bit
+
+MemicBoard.mcu.icache on: 5.295e-11 # A per bit leakage current
+MemicBoard.mcu.icache off: 0.0
+
+MemicBoard.mcu.dcache on: 5.295e-11 # A per bit leakage current
+MemicBoard.mcu.dcache off: 0.0
+
+# No public source for MRAM leakage, so this is set to be the same as SRAM
+MemicBoard.mcu.invm.active: 5.295e-11 #A per bit
+MemicBoard.mcu.invm.retention: 1.12e-11 #A per bit
+MemicBoard.mcu.invm.off: 0.0 #A per bit
+
+MemicBoard.mcu.dnvm.active: 5.295e-11 #A per bit
+MemicBoard.mcu.dnvm.retention: 1.12e-11 #A per bit
+MemicBoard.mcu.dnvm.off: 0.0 #A per bit
+
+# CPU current
+MemicBoard.mcu.CPU on:  1.0e-6 # CM0 active current
+MemicBoard.mcu.CPU off:  0.0
+MemicBoard.mcu.CPU sleep:  0.0
+
+# ------ Peripheral settings ------
+
+# BME280 temperature/humidity/pressure sensor power consumption (state-based)
+# Numbers derived from the datasheet
+BME280.off:  0.0
+BME280.sleep: 0.1e-6
+BME280.standby: 0.2e-6
+BME280.measure_humidity: 340.0e-6
+BME280.measure_pressure:  714.0e-6
+BME280.measure_temperature: 350.0e-6
+
+# Accelerometer (event- & state-based)
+# Numbers derived from the BMA280 accelerometer data sheet
+Accelerometer.active: 500.0e-9 # Active/standby current [A] (~ Low-power mode from datasheet)
+Accelerometer.sleep: 160.0e-9 # Sleep current [A] (Sleep mode from datasheet)
+# Energy per sample: 1.8V * (3.5µA) / 800Hz (Normal mode, OSR=0 from datasheet)
+Accelerometer sample: 7.875e-9 # Energy per sample [J]
+
+# ------ For Unit tests only ------
+tester.dut.dut.CacheReplacementPolicy: LRU
+tester.dut.dut.CacheWritePolicy: WriteBack # {WriteThrough, WriteAround, WriteBack}
+tester.dut.dut.CacheLineWidth: 8
+tester.dut.dut.CacheNLines: 8
+tester.dut.dut.CacheNSets: 8
+tester.dut.nvm on: 0.0

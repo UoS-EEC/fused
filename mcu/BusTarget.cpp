@@ -39,6 +39,9 @@ void BusTarget::b_transport(tlm::tlm_generic_payload &trans, sc_time &delay) {
   auto len = trans.get_data_length();
   uint8_t *data = trans.get_data_ptr();
 
+  // Forward transaction for analysis by subscribers
+  analysisPort.write(trans);
+
   // Perform transaction
   if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
     m_regs.write(addr, data, len);

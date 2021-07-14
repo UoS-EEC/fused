@@ -5,14 +5,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <yaml-cpp/yaml.h>
+#include "utilities/Config.hpp"
+#include "utilities/Utilities.hpp"
 #include <exception>
 #include <iostream>
 #include <map>
+#include <spdlog/spdlog.h>
 #include <string>
-#include "utilities/Config.hpp"
-#include "utilities/Utilities.hpp"
+#include <yaml-cpp/yaml.h>
 
 void Config::parseCli(int argc, char *argv[]) {
   if (argc == 1) {
@@ -21,13 +21,15 @@ void Config::parseCli(int argc, char *argv[]) {
 
   for (int i = 1; i < argc; i++) {
     if (std::string(argv[i]) == "-h" || std::string(argv[i]) == "--help") {
-      std::cout << "\nusage: fused [-B board] [-O odir] [-x program] [-C config] \n\n";
+      std::cout << "\nusage: fused [-B board] [-O odir] [-x program] [-C "
+                   "config] \n\n";
       std::cout << "-B, --board \t : which board to run\n";
       std::cout << "-O, --odir \t : path to output directory\n";
       std::cout << "-x, --program \t : path to program hex file\n";
       std::cout << "-C, --config \t : path to config file\n";
       exit(0);
-    } else if (std::string(argv[i]) == "-C" || std::string(argv[i]) == "--config") {
+    } else if (std::string(argv[i]) == "-C" ||
+               std::string(argv[i]) == "--config") {
       m_config["ConfigFile"] = std::string(argv[i + 1]);
       spdlog::info("Loading config from file: {:s}", argv[i + 1]);
       i++;
@@ -58,18 +60,12 @@ void Config::parseCli(int argc, char *argv[]) {
 }
 
 void Config::parseFile(const std::string &fn) {
-  if (fn == "") {
-    if (m_config.find("ConfigFile") != m_config.end()) {
-      m_configFileName = m_config["ConfigFile"];
-    } else {
-      m_configFileName = "config.yaml";  // Debug convenience
-    }
-  }
+  m_configFileName = fn;
   Utility::assertFileExists(m_configFileName);
   auto ymlconfig =
       YAML::LoadFile(m_configFileName).as<std::map<std::string, std::string>>();
   m_config.insert(ymlconfig.begin(),
-                  ymlconfig.end());  // Note: CLI arguments override yaml-config
+                  ymlconfig.end()); // Note: CLI arguments override yaml-config
 }
 
 const std::string &Config::getString(const std::string &key) const {

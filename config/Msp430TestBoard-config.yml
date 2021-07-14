@@ -1,0 +1,123 @@
+#
+# Copyright (c) 2019-2020, University of Southampton and Contributors.
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Fused configuration parameters.
+# Note that command line options take precedence over config-file options, so
+# any options specified here may be overruled when launching Fused.
+
+# Board
+Board: Msp430TestBoard
+
+# ------ Paths ------
+OutputDirectory: /tmp/fused-outputs
+BootTracePath: ../config/boot-trace.csv
+VccMultiplierPath: ../config/vsweep-current.csv
+
+# Operation mode/Program to execute:
+GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
+ProgramHexFile: none # Path to a program hex file
+
+Bme280TraceFile: none
+AccelerometerTraceFile: none
+
+# ------ Simulation control ------
+SimTimeLimit: 30.0 # Simulation time limit (seconds)
+IoSimulationStopperTarget: 3 # Simulation stops after X posedge of pin connected to simstopper
+
+# ------ Timesteps ------
+PowerModelTimestep: 10.0E-6
+LogTimestep: 10.0e-6 # Time step of the power model's csv files
+
+# ------ Cortex M0 Clocks ------
+MasterClockPeriod: 125.0e-9
+PeripheralClockPeriod: 125.0e-9
+
+# ------ CPU version ------
+CortexM0Version: cm0+
+
+# ------ Power supply ------
+PowerSupply: ConstantPowerSupply
+PowerSupplyPower: 10.0e-3
+PowerSupplyVoltage: 1.81
+SupplyCurrentLimit: 5.0E-3
+SupplyVoltageLimit: 3.59
+
+# ------ Power system ------
+CpuCoreVoltage: 1.8
+# Supply voltage supervisor
+SVSVon: 3.5
+SVSVoff: 3.4
+VoltageWarning: 2.0
+
+# Storage capacitor
+CapacitorValue: 4.7e-6
+CapacitorInitialVoltage: 0.0
+
+ExtIcc: 25.0E-6 # Static current draw of external circuitry
+
+# Power management module
+PMMOn: 1.9
+PMMOff: 1.8
+VMAX: 3.6
+
+ext.dc : 25.0e-6 # External circuitry static current consumption
+
+# ------ Msp430TestBoard-specific settings ------
+# Cache
+# Available replacement policies are:
+# {LRU, LFU, RoundRobin, PseudoRandom}
+Msp430TestBoard.mcu.cache.CacheReplacementPolicy: LRU
+Msp430TestBoard.mcu.cache.CacheWritePolicy: WriteAround # {WriteThrough, WriteAround, WriteBack}
+Msp430TestBoard.mcu.cache.CacheLineWidth: 8
+Msp430TestBoard.mcu.cache.CacheNLines: 2
+Msp430TestBoard.mcu.cache.CacheNSets: 2
+
+# Power consumption of states (in this case current (A))
+Msp430TestBoard.mcu.CPU on: 0.0
+Msp430TestBoard.mcu.CPU off: 0.0
+Msp430TestBoard.mcu.Adc on: 295.75e-6 #130.0e-6
+
+# Energy consumption of events (J)
+Msp430TestBoard.mcu.CPU idle cycles: 2.0128059437442775e-10
+Msp430TestBoard.mcu.cache read hit: 2.1159007820425844e-10
+Msp430TestBoard.mcu.cache read miss: 6.346704408546349e-10
+Msp430TestBoard.mcu.cache write: 6.823167771173059e-10
+Msp430TestBoard.mcu.sram read: 1.981169616404032e-10
+Msp430TestBoard.mcu.sram write: 1.981169616404032e-10
+
+# Static power
+Msp430TestBoard.mcu.cache on: 0.0
+Msp430TestBoard.mcu.fram on: 0.0
+Msp430TestBoard.mcu.sram on: 0.0
+Msp430TestBoard.mcu.vectors on: 0.0
+
+
+# ------ Peripheral settings ------
+
+# BME280 temperature/humidity/pressure sensor power consumption (state-based)
+BME280.off:  0.0
+BME280.sleep: 0.1e-6
+BME280.standby: 0.2e-6
+BME280.measure_humidity: 340.0e-6
+BME280.measure_pressure:  714.0e-6
+BME280.measure_temperature: 350.0e-6
+
+# Accelerometer (event- & state-based)
+Accelerometer.active: 500.0e-9 # Active/standby current [A] (~ Low-power mode from datasheet)
+Accelerometer.sleep: 160.0e-9 # Sleep current [A] (Sleep mode from datasheet)
+# Energy per sample: 1.8V * (3.5µA) / 800Hz (Normal mode, OSR=0 from datasheet)
+Accelerometer sample: 7.875e-9 # Energy per sample [J]
+
+# ------ For Unit tests only ------
+tester.dut.dut.CacheReplacementPolicy: LRU
+tester.dut.dut.CacheWritePolicy: WriteBack # {WriteThrough, WriteAround, WriteBack}
+tester.dut.dut.CacheLineWidth: 8
+tester.dut.dut.CacheNLines: 8
+tester.dut.dut.CacheNSets: 8
+tester.dut.mem on: 0.0
+tester.dut.dut on: 0.0
+tester.dut.nvm on: 0.0

@@ -38,6 +38,8 @@ add_library(Cm0Peripherals
   Gpio.hpp
   Spi.cpp
   Spi.hpp
+  UndoLogger.hpp
+  UndoLogger.cpp
   )
 
 target_compile_definitions(

@@ -7,9 +7,9 @@
 
 #pragma once
 
+#include "cm0.h"
 #include <fused.h>
 #include <stdbool.h>
-#include "cm0.h"
 
 typedef union {
   volatile uint32_t WORD;
@@ -25,4 +25,4 @@ typedef struct {
   GPIO_Data_TypeDef IE;
 } GPIO_TypeDef;
 
-static GPIO_TypeDef* const Gpio = (GPIO_TypeDef*)GPIO_BASE;
+static GPIO_TypeDef *const Gpio = (GPIO_TypeDef *)GPIO_BASE;

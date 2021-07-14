@@ -16,8 +16,8 @@ MEMORY
         /*rom (rwx) : ORIGIN = 0x08000000, LENGTH = 16K */
         /*ram (rwx) : ORIGIN = 0x20000000, LENGTH = 4K */
         /*invm (rx) : ORIGIN = 0x20000000, LENGTH = 8K */
-        rom (rx)   : ORIGIN = 0x08000000, LENGTH = 8K
-        nvram (rwx): ORIGIN = 0x20000000, LENGTH = 8K
+        rom (rx)   : ORIGIN = 0x08000000, LENGTH = 64K
+        nvram (rwx): ORIGIN = 0x20000000, LENGTH = 16K
         sram (rwx) : ORIGIN = 0x20000000 + 16K, LENGTH = 8K
 }
 

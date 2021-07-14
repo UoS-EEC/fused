@@ -472,6 +472,7 @@ void DmaChannel::process() {
         if (!enable) {
           break;
         }
+        size--;
       }
       size = m_tSize;
       interruptFlag = true;

@@ -31,6 +31,10 @@ class OutputPort : public BusTarget {
    */
   OutputPort(const sc_core::sc_module_name name)
       : BusTarget(name, OUTPORT_BASE, OUTPORT_BASE + 4) {
+    // Transport delay
+    m_transportDelay = sc_core::sc_time::from_seconds(
+        Config::get().getDouble("OutputPortTransportDelay"));
+
     // Initialize register file
     m_regs.addRegister(OFS_OUTPORT_OUT, 0);
 
@@ -38,8 +42,7 @@ class OutputPort : public BusTarget {
     SC_METHOD(reset);
     sensitive << pwrOn;
 
-    SC_METHOD(process);
-    sensitive << m_writeEvent << pwrOn;
+    SC_THREAD(process);
   };
 
   /**
@@ -48,20 +51,27 @@ class OutputPort : public BusTarget {
    */
   virtual void reset(void) override {
     m_regs.write(OFS_OUTPORT_OUT, 0);
-    m_writeEvent.notify(sc_core::SC_ZERO_TIME);
+    m_writeEvent.notify(sc_core::SC_ZERO_TIME);  // Update process
   }
 
  private:
   /* ------ Private variables ------ */
+  sc_core::sc_time m_transportDelay;  //! Delay between write and value on pin
 
   /* ------ Private methods ------ */
   /**
    * @brief process Set all output signals according to register value
    */
   void process() {
-    unsigned rval = m_regs.read(OFS_OUTPORT_OUT);
-    for (unsigned i = 0; i < pins.size(); i++) {
-      pins[i].write(rval & (1u << i));
+    wait(sc_core::SC_ZERO_TIME);
+
+    while (1) {
+      wait(m_writeEvent | pwrOn.value_changed_event());
+      wait(m_transportDelay);
+      unsigned rval = m_regs.read(OFS_OUTPORT_OUT);
+      for (unsigned i = 0; i < pins.size(); i++) {
+        pins[i].write(rval & (1u << i));
+      }
     }
   }
 };

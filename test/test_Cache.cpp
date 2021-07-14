@@ -5,58 +5,63 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <algorithm>
-#include <array>
-#include <random>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "include/fused.h"
 #include "mcu/Cache.hpp"
+#include "mcu/CacheController.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/NonvolatileMemory.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <algorithm>
+#include <array>
+#include <random>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
 
 using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood", false};
   sc_signal<unsigned> framWaitStates{"framWaitStates", 1};
   tlm_utils::simple_initiator_socket<dut> cacheSocket{"cacheSocket"};
+  tlm_utils::simple_initiator_socket<dut> ctrlSocket{"ctrlSocket"};
   ClockSourceChannel clk{"clk", sc_time(1, SC_NS)};
   PowerModelChannel powerModelChannel{"powerModelChannel", "/tmp",
                                       sc_time(1, SC_US)};
 
   SC_CTOR(dut) {
     m_dut.pwrOn.bind(pwrGood);
+    m_dut.cacheCtrl.pwrOn.bind(pwrGood);
     m_dut.systemClk.bind(clk);
+    m_dut.powerModelPort.bind(powerModelChannel);
+    m_dut.cacheCtrl.systemClk.bind(clk);
     nvm.pwrOn.bind(pwrGood);
     nvm.systemClk.bind(clk);
     m_dut.tSocket.bind(cacheSocket);
+    m_dut.cacheCtrl.tSocket.bind(ctrlSocket);
+    m_dut.cacheCtrl.powerModelPort.bind(powerModelChannel);
     m_dut.iSocket.bind(nvm.tSocket);
     nvm.waitStates.bind(framWaitStates);
-    m_dut.powerModelPort.bind(powerModelChannel);
     nvm.powerModelPort.bind(powerModelChannel);
   }
 
-  Cache m_dut{"dut", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1};
+  Cache m_dut{"dut", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1,
+              DCACHE_CTRL_BASE};
   NonvolatileMemory nvm{"nvm", NVRAM_START, NVRAM_START + NVRAM_SIZE - 1};
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) {
     NVM_SIZE = test.nvm.size();
-    sc_assert(test.nvm.size() ==
-              test.m_dut.endAddress() - test.m_dut.startAddress() + 1);
     SC_THREAD(runtests);
   }
 
@@ -70,6 +75,25 @@ SC_MODULE(tester) {
     }
     for (int addr = 0; addr < NVM_SIZE; addr += TARGET_WORD_SIZE) {
       sc_assert(readWord(test.cacheSocket, addr) == 0xABBA);
+    }
+
+    // ------ TEST: Write, flush and check memory content
+    for (int addr = 0; addr < NVM_SIZE; addr += TARGET_WORD_SIZE) {
+      writeWord(test.cacheSocket, addr, 0x5555);
+    }
+    writeWord(test.ctrlSocket, OFS_DCACHE_CTRL_CSR, DCACHE_CTRL_FLUSH);
+    while (test.m_dut.nDirtyLines.read() > 0) {
+      wait(test.m_dut.nDirtyLines.value_changed_event());
+    }
+    wait(sc_time(1, SC_US));
+    sc_assert(test.m_dut.nDirtyLines.read() == 0);
+    sc_assert(test.m_dut.doFlush.read() == false);
+
+    for (int addr = 0; addr < NVM_SIZE; addr += TARGET_WORD_SIZE) {
+      auto val = readWord(test.cacheSocket, addr, false, true);
+      // std::cerr << "addr 0x" << std::hex << addr << ", val 0x" << int(val)
+      //<< '\n';
+      sc_assert(val == 0x5555);
     }
 
     // ------ TEST: Write & read back random values in random order
@@ -124,7 +148,8 @@ SC_MODULE(tester) {
   }
 
   uint32_t readWord(tlm_utils::simple_initiator_socket<dut> & socket,
-                    const uint32_t addr, bool doWait = true) {
+                    const uint32_t addr, bool doWait = true,
+                    bool debug = false) {
     sc_time delay = SC_ZERO_TIME;
     tlm::tlm_generic_payload trans;
     unsigned char data[TARGET_WORD_SIZE];
@@ -132,7 +157,11 @@ SC_MODULE(tester) {
     trans.set_data_length(TARGET_WORD_SIZE);
     trans.set_command(tlm::TLM_READ_COMMAND);
     trans.set_address(addr);
-    socket->b_transport(trans, delay);
+    if (!debug) {
+      socket->b_transport(trans, delay);
+    } else {
+      socket->transport_dbg(trans);
+    }
 
     if (doWait) {
       wait(delay);
@@ -149,15 +178,19 @@ SC_MODULE(tester) {
   }
 
   // Vars
-  unsigned NVM_SIZE;
+  int CACHE_NSETS;
+  int CACHE_NLINES;
+  int CACHE_LINEWIDTH;
+  int NVM_SIZE;
+  std::string CACHE_WPOLICY;
+  std::string CACHE_RPOLICY;
   dut test{"dut"};
 };
 
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Msp430TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

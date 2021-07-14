@@ -5,8 +5,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <systemc>
 #include "sd/SpiDevice.hpp"
+#include <systemc>
 
 using namespace sc_core;
 
@@ -34,6 +34,8 @@ void SpiDevice::reset(void) {
   // Clear slave-in & slave-out shift registers
   m_SlaveOutRegister = 0;
   m_SlaveInRegister = 0;
+  m_transactionEvent.cancel();
+  m_regs.reset();
 }
 
 uint32_t SpiDevice::readSlaveIn() const { return m_SlaveInRegister; }

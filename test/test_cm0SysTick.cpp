@@ -5,23 +5,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <tlm_utils/simple_initiator_socket.h>
-#include <string>
-#include <systemc>
-#include <tlm>
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/ClockSourceIf.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
 #include "ps/PowerModelChannel.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <spdlog/spdlog.h>
+#include <string>
+#include <systemc>
+#include <tlm>
+#include <tlm_utils/simple_initiator_socket.h>
 
 using namespace sc_core;
 using namespace Utility;
 
 SC_MODULE(dut) {
- public:
+public:
   // Signals
   sc_signal<bool> pwrGood{"pwrGood", false};
   sc_signal<bool> irq{"irq"};
@@ -46,7 +46,7 @@ SC_MODULE(dut) {
 };
 
 SC_MODULE(tester) {
- public:
+public:
   SC_CTOR(tester) { SC_THREAD(runtests); }
 
   void runtests() {
@@ -64,8 +64,8 @@ SC_MODULE(tester) {
 
     // TEST -- Set up, but don't enable
     test.m_dut.reset();
-    write32(OFS_SYST_RVR, 100 - 1, false);  // Reload value for 100 ticks
-    write32(OFS_SYST_CVR, 100 - 1, false);  // Value should be ignored
+    write32(OFS_SYST_RVR, 100 - 1, false); // Reload value for 100 ticks
+    write32(OFS_SYST_CVR, 100 - 1, false); // Value should be ignored
     sc_assert(read32(OFS_SYST_CVR, false) == 0);
     wait(sc_time(200, SC_US));
     sc_assert(read32(OFS_SYST_CVR) == 0);
@@ -137,8 +137,7 @@ SC_MODULE(tester) {
 int sc_main([[maybe_unused]] int argc, [[maybe_unused]] char *argv[]) {
   // Set up paths
   // Parse CLI arguments & config file
-  auto &config = Config::get();
-  config.parseFile();
+  Config::get().parseFile("../config/Cm0TestBoard-config.yml");
 
   tester t("tester");
   sc_start();

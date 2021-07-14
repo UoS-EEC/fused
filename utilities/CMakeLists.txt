@@ -17,6 +17,7 @@ set(SOURCES
   SimpleMonitor.hpp
   SimulationController.cpp
   SimulationController.hpp
+  WriteTracker.hpp
   )
 
 add_library(Cm0Utilities ${SOURCES})

@@ -9,6 +9,7 @@
 
 #include "mcu/Bus.hpp"
 #include "mcu/BusTarget.hpp"
+#include "mcu/Cache.hpp"
 #include "mcu/ClockSourceChannel.hpp"
 #include "mcu/DummyPeripheral.hpp"
 #include "mcu/GenericMemory.hpp"
@@ -21,8 +22,10 @@
 #include "mcu/cortex-m0/Nvic.hpp"
 #include "mcu/cortex-m0/Spi.hpp"
 #include "mcu/cortex-m0/SysTick.hpp"
+#include "mcu/cortex-m0/UndoLogger.hpp"
 #include <array>
 #include <iostream>
+#include <ostream>
 #include <stdint.h>
 #include <systemc>
 #include <utilities/SimpleMonitor.hpp>
@@ -52,6 +55,7 @@ public:
 
   /* ------ Miscellaneous ------ */
   sc_core::sc_signal<unsigned int> nvmWaitStates{"nvmWaitStates", 1};
+  std::array<sc_core::sc_signal<bool>, 32> nResetGated;
 
   //! Signal from DMA to take over bus
   sc_core::sc_signal<bool> busStall{"busStall"};
@@ -61,6 +65,9 @@ public:
 
   //! Constructor
   explicit Cm0Microcontroller(sc_core::sc_module_name nm);
+
+  //! Destructor
+  ~Cm0Microcontroller();
 
   /* ------ CPU control functions ------ */
 
@@ -164,6 +171,12 @@ public:
     m_cpu.removeBreakpoint(addr);
   }
 
+  /*
+   * @brief debug print
+   */
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const Cm0Microcontroller &rhs);
+
 private:
   /**
    * @brief process Monitors output from PMM and resets processor during
@@ -172,8 +185,7 @@ private:
   void process(void);
 
 public:
-  /* ------ Constants ------ */
-
+  /* ------ Constants / internal pin mapping ------*/
   /* ------ Peripherals ------ */
   DummyPeripheral *scb;          //! System Control Block is not implemented
   VolatileMemory *sram;          //! Volatile memory (SRAM)
@@ -181,8 +193,8 @@ public:
   NonvolatileMemory *dnvm;       //! Data memory (NVRAM)
   SysTick *sysTick;              //! SysTick Timer
   Nvic *nvic;                    //! NVIC interrupt controller
-  Gpio *gpio;                    //! Basic GPIO
   Spi *spi;                      //! SPI peripheral
+  Gpio *gpio;                    //! Basic GPIO
   CortexM0Peripherals::Dma *dma; //! Direct Memory Access peripheral
 
   /* ------- CPU & bus ------ */

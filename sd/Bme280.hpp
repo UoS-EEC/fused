@@ -4,18 +4,19 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#pragma once
 
 /*
  * Model of the Bosh BME280 SPI-enabled temperature+humidity+pressure sensor.
  */
 
+#include "sd/SpiDevice.hpp"
 #include <array>
 #include <systemc>
 #include <vector>
-#include "sd/SpiDevice.hpp"
 
 class Bme280 : public SpiDevice {
- public:
+public:
   SC_HAS_PROCESS(Bme280);
 
   /* ------ Public methods ------ */
@@ -100,14 +101,14 @@ class Bme280 : public SpiDevice {
 
   // Scaling factors to convert from physical parameters to LSB's
   // adc_val = physical_unit_sample * x_SCALING;
-  static constexpr double HUM_SCALE{0.008};     // [%RH/lsb]
-  static constexpr double HUM_OFFSET{0.0};      // [%RH]
-  static constexpr double PRESS_SCALE{0.0018};  // [hPa/lsb]
-  static constexpr double PRESS_OFFSET{300.0};  // [hPa]
-  static constexpr double TEMP_SCALE{0.01};     // [C/lsb]
-  static constexpr double TEMP_OFFSET{-40.0};   // [C]
+  static constexpr double HUM_SCALE{0.008};    // [%RH/lsb]
+  static constexpr double HUM_OFFSET{0.0};     // [%RH]
+  static constexpr double PRESS_SCALE{0.0018}; // [hPa/lsb]
+  static constexpr double PRESS_OFFSET{300.0}; // [hPa]
+  static constexpr double TEMP_SCALE{0.01};    // [C/lsb]
+  static constexpr double TEMP_OFFSET{-40.0};  // [C]
 
- private:
+private:
   /* ------ Private types ------ */
   enum class SpiState { Address, Data };
   enum class MeasurementState { PowerOff, Sleep, Normal, Forced };
@@ -116,14 +117,14 @@ class Bme280 : public SpiDevice {
   SpiState m_spiState{SpiState::Address};
   MeasurementState m_measurementState{MeasurementState::Sleep};
   unsigned m_activeAddress{0xffff};
-  bool m_isWriteAccess{false};  // Indicate if current spi access is write/read
+  bool m_isWriteAccess{false}; // Indicate if current spi access is write/read
   sc_core::sc_event m_modeUpdateEvent{"modeUpdateEvent"};
 
   // Trace file data
   struct InputTraceEntry {
-    double temperature;  // [C]
-    double humidity;     //  Percent Relative Humidity [%RH]
-    double pressure;     // [hPa]
+    double temperature; // [C]
+    double humidity;    //  Percent Relative Humidity [%RH]
+    double pressure;    // [hPa]
 
     InputTraceEntry(const double temperature_, const double humidity_,
                     const double pressure_)

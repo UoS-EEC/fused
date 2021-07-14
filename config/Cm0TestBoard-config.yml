@@ -1,0 +1,98 @@
+#
+# Copyright (c) 2019-2020, University of Southampton and Contributors.
+# All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Fused configuration parameters.
+# Note that command line options take precedence over config-file options, so
+# any options specified here may be overruled when launching Fused.
+
+# Board
+Board: Cm0TestBoard
+
+# ------ Paths ------
+OutputDirectory: /tmp/fused-outputs
+
+# Operation mode/Program to execute:
+GdbServer: True # Will use gdb server to control mcu if true, loads ProgramHexFile otherwise
+ProgramHexFile: none # Path to a program hex file
+
+Bme280TraceFile: none
+AccelerometerTraceFile: none
+
+# ------ Simulation control ------
+SimTimeLimit: 30.0 # Simulation time limit (seconds)
+IoSimulationStopperTarget: 3 # Simulation stops after X posedge of pin connected to simstopper
+
+# ------ Timesteps ------
+PowerModelTimestep: 10.0E-6
+LogTimestep: 10.0e-6 # Time step of the power model's csv files
+
+# ------ Cortex M0 Clocks ------
+MasterClockPeriod: 125.0e-9
+PeripheralClockPeriod: 125.0e-9
+
+# ------ CPU version ------
+CortexM0Version: cm0+
+
+# ------ Power supply ------
+PowerSupply: ConstantPowerSupply
+PowerSupplyPower: 10.0e-3
+PowerSupplyVoltage: 1.81
+SupplyCurrentLimit: 5.0E-3
+SupplyVoltageLimit: 3.59
+
+# ------ Power system ------
+CpuCoreVoltage: 1.8
+# Supply voltage supervisor
+SVSVon: 3.5
+SVSVoff: 3.4
+VoltageWarning: 2.0
+
+# Storage capacitor
+CapacitorValue: 4.7e-6
+CapacitorInitialVoltage: 0.0
+
+ExtIcc: 25.0E-6 # Static current draw of external circuitry
+
+# Power management module
+PMMOn: 1.9
+PMMOff: 1.8
+VMAX: 3.6
+
+ext.dc : 25.0e-6 # External circuitry static current consumption
+
+# ------ Cm0TestBoard-specific settings ------
+# Energy consumption of events (J)
+# SRAM 0.33 pJ/bit read/write
+Cm0TestBoard.mcu.sram read: 1.05e-11
+Cm0TestBoard.mcu.sram write: 1.05e-11
+
+# MRAM 0.3 pJ read / 6 pJ write per bit
+# Source:
+# [“Ambient Energy Harvesting Nonvolatile Processors: From Circuit to System.”,
+# Yongpan Liu et al., DAC’15, 2015. https://doi.org/10.1145/2744769.2747910.]
+Cm0TestBoard.mcu.invm read: 9.6e-12
+Cm0TestBoard.mcu.invm write: 1.92e-10
+Cm0TestBoard.mcu.dnvm read: 9.6e-12
+Cm0TestBoard.mcu.dnvm write: 1.92e-10
+
+# Static power
+Cm0TestBoard.mcu.CPU on: 0.0
+Cm0TestBoard.mcu.CPU off: 0.0
+Cm0TestBoard.mcu.sram on: 0.0
+Cm0TestBoard.mcu.sram off: 0.0
+Cm0TestBoard.mcu.invm on: 0.0
+Cm0TestBoard.mcu.invm off: 0.0
+Cm0TestBoard.mcu.dnvm on: 0.0
+Cm0TestBoard.mcu.dnvm off: 0.0
+
+# ------ For Unit tests only ------
+tester.dut.dut.CacheReplacementPolicy: LRU
+tester.dut.dut.CacheWritePolicy: WriteBack # {WriteThrough, WriteAround, WriteBack}
+tester.dut.dut.CacheLineWidth: 8
+tester.dut.dut.CacheNLines: 8
+tester.dut.dut.CacheNSets: 8
+tester.dut.mem on: 0.0

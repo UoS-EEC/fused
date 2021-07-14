@@ -4,10 +4,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-#include <spdlog/spdlog.h>
-#include <systemc>
-#include <tuple>
-#include <vector>
 #include "libs/make_unique.hpp"
 #include "libs/strtk.hpp"
 #include "ps/ConstantCurrentState.hpp"
@@ -15,6 +11,11 @@
 #include "sd/Accelerometer.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/Utilities.hpp"
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
+#include <systemc>
+#include <tuple>
+#include <vector>
 
 using namespace sc_core;
 
@@ -37,6 +38,12 @@ Accelerometer::Accelerometer(const sc_module_name name)
     auto fn = Config::get().getString("AccelerometerTraceFile");
     Utility::assertFileExists(fn);
     std::ifstream file(fn);
+
+    if (file.bad()) {
+      SC_REPORT_FATAL(this->name(),
+                      fmt::format("Couldn't open trace file {:s}", fn).c_str());
+    }
+
     std::stringstream buffer;
     buffer << file.rdbuf();
     std::string content = buffer.str();
@@ -50,12 +57,25 @@ Accelerometer::Accelerometer(const sc_module_name name)
     m_inputTraceTimestep = sc_time(
         1000 * (grid.row(1).get<double>(0) - grid.row(0).get<double>(0)),
         SC_MS);
-  } else {  // No boot trace specified, set constant
+  } else { // No boot trace specified, set constant
     m_inputTrace.push_back(InputTraceEntry{/*acc_x*/ 0.0,
                                            /*acc_y*/ 0.0,
                                            /*acc_z*/ 9.81});
     m_inputTraceTimestep = sc_time(1000.0, SC_MS);
   }
+}
+
+void Accelerometer::before_end_of_elaboration() {
+  // Register methods
+  SC_METHOD(spiInterface);
+  sensitive << m_transactionEvent << chipSelect.posedge_event();
+  dont_initialize();
+
+  SC_METHOD(updateIrq);
+  sensitive << m_irqUpdateEvent;
+
+  SC_THREAD(measurementLoop);
+  async_reset_signal_is(nReset, false);
 }
 
 void Accelerometer::end_of_elaboration() {
@@ -69,87 +89,80 @@ void Accelerometer::end_of_elaboration() {
   m_activeStateId = powerModelPort->registerState(
       "Accelerometer",
       std::make_unique<ConstantCurrentState>("Accelerometer", "active"));
-
-  // Register methods
-  SC_METHOD(spiInterface);
-  sensitive << m_transactionEvent << chipSelect.posedge_event();
-  dont_initialize();
-
-  SC_METHOD(updateIrq);
-  sensitive << m_irqUpdateEvent;
-
-  SC_THREAD(measurementLoop);
 }
 
 void Accelerometer::reset(void) {
-  m_regs.reset();
   SpiDevice::reset();
   m_spiState.reset();
   m_fifo.clear();
   m_measurementState = MeasurementState::Sleep;
-  m_modeUpdateEvent.cancel();
+  m_isWriteAccess = false;
+  m_setIrq = false;
   reportState();
+
+  // Cancel pending events
+  m_modeUpdateEvent.cancel();
+  m_irqUpdateEvent.cancel();
 }
 
 void Accelerometer::spiInterface(void) {
   // First word after chip select is address, remaining are data
   const unsigned READ_BIT = (1u << 7);
   const auto payload = readSlaveIn();
-  if (enabled()) {  // Chip select active
+
+  if (enabled()) { // Chip select active
     switch (m_spiState.mode) {
-      case SpiState::Mode::Address:  // First byte sets up address
-        m_spiState.address = payload & ~READ_BIT;
-        m_spiState.mode = (payload & READ_BIT) ? SpiState::Mode::DataRead
-                                               : SpiState::Mode::DataWrite;
-        break;
-      case SpiState::Mode::DataRead:
+    case SpiState::Mode::Address: // First byte sets up address
+      m_spiState.address = payload & ~READ_BIT;
+      m_spiState.mode = (payload & READ_BIT) ? SpiState::Mode::DataRead
+                                             : SpiState::Mode::DataWrite;
+      break;
+    case SpiState::Mode::DataRead:
 
-        if (m_spiState.address == RegisterAddress::DATA) {
-          // Pop fifo when reading from DATA
-          // We're actually popping the previously read element, which was put
-          // in the slaveOut register in the previous transaction.
-          if (!m_fifo.empty()) {
-            m_fifo.pop_front();
-          }
+      if (m_spiState.address == RegisterAddress::DATA) {
+        // Pop fifo when reading from DATA
+        // We're actually popping the previously read element, which was put
+        // in the slaveOut register in the previous transaction.
+        if (!m_fifo.empty()) {
+          m_fifo.pop_front();
         }
+      }
 
-        // Potentially clear irq on read
-        if (irq.read() == sc_dt::SC_LOGIC_1) {
-          const bool clearContinuousMode =
-              m_measurementState == MeasurementState::ContinuousMeasurement &&
-              (m_fifo.size() < m_regs.read(RegisterAddress::FIFO_THR) * 4);
-          const bool clearOtherModes = m_fifo.size() == 0;
-          const bool clearInterruptsDisabled =
-              !(m_regs.read(RegisterAddress::CTRL) & BitMasks::CTRL_IE);
-          if (clearContinuousMode || clearOtherModes ||
-              clearInterruptsDisabled) {
-            m_setIrq = false;
-            m_irqUpdateEvent.notify(SC_ZERO_TIME);
-          }
+      // Potentially clear irq on read
+      if (irq.read() == sc_dt::SC_LOGIC_1) {
+        const bool clearContinuousMode =
+            m_measurementState == MeasurementState::ContinuousMeasurement &&
+            (m_fifo.size() < m_regs.read(RegisterAddress::FIFO_THR) * 4);
+        const bool clearOtherModes = m_fifo.size() == 0;
+        const bool clearInterruptsDisabled =
+            !(m_regs.read(RegisterAddress::CTRL) & BitMasks::CTRL_IE);
+        if (clearContinuousMode || clearOtherModes || clearInterruptsDisabled) {
+          m_setIrq = false;
+          m_irqUpdateEvent.notify(SC_ZERO_TIME);
+        }
+      }
+      break;
+    case SpiState::Mode::DataWrite: // Commands
+      if (!m_regs.contains(m_spiState.address)) {
+        SC_REPORT_FATAL(this->name(),
+                        fmt::format("Invalid SPI write address 0x{:08x}",
+                                    m_spiState.address)
+                            .c_str());
+      }
+      m_regs.write(m_spiState.address, payload);
+      switch (m_spiState.address) {
+      case RegisterAddress::CTRL:
+        if (payload & BitMasks::CTRL_SW_RESET) {
+          reset();
+        } else {
+          m_modeUpdateEvent.notify(SC_ZERO_TIME);
         }
         break;
-      case SpiState::Mode::DataWrite:  // Commands
-        if (!m_regs.contains(m_spiState.address)) {
-          SC_REPORT_FATAL(this->name(),
-                          fmt::format("Invalid SPI write address 0x{:08x}",
-                                      m_spiState.address)
-                              .c_str());
-        }
-        m_regs.write(m_spiState.address, payload);
-
-        switch (m_spiState.address) {
-          case RegisterAddress::CTRL:
-            if (payload & BitMasks::CTRL_SW_RESET) {
-              reset();
-            } else {
-              m_modeUpdateEvent.notify(SC_ZERO_TIME);
-            }
-            break;
-          default:
-            break;
-        }
-        m_spiState.mode = SpiState::Mode::Address;
+      default:
         break;
+      }
+      m_spiState.mode = SpiState::Mode::Address;
+      break;
     }
 
     // Prepare response to next transaction
@@ -173,8 +186,7 @@ void Accelerometer::spiInterface(void) {
     } else {
       writeSlaveOut(0);
     }
-
-  } else if (!enabled()) {  // Chip select inactive
+  } else if (!enabled()) { // Chip select inactive
     m_spiState.mode = SpiState::Mode::Address;
   }
 }
@@ -182,7 +194,6 @@ void Accelerometer::spiInterface(void) {
 Accelerometer::MeasurementState Accelerometer::nextMeasurementState() {
   auto setting = static_cast<MeasurementState>(
       m_regs.read(RegisterAddress::CTRL) & BitMasks::CTRL_MODE);
-
   // can't go from Sleep to measure without going through standby
   if ((m_measurementState == MeasurementState::Sleep &&
        setting == MeasurementState::ContinuousMeasurement) ||
@@ -215,8 +226,10 @@ Accelerometer::MeasurementState Accelerometer::nextMeasurementState() {
 }
 
 void Accelerometer::measurementLoop() {
-  wait(SC_ZERO_TIME);
   wait(m_modeUpdateEvent);
+  if (!nReset.read()) {
+    wait(nReset);
+  }
 
   while (1) {
     // State machine model
@@ -260,6 +273,8 @@ void Accelerometer::measurementLoop() {
 
       // Pop old elements if FIFO is full
       while (m_fifo.size() > FIFO_CAPACITY) {
+        spdlog::warn("{}: @{:.0f} FIFO overrun, removing one frame.",
+                     this->name(), sc_time_stamp().to_seconds() * 1e9);
         popOldestframe();
       }
 
@@ -294,7 +309,7 @@ void Accelerometer::measurementLoop() {
         m_regs.clearBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE);
         m_regs.setBitMask(RegisterAddress::CTRL, BitMasks::CTRL_MODE_STANDBY);
       }
-    } else {  // Inactive
+    } else { // Inactive
       wait(m_modeUpdateEvent);
     }
   }

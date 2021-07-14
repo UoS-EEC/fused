@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <systemc-ams>
-#include <systemc>
 #include "boards/Board.hpp"
 #include "mcu/Cm0Microcontroller.hpp"
 #include "mcu/Microcontroller.hpp"
@@ -19,12 +17,14 @@
 #include "utilities/BoolLogicConverter.hpp"
 #include "utilities/Config.hpp"
 #include "utilities/IoSimulationStopper.hpp"
+#include <systemc-ams>
+#include <systemc>
 
 class Cm0TestBoard : public Board {
- public:
+public:
   // Simple custom reset controller for this board
   SC_MODULE(ResetCtrl) {
-   public:
+  public:
     // Ports
     sc_core::sc_in<double> vcc{"vcc"};
     sc_core::sc_out<bool> nReset{"nReset"};
@@ -35,7 +35,7 @@ class Cm0TestBoard : public Board {
       sensitive << vcc;
     }
 
-   private:
+  private:
     double m_vCore;
     void process() { nReset.write(vcc.read() > m_vCore); }
   };
@@ -72,7 +72,7 @@ class Cm0TestBoard : public Board {
   SpiLoopBack spiLoopBack{"spiLoopBack"};
   ExternalCircuitry externalCircuitry{"externalCircuitry"};
   Utility::ResolvedInBoolOut keepAliveConverter{"keepAliveConverter"};
-  PowerModelBridge powerModelBridge{"powerModelBridge"};
+  PowerModelBridge powerModelBridge;
 
   /* ------ Tracing ------ */
   sca_util::sca_trace_file *vcdfile;

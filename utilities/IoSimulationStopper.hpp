@@ -45,6 +45,8 @@ SC_MODULE(IoSimulationStopper) {
         wait(sc_core::sc_time(10, sc_core::SC_US));
         sc_core::sc_stop();
       }
+      spdlog::info("{:s}: @{:10.0f} ns trigger count {:d}/{:d}", this->name(),
+                   sc_core::sc_time_stamp().to_seconds() * 1e9, cnt, m_target);
     }
   }
 };

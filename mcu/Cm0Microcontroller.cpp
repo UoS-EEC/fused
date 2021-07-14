@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <stdint.h>
@@ -28,7 +29,7 @@ using namespace sc_core;
 using namespace CortexM0Peripherals;
 
 Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
-    : Microcontroller(nm), m_cpu("CPU"), bus("bus"),
+    : Microcontroller(nm), m_cpu("CPU", ROM_START), bus("bus"),
       masterClock("masterClock", sc_time::from_seconds(Config::get().getDouble(
                                      "MasterClockPeriod"))),
       peripheralClock("peripheralClock",
@@ -46,7 +47,7 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   sysTick = new SysTick("sysTick");
   nvic = new Nvic("nvic");
   mon = new SimpleMonitor("mon", SIMPLE_MONITOR_BASE);
-  gpio = new Gpio("gpio");
+  gpio = new Gpio("gpio", GPIO_BASE, GPIO_EXCEPT_ID);
   spi = new Spi("spi", SPI1_BASE, SPI1_BASE + 0x10);
   dma = new Dma("dma", DMA_BASE);
 
@@ -67,12 +68,6 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   for (const auto &s : slaves) {
     s->systemClk.bind(masterClock);
   }
-
-  // Sort slaves by address
-  std::sort(slaves.begin(), slaves.end(),
-            [](const BusTarget *a, const BusTarget *b) {
-              return a->startAddress() < b->startAddress();
-            });
 
   /* ------ Bind ------ */
 
@@ -112,8 +107,8 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
 
   // Reset
   m_cpu.pwrOn.bind(nReset);
-  for (const auto &s : slaves) {
-    s->pwrOn.bind(nReset);
+  for (int i = 0; i < slaves.size(); ++i) {
+    slaves[i]->pwrOn.bind(nReset);
   }
 
   // Events for power model
@@ -141,6 +136,19 @@ Cm0Microcontroller::Cm0Microcontroller(sc_module_name nm)
   }
 }
 
+Cm0Microcontroller::~Cm0Microcontroller() {
+  delete scb;
+  delete gpio;
+  delete dma;
+  delete mon;
+  delete nvic;
+  delete spi;
+  delete sram;
+  delete sysTick;
+  delete invm;
+  delete dnvm;
+}
+
 bool Cm0Microcontroller::dbgReadMem(uint8_t *out, size_t addr, size_t len) {
   tlm::tlm_generic_payload trans;
 
@@ -159,4 +167,16 @@ bool Cm0Microcontroller::dbgWriteMem(uint8_t *src, size_t addr, size_t len) {
   trans.set_command(tlm::TLM_WRITE_COMMAND);
 
   return bus.transport_dbg(0, trans);
+}
+
+std::ostream &operator<<(std::ostream &os, const Cm0Microcontroller &rhs) {
+  os << "<Cm0Microcontroller> " << rhs.name() << "\n";
+  os << "Memory map:\n"
+     << "address(start)    address(end)  Name\n";
+  for (unsigned int i = 0; i < rhs.slaves.size(); i++) {
+    os << fmt::format("0x{:08x}        0x{:08x}    {:s}\n",
+                      rhs.slaves[i]->startAddress(),
+                      rhs.slaves[i]->endAddress(), rhs.slaves[i]->name());
+  }
+  return os;
 }

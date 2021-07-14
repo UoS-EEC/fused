@@ -5,10 +5,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/spdlog.h>
-#include <iostream>
 #include "mcu/RegisterFile.hpp"
 #include "utilities/Utilities.hpp"
+#include <iostream>
+#include <spdlog/spdlog.h>
 
 bool RegisterFile::testBit(const size_t addr, const size_t n) const {
   assert(n < TARGET_WORD_SIZE * 8);
@@ -86,7 +86,7 @@ void RegisterFile::write(size_t address, uint8_t *buf, size_t len,
       len -= 2;
       buf += 2;
       address += 2;
-    } else {  // Unaligned
+    } else { // Unaligned
       writeByte(address, *buf);
       len -= 1;
       buf += 1;
@@ -119,7 +119,7 @@ void RegisterFile::read(size_t address, uint8_t *buf, size_t len) const {
       len -= 2;
       buf += 2;
       address += 2;
-    } else {  // Unaligned
+    } else { // Unaligned
       *buf = readByte(address);
       len -= 1;
       buf += 1;
@@ -166,7 +166,7 @@ const RegisterFile::Register &RegisterFile::find(const size_t address) const {
       [address](const RegisterFile::Register &r) { return r.addr == address; });
   if (rit == m_regs.end()) {
     spdlog::error("RegisterFile::find Address 0x{:08x} not found.", address);
-    exit(1);  // to suppress warning
+    exit(1); // to suppress warning
   }
   return *rit;
 }
@@ -180,7 +180,7 @@ bool RegisterFile::contains(unsigned address) const {
 
 std::ostream &operator<<(std::ostream &os, const RegisterFile &rhs) {
   for (const auto &r : rhs.m_regs) {
-    os << "@0x" << std::hex << r.addr << ": 0x" << std::hex << r.val << "\n";
+    os << "@0x" << std::hex << r.addr << ": 0x" << r.val << std::dec;
   }
   return os;
 }

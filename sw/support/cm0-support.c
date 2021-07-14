@@ -5,11 +5,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "cm0-support.h"
+#include "cm0.h"
 #include <fused.h>
 #include <stdint.h>
 #include <string.h>
-#include "cm0-support.h"
-#include "cm0.h"
 
 void indicate_workload_begin() {
   SIMPLE_MONITOR = SIMPLE_MONITOR_INDICATE_BEGIN;
@@ -23,12 +23,12 @@ void indicate_test_fail() { SIMPLE_MONITOR = SIMPLE_MONITOR_TEST_FAIL; }
 void end_experiment() {
   SIMPLE_MONITOR = SIMPLE_MONITOR_KILL_SIM;
   while (1)
-    ;  // Just in case
+    ; // Just in case
 }
 
 void wait() {
   for (volatile uint32_t i = 0; i < 10000ll; i++)
-    ;  // delay
+    ; // delay
 }
 
 void target_init() {

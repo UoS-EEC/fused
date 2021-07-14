@@ -11,12 +11,16 @@ add_subdirectory(cortex-m0)
 add_subdirectory(msp430fr5xx)
 
 set(COMMON_SOURCES
+  BankedMemory.hpp
+  BankedMemory.cpp
   Bus.cpp
   Bus.hpp
   BusTarget.cpp
   BusTarget.hpp
   Cache.cpp
   Cache.hpp
+  CacheController.cpp
+  CacheController.hpp
   CacheReplacementPolicies.hpp
   ClockDivider.hpp
   ClockMux.hpp
@@ -31,6 +35,8 @@ set(COMMON_SOURCES
   Microcontroller.cpp
   NonvolatileMemory.hpp
   NonvolatileMemory.cpp
+  PowerController.hpp
+  PowerController.cpp
   RegisterFile.cpp
   RegisterFile.hpp
   SpiTransactionExtension.hpp
@@ -57,6 +63,25 @@ target_link_libraries(
     systemc
 )
 
+add_library(MemicMicrocontroller)
+target_sources(
+  MemicMicrocontroller
+  PRIVATE
+    ${COMMON_SOURCES}
+    MemicMicrocontroller.cpp
+    MemicMicrocontroller.hpp
+  )
+
+target_link_libraries(
+  MemicMicrocontroller
+  PUBLIC
+    CortexM0Cpu
+    Cm0Peripherals
+    PowerSystem
+    systemc-ams
+    systemc
+)
+
 add_library(Msp430Microcontroller)
 target_sources(
   Msp430Microcontroller
@@ -75,4 +100,3 @@ target_link_libraries(
     systemc-ams
     systemc
   )
-

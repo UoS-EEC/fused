@@ -6,14 +6,14 @@
  */
 
 /* ------ Includes ----------------------------------------------------------*/
-#include <math.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
 #include <support.h>
 
 #include "cmsis/core_cm0.h"
 #include "dma_defs.h"
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
 /* ------ Types -------------------------------------------------------------*/
 

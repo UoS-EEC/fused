@@ -16,7 +16,7 @@ rm -rf build/CMake* build/.ninja* build/compile_commands.json build/rules.ninja
 
 for ARCH in cm0 msp430
 do
-  cmake -Bbuild -GNinja -DTARGET_ARCH=$ARCH -DCMAKE_BUILD_TYPE=Debug
-  cmake --build build
+  cmake -Bbuild -GNinja -DTARGET_ARCH=$ARCH -DCMAKE_BUILD_TYPE=Debug || exit 1
+  cmake --build build || exit 1
   rm -rf build/CMake* build/.ninja* build/compile_commands.json build/rules.ninja
 done

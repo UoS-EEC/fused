@@ -4,11 +4,12 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+#pragma once
 
+#include "sd/SpiDevice.hpp"
 #include <deque>
 #include <systemc>
 #include <vector>
-#include "sd/SpiDevice.hpp"
 
 /**
  * @brief Accelerometer class to implement a simple 8-bit 3-axis accelerometer.
@@ -70,7 +71,7 @@
  *
  */
 class Accelerometer : public SpiDevice {
- public:
+public:
   SC_HAS_PROCESS(Accelerometer);
 
   /* ------ Ports ------ */
@@ -87,8 +88,12 @@ class Accelerometer : public SpiDevice {
   virtual void reset(void) override;
 
   /**
-   * @brief set up methods, sensitivity, and register power model events and
-   * states
+   * @brief set up methods and threads.
+   */
+  virtual void before_end_of_elaboration() override;
+
+  /**
+   * @brief register power model events and states
    */
   virtual void end_of_elaboration() override;
 
@@ -158,15 +163,16 @@ class Accelerometer : public SpiDevice {
     //! Enable sampling of Z axis
     static const uint8_t CTRL_Z_EN =                    (1u << 5);
 
+    //! Enable interrupt output.
+    static const uint8_t CTRL_IE =                      (1u << 6);
+
+
     //! Mask to extract header from CTRL register
     static const uint8_t CTRL_HEADER_MASK =             (7u << 3);
 
 
     //! Amount to shift control register down by to get header
     static const int HEADER_SHIFT =                     3;
-
-    //! Enable interrupt output.
-    static const uint8_t CTRL_IE =                      (1u << 6);
 
 
     // Sampling clock divider
@@ -193,7 +199,7 @@ class Accelerometer : public SpiDevice {
 
   // Scaling factors to convert from physical parameters to LSB's
   // adc_val = physical_unit_sample * x_SCALING;
-  static constexpr double ACC_SCALE{255.0 / 40.0};  // [lsb/ms^-2]
+  static constexpr double ACC_SCALE{255.0 / 40.0}; // [lsb/ms^-2]
   static constexpr double ACC_OFFSET{0.0};
 
   // Static delays (startup time etc), specified in seconds
@@ -224,22 +230,24 @@ class Accelerometer : public SpiDevice {
 
   // Trace file data
   struct InputTraceEntry {
-    double acc_x;  // [ms^-2]
-    double acc_y;  // [ms^-2]
-    double acc_z;  // [ms^-2]
+    double acc_x; // [ms^-2]
+    double acc_y; // [ms^-2]
+    double acc_z; // [ms^-2]
   };
 
   /* ------ Member variables ------ */
   SpiState m_spiState;
   MeasurementState m_measurementState{MeasurementState::Sleep};
-  // OutputFifo m_fifo;
+
   std::deque<uint8_t> m_fifo;
-  bool m_isWriteAccess{false};  // Indicate if current spi access is write/read
-  sc_core::sc_event m_modeUpdateEvent{"modeUpdateEvent"};
-  sc_core::sc_event m_irqUpdateEvent{"irqUpdateEvent"};
+  bool m_isWriteAccess{false}; // Indicate if current spi access is write/read
   bool m_setIrq{false};
   std::vector<InputTraceEntry> m_inputTrace;
   sc_core::sc_time m_inputTraceTimestep;
+
+  // Events
+  sc_core::sc_event m_modeUpdateEvent{"modeUpdateEvent"};
+  sc_core::sc_event m_irqUpdateEvent{"irqUpdateEvent"};
 
   /* Event & state ids */
   int m_sampleEventId{-1};

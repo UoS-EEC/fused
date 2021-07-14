@@ -7,12 +7,12 @@
 
 #pragma once
 
+#include "ps/PowerModelChannelIf.hpp"
+#include "ps/PowerModelEventBase.hpp"
 #include <memory>
 #include <string>
 #include <systemc>
 #include <vector>
-#include "ps/PowerModelChannelIf.hpp"
-#include "ps/PowerModelEventBase.hpp"
 
 /**
  * class PowerModelChannel implementation of power model channel.  See
@@ -24,7 +24,7 @@
 class PowerModelChannel : public virtual PowerModelChannelOutIf,
                           public virtual PowerModelChannelInIf,
                           public sc_core::sc_module {
- public:
+public:
   /* ------ Public methods ------ */
 
   //! Constructor
@@ -37,13 +37,13 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
 
   // See PowerModelChannelIf.hpp for description of the following virtual
   // methods.
-  virtual int registerEvent(
-      const std::string moduleName,
-      std::shared_ptr<PowerModelEventBase> eventPtr) override;
+  virtual int
+  registerEvent(const std::string moduleName,
+                std::shared_ptr<PowerModelEventBase> eventPtr) override;
 
-  virtual int registerState(
-      const std::string moduleName,
-      std::shared_ptr<PowerModelStateBase> statePtr) override;
+  virtual int
+  registerState(const std::string moduleName,
+                std::shared_ptr<PowerModelStateBase> statePtr) override;
 
   virtual void reportEvent(const int eventId, const int n = 1) override;
 
@@ -57,7 +57,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
 
   virtual double getStaticCurrent() override;
 
-  virtual const sc_core::sc_event& supplyVoltageChangedEvent() const override {
+  virtual const sc_core::sc_event &supplyVoltageChangedEvent() const override {
     return m_supplyVoltageChangedEvent;
   }
 
@@ -71,7 +71,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
    */
   virtual void start_of_simulation() override;
 
- private:
+private:
   //! Supply voltage associated with this channel
   double m_supplyVoltage = 0.0;
 
@@ -87,7 +87,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   struct ModuleEventEntry {
     std::shared_ptr<PowerModelEventBase> event;
     const int moduleId;
-    ModuleEventEntry(std::shared_ptr<PowerModelEventBase>&& event_,
+    ModuleEventEntry(std::shared_ptr<PowerModelEventBase> &&event_,
                      const int id)
         : event(std::move(event_)), moduleId(id) {}
   };
@@ -103,7 +103,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   struct ModuleStateEntry {
     std::shared_ptr<PowerModelStateBase> state;
     const int moduleId;
-    ModuleStateEntry(std::shared_ptr<PowerModelStateBase>&& state_,
+    ModuleStateEntry(std::shared_ptr<PowerModelStateBase> &&state_,
                      const int id)
         : state(std::move(state_)), moduleId(id) {}
   };
@@ -118,6 +118,7 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
 
   // ------ Logging ------
   std::string m_eventlogFileName;
+  std::string m_staticPowerLogFileName;
 
   //! Log file timestep
   sc_core::sc_time m_logTimestep;
@@ -129,13 +130,25 @@ class PowerModelChannel : public virtual PowerModelChannelOutIf,
   //! count0 count1 ... countN TIMEM(microseconds)
   std::vector<std::vector<int>> m_log;
 
+  // Keeps log of static power in the form:
+  // i_mod0 i_mod1 ... i_modN TIME0
+  // i_mod0 i_mod1 ... i_modN TIME1
+  // ...
+  // i_mod0 i_mod1 ... i_modN TIMEM
+  std::vector<std::vector<double>> m_staticPowerLog;
+
   //! How many log entries to save in memory before dumping to file
   const int m_logDumpThreshold = 100E3;
+
+  //! How many static power log entries to average out
+  const int m_staticPowerAveragingFactor = 100;
 
   /**
    * @brief dumpEventCsv a method that writes the event log to a csv.
    */
   void dumpEventCsv();
+
+  void dumpStaticPowerCsv();
 
   /**
    * @brief logLoop systemc thread that records event counts at a specified

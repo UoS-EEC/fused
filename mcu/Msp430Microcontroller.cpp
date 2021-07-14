@@ -26,10 +26,10 @@ using namespace sc_core;
 Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
     : Microcontroller(nm), m_cpu("CPU", false, false), bus("bus") {
   /* ------ Memories ------ */
-  cache = new Cache("cache", FRAM_START, 0xff7f);
+  cache = new Cache("cache", FRAM_START, 0xff7f, DCACHE_CTRL_BASE);
   fram = new NonvolatileMemory("fram", FRAM_START, 0xff7f);
-  vectors = new GenericMemory("vectors", 0xff80, 0xffff);
   sram = new VolatileMemory("sram", RAM_START, RAM_START + 0x2000 - 1);
+  vectors = new GenericMemory("vectors", 0xff80, 0xffff);
 
   /* ------ Peripherals ------ */
   std::vector<unsigned char> zeroRetval(0x800, 0);    // Read reg's as 0s
@@ -58,9 +58,9 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   dma = new Dma("Dma");
 
   slaves.push_back(cache);
+  slaves.push_back(&cache->cacheCtrl);
   slaves.push_back(fram_ctl);
   slaves.push_back(sram);
-  slaves.push_back(vectors);
   slaves.push_back(adc);
   slaves.push_back(refgen);
   slaves.push_back(watchdog);
@@ -76,6 +76,7 @@ Msp430Microcontroller::Msp430Microcontroller(sc_module_name nm)
   slaves.push_back(dma);
   slaves.push_back(mon);
   slaves.push_back(euscib);
+  slaves.push_back(vectors);
 
   // Sort slaves by address
   std::sort(slaves.begin(), slaves.end(), [](BusTarget *a, BusTarget *b) {

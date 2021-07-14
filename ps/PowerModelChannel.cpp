@@ -5,18 +5,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <spdlog/fmt/fmt.h>
-#include <spdlog/spdlog.h>
+#include "ps/PowerModelChannel.hpp"
+#include "ps/PowerModelEventBase.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <systemc>
 #include <vector>
-#include "ps/PowerModelChannel.hpp"
-#include "ps/PowerModelEventBase.hpp"
 
 using namespace sc_core;
 
@@ -28,6 +28,10 @@ PowerModelChannel::PowerModelChannel(const sc_module_name name,
                              ? "none"
                              : logFilePath + "/" + std::string(name) +
                                    "_eventlog.csv"),
+      m_staticPowerLogFileName(logFilePath == "none"
+                                   ? "none"
+                                   : logFilePath + "/" + std::string(name) +
+                                         "_static_power_log.csv"),
       m_logTimestep(logTimestep) {
   if (logFilePath != "none") {
     // Create/overwrite log files
@@ -38,12 +42,23 @@ PowerModelChannel::PowerModelChannel(const sc_module_name name,
           fmt::format("Can't open eventlog file at {}", m_eventlogFileName)
               .c_str());
     }
+
+    std::ofstream fs(m_staticPowerLogFileName, std::ios::out | std::ios::trunc);
+    if (!fs.good()) {
+      SC_REPORT_FATAL(this->name(),
+                      fmt::format("Can't open staticPowerLog file at {}",
+                                  m_staticPowerLogFileName)
+                          .c_str());
+    }
   }
   SC_HAS_PROCESS(PowerModelChannel);
   SC_THREAD(logLoop);
 }
 
-PowerModelChannel::~PowerModelChannel() { dumpEventCsv(); }
+PowerModelChannel::~PowerModelChannel() {
+  dumpEventCsv();
+  dumpStaticPowerCsv();
+}
 
 int PowerModelChannel::registerEvent(
     const std::string moduleName,
@@ -182,6 +197,26 @@ double PowerModelChannel::popDynamicEnergy() {
 }
 
 double PowerModelChannel::getStaticCurrent() {
+  // TEST
+  // Log current for each module
+  m_staticPowerLog.emplace_back(m_currentStates.size() + 1, 0.0);
+  m_staticPowerLog.back().back() = sc_time_stamp().to_seconds();
+
+  for (int i = 0; i < m_currentStates.size(); ++i) {
+    const auto &stateId = m_currentStates[i];
+    m_staticPowerLog.back()[i] =
+        stateId >= 0
+            ? m_supplyVoltage *
+                  m_states[stateId].state->calculateCurrent(m_supplyVoltage)
+            : 0.0;
+  }
+
+  if (m_staticPowerLog.size() > m_logDumpThreshold) {
+    dumpStaticPowerCsv();
+    m_staticPowerLog.clear();
+  }
+
+  // TEST
   return std::accumulate(
       m_currentStates.begin(), m_currentStates.end(), 0.0,
       [=](const double &sum, const int &stateId) {
@@ -233,7 +268,7 @@ void PowerModelChannel::logLoop() {
     }
 
     // Push new timestep
-    m_log.emplace_back(m_events.size() + 1, 0);  // New row of all 0s
+    m_log.emplace_back(m_events.size() + 1, 0); // New row of all 0s
     // Last column in the new row is the current time step
     m_log.back().back() = static_cast<int>(
         (m_logTimestep + sc_time_stamp()).to_seconds() * 1.0e6);
@@ -258,6 +293,42 @@ void PowerModelChannel::dumpEventCsv() {
   for (const auto &row : m_log) {
     for (const auto &val : row) {
       f << val << (&val == &row.back() ? '\n' : ',');
+    }
+  }
+}
+
+void PowerModelChannel::dumpStaticPowerCsv() {
+  std::ofstream f(m_staticPowerLogFileName, std::ios::out | std::ios::app);
+  if (f.tellp() == 0) {
+    // Header
+    for (const auto &nm : m_moduleNames) {
+      f << nm << ",";
+    }
+    f << "time(s)\n";
+  }
+
+  // Values
+  // Calculate average
+  auto res = std::vector<double>(m_currentStates.size() + 1, 0.0);
+
+  for (int i = 0; i < m_staticPowerLog.size(); ++i) {
+    // Average values
+    for (int j = 0; j < m_staticPowerLog[i].size() - 1; ++j) {
+      res[j] += m_staticPowerLog[i][j] / m_staticPowerAveragingFactor;
+    }
+
+    // Dump
+    if ((i > 0 && (i % m_staticPowerAveragingFactor == 0)) ||
+        i == m_staticPowerLog.size() - 1) {
+      for (auto &val : res) {
+        f << val << (&val == &res.back() ? '\n' : ',');
+        val = 0.0;
+      }
+    }
+
+    // Time stamp
+    if (i % m_staticPowerAveragingFactor == 0) {
+      res.back() = m_staticPowerLog[i].back();
     }
   }
 }

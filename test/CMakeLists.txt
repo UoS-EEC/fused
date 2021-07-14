@@ -48,6 +48,33 @@ target_compile_definitions(
     TARGET_WORD_SIZE=2
   )
 
+# ------ UndoLogger ------
+add_executable(testCm0UndoLogger
+  test_UndoLogger.cpp
+  )
+
+target_link_libraries(
+  testCm0UndoLogger
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    PowerSystem
+    Cm0Utilities
+    MemicMicrocontroller
+  )
+
+add_executable(testWriteTracker
+  test_writeTracker.cpp
+  )
+
+target_link_libraries(testWriteTracker
+  PRIVATE
+    systemc
+    spdlog::spdlog
+    Cm0Utilities
+    MemicMicrocontroller
+  )
+
 # ------ RegisterFile ------
 add_executable(testMsp430RegisterFile
   test_RegisterFile.cpp
@@ -181,6 +208,16 @@ target_link_libraries(testMsp430fr5xxDma
     Msp430Microcontroller
   )
 
+# ------ Cache controller------
+add_executable(testCacheController
+  test_CacheController.cpp
+  )
+
+target_link_libraries(testCacheController
+  Cm0Utilities
+  Cm0Microcontroller
+  )
+
 # ------ MSP430 CPU ------
 add_executable(testMsp430fr5xxCpu
   test_msp430fr5xxCpu.cpp
@@ -222,7 +259,6 @@ target_link_libraries(testCm0Nvic
     Cm0Utilities
     Cm0Microcontroller
   )
-
 
 # ------ CM0 SPI ------
 add_executable(testCm0Spi
