@@ -51,7 +51,7 @@ VoltageWarning: 2.2
 
 # Storage capacitor
 CapacitorValue: 10.0e-6
-CapacitorInitialVoltage: 3.0
+CapacitorInitialVoltage: 0.0
 
 # ------ MemicBoard-specific settings ------
 MemicBoard.mcu.icache.Enable: True

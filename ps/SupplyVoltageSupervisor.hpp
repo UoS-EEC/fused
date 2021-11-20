@@ -61,6 +61,11 @@ SC_MODULE(SupplyVoltageSupervisor) {
                      sc_core::sc_time_stamp().to_seconds() * 1.0e9, currentVin);
       }
       m_wasOn = m_isOn;
+      /*
+      spdlog::info("{:s}: @{:.0f} ns enable={:d} at v_cap={:.3f}", this->name(),
+                   sc_core::sc_time_stamp().to_seconds() * 1.0e9, m_isOn,
+                   currentVin);
+                   */
 
       // Issue voltage warning
       warn.write(sc_dt::sc_logic(currentVin < m_vWarn));

@@ -14,7 +14,6 @@
 #include "mcu/GenericMemory.hpp"
 #include "ps/ConstantCurrentState.hpp"
 #include "ps/ConstantEnergyEvent.hpp"
-#include "utilities/Config.hpp"
 
 using namespace sc_core;
 
@@ -38,9 +37,7 @@ void GenericMemory::end_of_elaboration() {
       this->name(),
       std::make_unique<ConstantCurrentState>(this->name(), "off"));
   m_onStateId = powerModelPort->registerState(
-      this->name(), std::make_unique<ConstantCurrentState>(
-        "on",
-        Config::get().getDouble(std::string(this->name()) + " on") * m_capacity* 8));
+      this->name(), std::make_unique<ConstantCurrentState>("on", 0.0001));
 
   // Register methods
   SC_METHOD(updatePowerState);

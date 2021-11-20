@@ -6,6 +6,18 @@
 #
 
 add_library(
+    PvCell
+    PvCell.cpp
+    PvCell.hpp
+    )
+
+target_link_libraries(
+    PvCell
+    PRIVATE
+      spdlog::spdlog
+    )
+
+add_library(
     PowerSystem
     Capacitor.hpp
     ConstantEnergyEvent.hpp
@@ -24,5 +36,7 @@ target_link_libraries(
       systemc-ams
       systemc
     PRIVATE
+      PvCell
       spdlog::spdlog
     )
+

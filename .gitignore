@@ -118,3 +118,5 @@ Thumbs.db
 *.dll
 *.exe
 
+
+ps/node_modules

@@ -68,11 +68,22 @@ SC_MODULE(ExternalCircuitry) {
                            Config::get().getDouble("PowerModelTimestep"))) {
     // Supply
     supply.i(i_supply);
-    supply.v(v_cap);
+    supply.v(v_cap_in);
+
+    // Input capacitor
+    c_in.v(v_cap_in);
+    c_in.i_in(i_supply);
+    c_in.i_out(i_boost_in);
+
+    // Boost converter
+    boostRegulator.i_in(i_boost_in);
+    boostRegulator.v_in(v_cap_in);
+    boostRegulator.i_out(i_boost_out);
+    boostRegulator.v_out(v_cap);
 
     // Capacitor
     c.v(v_cap);
-    c.i_in(i_supply);
+    c.i_in(i_boost_out);
     c.i_out(i_out_cap);
 
     // Supply voltage supervisor
@@ -101,8 +112,12 @@ SC_MODULE(ExternalCircuitry) {
   }
 
   // Submodules
-  ConstantPowerSupply supply{"supply"};
+  // ConstantPowerSupply supply{"supply"};
+  PvCellSupply supply{"supply"};
+
   Capacitor c;
+  Capacitor c_in{"c_in", 10.0e-6};
+  BoostRegulator boostRegulator{"boostRegulator"};
   LinearRegulator ldo;
   SupplyVoltageSupervisor svs;
   ScaConverters::TdfToDe<double> vOutConverter;
@@ -110,13 +125,16 @@ SC_MODULE(ExternalCircuitry) {
   ScaConverters::DeToTdf<bool> keepAliveConverter;
   ScaConverters::TdfToDe<sc_dt::sc_logic> vwarnConverter;
 
-  // Signals
+  // Signalt
   sca_tdf::sca_signal<double> i_supply{"i_supply"};
+  sca_tdf::sca_signal<double> i_boost_in{"i_boost_in"};
+  sca_tdf::sca_signal<double> i_boost_out{"i_boost_out"};
 
   sca_tdf::sca_signal<double> i_out_cap{"i_out_cap"};
   sca_tdf::sca_signal<double> i_out_svs{"i_out_svs"};
 
   sca_tdf::sca_signal<double> v_cap{"v_cap"};
+  sca_tdf::sca_signal<double> v_cap_in{"v_cap_in"};
   sca_tdf::sca_signal<double> v_out_svs{"v_out_svs"};
 
   sca_tdf::sca_signal<double> i_out{"i_out_sig"};
