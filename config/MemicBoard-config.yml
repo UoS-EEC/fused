@@ -43,14 +43,23 @@ PowerSupplyPower: 10.0E-6 #[W]
 SupplyCurrentLimit: 5.0E-3 #[A]
 SupplyVoltageLimit: 3.59 # [V]
 
+# ------ PVCell ------
+# File containing irradiance data:
+#   one integer value per line
+#   Unit is Lux
+#   Sampled at 1Hz
+LuxTracePath: ../config/Lux_14Oct21.csv
+LuxTraceSampleTime: 100.0e-3 # sample time [s]
+
 # ------ Power system ------
 CpuCoreVoltage: 1.8
-SVSVon: 3.5
-SVSVoff: 3.4
-VoltageWarning: 2.2
+SVSVon: 1.3 # About 80% of PV cell open circuit voltage at nominal lux
+SVSVoff: 1.0
+SVSIq: 400.0e-9 # Quiescent current [A]
+VoltageWarning: 0.4 # Just about enough energy to suspend
 
 # Storage capacitor
-CapacitorValue: 10.0e-6
+CapacitorValue: 1.0e-6
 CapacitorInitialVoltage: 0.0
 
 # ------ MemicBoard-specific settings ------

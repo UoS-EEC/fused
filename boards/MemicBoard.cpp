@@ -103,6 +103,10 @@ MemicBoard::MemicBoard(const sc_module_name name)
   sca_trace(vcdfile, externalCircuitry.v_cap, "externalCircuitry.v_cap");
   sca_trace(vcdfile, externalCircuitry.v_cap_in, "externalCircuitry.v_cap_in");
   sca_trace(vcdfile, externalCircuitry.i_supply, "externalCircuitry.i_supply");
+  sca_trace(vcdfile, externalCircuitry.boostVoltageOk,
+            "externalCircuitry.boostVoltageOk");
+  sca_trace(vcdfile, externalCircuitry.supply.irradiance, "irradiance");
+  sca_trace(vcdfile, externalCircuitry.supply.powerOut, "pvcell.power");
 
   // Creates a csv-like file
   tabfile = sca_util::sca_create_tabular_trace_file(

@@ -48,12 +48,10 @@ SC_MODULE(ExternalCircuitry) {
   SCA_CTOR(ExternalCircuitry)
       : c("c", Config::get().getDouble("CapacitorValue"),
           Config::get().getDouble("CapacitorInitialVoltage")),
-        ldo("ldo",
-            /*outputVoltage=*/Config::get().getDouble("PowerSupplyVoltage"),
-            /*dropoutVoltage=*/0.02, /*leakageCurrent=*/0.0),
         svs("svs", Config::get().getDouble("SVSVon"),
             Config::get().getDouble("SVSVoff"),
-            Config::get().getDouble("VoltageWarning")),
+            Config::get().getDouble("VoltageWarning"),
+            Config::get().getDouble("SVSIq")),
         vOutConverter("vOutConverter",
                       sc_core::sc_time::from_seconds(
                           Config::get().getDouble("PowerModelTimestep"))),
@@ -80,6 +78,7 @@ SC_MODULE(ExternalCircuitry) {
     boostRegulator.v_in(v_cap_in);
     boostRegulator.i_out(i_boost_out);
     boostRegulator.v_out(v_cap);
+    boostRegulator.output_ok(boostVoltageOk);
 
     // Capacitor
     c.v(v_cap);
@@ -88,17 +87,13 @@ SC_MODULE(ExternalCircuitry) {
 
     // Supply voltage supervisor
     svs.v_in(v_cap);
-    svs.v_out(v_out_svs);
+    svs.v_sense(v_cap_in);
+    svs.v_out(v_out);
     svs.i_in(i_out_cap);
-    svs.i_out(i_out_svs);
+    svs.i_out(i_out);
     svs.force(svsForce);
     svs.warn(svsWarn);
-
-    // Regulator
-    ldo.v_in(v_out_svs);
-    ldo.v_out(v_out);
-    ldo.i_in(i_out_svs);
-    ldo.i_out(i_out);
+    svs.enable(boostVoltageOk);
 
     // Converters between Discrete Event and Timed Data Flow (i.e. SC/SC-AMS)
     vOutConverter.in(v_out);
@@ -118,28 +113,26 @@ SC_MODULE(ExternalCircuitry) {
   Capacitor c;
   Capacitor c_in{"c_in", 10.0e-6};
   BoostRegulator boostRegulator{"boostRegulator"};
-  LinearRegulator ldo;
-  SupplyVoltageSupervisor svs;
+  SupplyVoltageSupervisorWithEnable svs;
   ScaConverters::TdfToDe<double> vOutConverter;
   ScaConverters::DeToTdf<double> iOutConverter;
   ScaConverters::DeToTdf<bool> keepAliveConverter;
   ScaConverters::TdfToDe<sc_dt::sc_logic> vwarnConverter;
 
-  // Signalt
+  // Signals
   sca_tdf::sca_signal<double> i_supply{"i_supply"};
   sca_tdf::sca_signal<double> i_boost_in{"i_boost_in"};
   sca_tdf::sca_signal<double> i_boost_out{"i_boost_out"};
 
   sca_tdf::sca_signal<double> i_out_cap{"i_out_cap"};
-  sca_tdf::sca_signal<double> i_out_svs{"i_out_svs"};
 
   sca_tdf::sca_signal<double> v_cap{"v_cap"};
   sca_tdf::sca_signal<double> v_cap_in{"v_cap_in"};
-  sca_tdf::sca_signal<double> v_out_svs{"v_out_svs"};
 
   sca_tdf::sca_signal<double> i_out{"i_out_sig"};
   sca_tdf::sca_signal<double> v_out{"v_out_sig"};
 
   sca_tdf::sca_signal<sc_dt::sc_logic> svsWarn{"svsWarn"};
   sca_tdf::sca_signal<bool> svsForce{"svsForce"};
+  sca_tdf::sca_signal<bool> boostVoltageOk{"boostVoltageOk"};
 };

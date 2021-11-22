@@ -45,20 +45,6 @@ double PvCell::pv(const double lux, const double iload) {
   return vout < 0.0 ? 0.0 : vout;
 }
 
-double PvCell::dio_iret_v2(double v, double i, double rs, double is1,
-                           double n) {
-  const double k_Boltz = 1.38e-23;
-  const double q_Electron = 1.6e-19;
-  const double T1 = 273 + 25;
-  /*
-  spdlog::info("Exponent: ({:e} + {:e}*{:e})*{:e}/({:e}*{:e}*{:e}) = {:e}", v,
-               i, rs, q_Electron, n, k_Boltz, T1,
-               (((v + i * rs) * q_Electron) / (n * k_Boltz * T1)));
-               */
-
-  return is1 * (exp(((v + i * rs) * q_Electron) / (n * k_Boltz * T1)) - 1);
-}
-
 double PvCell::singleDiodeEquation(const double lux, const double vload) {
   double rp_scale;
   if (lux > 1800) {
@@ -76,25 +62,38 @@ double PvCell::singleDiodeEquation(const double lux, const double vload) {
   // Source of the following single diode equation:
   // https://www.researchgate.net/publication/281942470_Single-Diode_and_Two-Diode_Pv_Cell_Modeling_Using_Matlab_For_Studying_Characteristics_Of_Solar_Cell_Under_Varying_Conditions
 
-  double iguess = 0.0;
-  // Work your way up the curve until the guess converges
   // Keep guessing what the current is until we get
-  // iguess - id == iph
+  // iguess == iph - id - ip
+  // where
+  //   iph      is the photocurrent
+  //   id       is the diode current
+  //   ip       is the current through rp
+  double iguess = 0.0;
   int count = 0;
   double id;
   while (true) {
     count++;
-    id = PvCell::dio_iret_v2(vload, iguess, rs, is1, n1);
+
+    // Voltage across diode is the voltage across the terminals plus the voltage
+    // across the series resistance
+    double vd = vload + iguess * rs;
+
+    // Current through rp is determined by the voltage across the diode
+    double ip = vd / rp;
+
+    // Get the diode current (return current)
+    id = PvCell::dio_iret(vd, is1, n1);
 
     if (id > iph) {
-      spdlog::warn("id > iph, open circuit voltage reached. vload={:e}", vload);
+      spdlog::warn("id > iph, open circuit voltage reached?. vload={:e}",
+                   vload);
       return 0.0;
     } else if (count > 1e6) {
       spdlog::error("Couldn't converge after a million iterations. vload={:e}, "
                     "iguess={:e} after {:d} iterations",
                     vload, iguess, count);
       return 0.0;
-    } else if (iguess - id < iph - 5.0e-8) {
+    } else if (iguess < iph - id - ip - 5.0e-8) {
       // Continue guessing
       iguess += 1.0e-7;
     } else {
@@ -106,14 +105,6 @@ double PvCell::singleDiodeEquation(const double lux, const double vload) {
       break;
     }
   }
-  // auto result = (iph - id) / (1 - (rs / rp));
-  auto result = iph - id - (vload + iguess * rs) / rp;
-  if (result < 0) {
-    spdlog::warn("PvCell::singleDiodeEquation returned negative current "
-                 "vload={:e}, is1={:e}, iph={:e}, id={:e} result={:e}",
-                 vload, is1, iph, id, result);
-    return 0.0;
-  }
 
-  return result;
+  return iguess;
 }
