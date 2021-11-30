@@ -184,8 +184,23 @@ int PowerModelChannel::popEventCount(const int eventId) {
 
 double PowerModelChannel::popEventEnergy(const int eventId) {
   sc_assert(eventId >= 0 && eventId < m_log.back().size());
-  return m_events[eventId].event->calculateEnergy(m_supplyVoltage) *
-         popEventCount(eventId);
+  const auto count = popEventCount(eventId);
+  const auto result =
+      m_events[eventId].event->calculateEnergy(m_supplyVoltage) * count;
+
+  // Sanity check for lage numbers
+  if (result > 1.0 /*Joule*/) {
+    spdlog::error(
+        FMT_STRING("{:s}::popEventEnergy {:.1f} ns energy {:e} unreasonably "
+                   "large for a single timestep.\n\tReporting event: "
+                   "{:s},\n\tRecorded rate {:d}"),
+        this->name(), sc_core::sc_time_stamp().to_seconds() * 1e9, result,
+        m_events[eventId].event->toString(), count);
+    SC_REPORT_FATAL(this->name(),
+                    "Unreasonably high energy for one event in one timestep");
+  }
+
+  return result;
 }
 
 double PowerModelChannel::popDynamicEnergy() {

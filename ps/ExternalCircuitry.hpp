@@ -46,8 +46,10 @@ SC_MODULE(ExternalCircuitry) {
 
   // ConstantCurrentSupply supply{"supply"};
   SCA_CTOR(ExternalCircuitry)
-      : c("c", Config::get().getDouble("CapacitorValue"),
-          Config::get().getDouble("CapacitorInitialVoltage")),
+      : c_out("c_out", Config::get().getDouble("OutputCapacitorValue"),
+              Config::get().getDouble("OutputCapacitorInitialVoltage")),
+        c_in("c_in", Config::get().getDouble("InputCapacitorValue"),
+             Config::get().getDouble("InputCapacitorInitialVoltage")),
         svs("svs", Config::get().getDouble("SVSVon"),
             Config::get().getDouble("SVSVoff"),
             Config::get().getDouble("VoltageWarning"),
@@ -81,9 +83,9 @@ SC_MODULE(ExternalCircuitry) {
     boostRegulator.output_ok(boostVoltageOk);
 
     // Capacitor
-    c.v(v_cap);
-    c.i_in(i_boost_out);
-    c.i_out(i_out_cap);
+    c_out.v(v_cap);
+    c_out.i_in(i_boost_out);
+    c_out.i_out(i_out_cap);
 
     // Supply voltage supervisor
     svs.v_in(v_cap);
@@ -110,8 +112,8 @@ SC_MODULE(ExternalCircuitry) {
   // ConstantPowerSupply supply{"supply"};
   PvCellSupply supply{"supply"};
 
-  Capacitor c;
-  Capacitor c_in{"c_in", 10.0e-6};
+  Capacitor c_out;
+  Capacitor c_in;
   BoostRegulator boostRegulator{"boostRegulator"};
   SupplyVoltageSupervisorWithEnable svs;
   ScaConverters::TdfToDe<double> vOutConverter;

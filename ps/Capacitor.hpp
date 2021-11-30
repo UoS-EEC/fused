@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <spdlog/spdlog.h>
 #include <systemc-ams>
 #include <systemc>
 
@@ -47,6 +48,14 @@ SCA_TDF_MODULE(Capacitor) {
   // Evaluation
   void processing() {
     m_crntVoltage += m_timestep * (i_in.read() - i_out.read()) / m_capacitance;
+    if (m_crntVoltage < -10.0) {
+      spdlog::error("{:s}: @{:.0f} Large negative capacitor voltage, something "
+                    "is wrong.\n\tNew voltage: {:e} V\n\tinput current: {:e} "
+                    "A\n\toutput current: {:e} A",
+                    this->name(), sc_core::sc_time_stamp().to_seconds() * 1e9,
+                    m_crntVoltage, i_in.read(), i_out.read());
+      SC_REPORT_FATAL(this->name(), "Undervoltage error");
+    }
     v.write(m_crntVoltage);
   }
 

@@ -9,8 +9,11 @@
 
 #include "ps/PvCell.hpp"
 #include "utilities/Config.hpp"
+#include "utilities/Utilities.hpp"
 #include <algorithm>
 #include <iostream>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <systemc-ams>
 #include <systemc>
@@ -102,12 +105,20 @@ SCA_TDF_MODULE(PvCellSupply) {
   void initialize(){};
 
   void processing() {
-    int luxIdx =
-        int(sc_core::sc_time_stamp() / m_luxTraceSampleTime) % luxTrace.size();
-    double iOut;
+    double luminance;
 
-    if (luxTrace[luxIdx] > 100) {
-      iOut = PvCell::singleDiodeEquation(luxTrace[luxIdx], v.read());
+    if (luminanceTrace.size() > 1) {
+      int luminanceIdx =
+          int(sc_core::sc_time_stamp() / m_luminanceTraceSampleTime) %
+          luminanceTrace.size();
+      luminance = luminanceTrace[luminanceIdx];
+    } else {
+      luminance = luminanceTrace[0];
+    }
+
+    double iOut;
+    if (luminance > 100) {
+      iOut = PvCell::singleDiodeEquation(luminance, v.read());
     } else {
       // No point in calculating the PV cell current when there's no light
       iOut = 0.0;
@@ -115,8 +126,8 @@ SCA_TDF_MODULE(PvCellSupply) {
 
     i.write(iOut);
 
-    // Write luxtrace into signal for tracing
-    irradiance.write(luxTrace[luxIdx]);
+    // Write luminance into signal for tracing
+    irradiance.write(luminance);
     powerOut.write(iOut * v.read());
   }
 
@@ -128,15 +139,15 @@ SCA_TDF_MODULE(PvCellSupply) {
 
     // Load irradiance input trace
     const bool validTraceFile =
-        Config::get().contains("LuxTraceSampleTime") &&
-        (Config::get().contains("LuxTracePath")
-             ? Config::get().getString("LuxTracePath") != "none"
+        Config::get().contains("LuminanceTraceSampleTime") &&
+        (Config::get().contains("LuminanceTracePath")
+             ? Config::get().getString("LuminanceTracePath") != "none"
              : false);
 
     if (validTraceFile) {
-      auto fn = Config::get().getString("LuxTracePath");
-      m_luxTraceSampleTime = sc_core::sc_time::from_seconds(
-          Config::get().getDouble("LuxTraceSampleTime"));
+      auto fn = Config::get().getString("LuminanceTracePath");
+      m_luminanceTraceSampleTime = sc_core::sc_time::from_seconds(
+          Config::get().getDouble("LuminanceTraceSampleTime"));
       Utility::assertFileExists(fn);
       std::ifstream infile(fn);
 
@@ -148,28 +159,30 @@ SCA_TDF_MODULE(PvCellSupply) {
 
       int tmp;
       infile >> tmp;
-      luxTrace.push_back(tmp);
+      luminanceTrace.push_back(tmp);
       while (!infile.eof()) { // keep reading until end-of-file
         infile >> tmp;        // sets EOF flag if no value found
-        luxTrace.push_back(tmp);
+        luminanceTrace.push_back(tmp);
       }
       spdlog::info("{:s}: successfully loaded input trace with {:d} datapoints "
                    "from {:s}",
-                   this->name(), luxTrace.size(), fn);
+                   this->name(), luminanceTrace.size(), fn);
     } else {
-      luxTrace.push_back(0);
-      spdlog::info("{:s}: No lux trace specified, using a static value of {:d}",
-                   this->name(), luxTrace[0]);
-      m_luxTraceSampleTime = sc_core::sc_time(1, sc_core::SC_MS);
+      luminanceTrace.push_back(Config::get().getDouble("LuminanceValue"));
+      spdlog::info("{:s}: No luminance trace specified, using a static "
+                   "LuminanceValue of {:d} lux",
+                   this->name(), luminanceTrace[0]);
+      // Just set a high number
+      m_luminanceTraceSampleTime = sc_core::sc_time(1, sc_core::SC_MS);
     }
   };
 
 private:
-  sc_core::sc_time m_timestep;           // Evaluation timestep
-  sc_core::sc_time m_luxTraceSampleTime; // Evaluation timestep
+  sc_core::sc_time m_timestep;                 // Evaluation timestep
+  sc_core::sc_time m_luminanceTraceSampleTime; // Evaluation timestep
 
   //! Timer-series trace of irradiance, one value per second. Unit: Lux
-  std::vector<int> luxTrace;
+  std::vector<int> luminanceTrace;
 
 public:
   // Signals for tracing
@@ -210,11 +223,11 @@ SCA_TDF_MODULE(BoostRegulator) {
       i_in.write(m_inputCurrentLimit);
       i_out.write(std::min(outputPower / v_out.read(), m_outputCurrentLimit));
 
-      spdlog::info("{:s}: outputting {:e} A, drawing {:e} A, input voltage "
-                   "{:e}, output voltage {:e} V",
-                   this->name(),
-                   std::min(outputPower / v_out.read(), m_outputCurrentLimit),
-                   m_inputCurrentLimit, v_in.read(), v_out.read());
+      // spdlog::info("{:s}: outputting {:e} A, drawing {:e} A, input voltage "
+      //             "{:e}, output voltage {:e} V",
+      //             this->name(),
+      //             std::min(outputPower / v_out.read(), m_outputCurrentLimit),
+      //             m_inputCurrentLimit, v_in.read(), v_out.read());
     } else {
       // spdlog::info("Waiting for input cap to recover ({:e}v)",
       // v_in.read());
@@ -242,7 +255,7 @@ private:
   bool m_isOn{false};                            // On/off state
   double m_inputCurrentLimit = 1.0e-3;           // [Ampere]
   double m_outputCurrentLimit = 1e-3;            // [Ampere]
-  double m_inputVoltageOkThreshold = 0.85 * 1.6; // [Volt]
+  double m_inputVoltageOkThreshold = 0.80 * 1.6; // [Volt]
   double m_inputVoltageLowThreshold = 0.2;       // [Volt]
   double m_outputVoltageSetPoint = 1.85;         // [Volt]
   double m_quiescentCurrent = 488e-9;            // [Ampere]

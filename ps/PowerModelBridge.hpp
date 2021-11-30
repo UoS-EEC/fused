@@ -50,15 +50,10 @@ SC_MODULE(PowerModelBridge) {
 
         const double i = powerModelPort->getStaticCurrent() + dynamicCurrent;
         i_out.write(i);
-
-        // spdlog::info(FMT_STRING(
-        // "{:s}: {:010d} us delta {:.1f} us static {:.6f} mA dynamic {:.6f}
-        // mA"),
-        //             this->name(),
-        //             static_cast<long long unsigned int>(
-        //                 1e6 * sc_core::sc_time_stamp().to_seconds()),
-        //             1e6 * timestep, 1e3 * powerModelPort->getStaticCurrent(),
-        //             1e3 * dynamicCurrent);
+        // spdlog::info(
+        //    FMT_STRING("{:s}: {:.1f} ns static {:e} A dynamic {:e} A"),
+        //    this->name(), sc_core::sc_time_stamp().to_seconds() * 1e9,
+        //    powerModelPort->getStaticCurrent(), dynamicCurrent);
       }
     }
   }

@@ -51,8 +51,7 @@ SC_MODULE(DummyModule){
    */
   virtual void end_of_simulation() override {
     if (Config::get().getBool("GdbServer")) {
-      m_simCtrl->stopServer();
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      m_simCtrl->stopServer(); std::this_thread::sleep_for(std::chrono::milliseconds(10));
       while(m_simCtrl->isServerRunning()) {
         spdlog::info("Waiting for debug server to exit...");
         std::this_thread::sleep_for(std::chrono::milliseconds(500));

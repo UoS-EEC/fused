@@ -146,7 +146,8 @@ SC_MODULE(SupplyVoltageSupervisorWithEnable) {
   sca_tdf::sca_out<sc_dt::sc_logic> warn{"warn"};
 
   SCA_TDF_MODULE(VoltageDetectorWithOverride) {
-    sca_tdf::sca_in<double> v{"v"};
+    sca_tdf::sca_in<double> v_in{"v_in"};
+    sca_tdf::sca_in<double> v_sense{"v_sense"};
     sca_tdf::sca_in<bool> force{"force"};
     sca_tdf::sca_out<bool> out{"v_out"};
     sca_tdf::sca_out<sc_dt::sc_logic> warn{"warn"};
@@ -157,7 +158,7 @@ SC_MODULE(SupplyVoltageSupervisorWithEnable) {
         : sca_tdf::sca_module(name), m_vOn(vOn), m_vOff(vOff), m_vWarn(vWarn) {}
 
     void processing() {
-      const auto currentVin = v.read();
+      const auto currentVin = v_sense.read();
       m_isOn = force.read() || (currentVin > m_vOn) ||
                ((currentVin > m_vOff) && m_isOn);
 
@@ -165,9 +166,11 @@ SC_MODULE(SupplyVoltageSupervisorWithEnable) {
 
       // Print voltage when supply switched off
       if (!m_isOn && m_wasOn) {
-        spdlog::info("{:s}: @{:.0f} ns output turned off at v_cap={:.3f}",
+        spdlog::info("{:s}: @{:.0f} ns output turned off at v_cap={:.3f}, "
+                     "v_sense={:.3f}",
                      this->name(),
-                     sc_core::sc_time_stamp().to_seconds() * 1.0e9, currentVin);
+                     sc_core::sc_time_stamp().to_seconds() * 1.0e9, currentVin,
+                     v_in.read());
       }
       m_wasOn = m_isOn;
       /*
@@ -229,7 +232,8 @@ SC_MODULE(SupplyVoltageSupervisorWithEnable) {
       : sc_core::sc_module(name), vdet("vdet", vOn, vOff, vWarn),
         quiescentCurrent("quiescentCurrent", iq) {
     // Voltage detector
-    vdet.v(v_sense);
+    vdet.v_sense(v_sense);
+    vdet.v_in(v_in);
     vdet.force(force);
     vdet.out(outputOn);
     vdet.warn(warn);

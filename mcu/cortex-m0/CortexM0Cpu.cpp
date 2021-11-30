@@ -141,6 +141,8 @@ void CortexM0Cpu::process() {
         if (insn == OPCODE_WFE || insn == OPCODE_WFI) {
           m_sleeping = true;
           powerModelPort->reportState(m_sleepStateId);
+          spdlog::info("{}: @{:.0f} ns execution suspended by WFE/WFI",
+                       this->name(), sc_time_stamp().to_seconds() * 1e9);
         }
 
         if (m_bubbles > 0) {
@@ -252,6 +254,8 @@ void CortexM0Cpu::exceptionCheck() {
     if (m_sleeping) {
       m_sleeping = false;
       powerModelPort->reportState(m_onStateId);
+      spdlog::info("{}: @{:.0f} ns waking up from sleep", this->name(),
+                   sc_time_stamp().to_seconds() * 1e9);
     }
 
     exceptionEnter(exceptionId);
